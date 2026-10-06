@@ -1,0 +1,47 @@
+{
+  "KA1": {
+    "url": "https://archive.org/details/p1sterreichisc01aust",
+    "type": "1896 official history citing archives; secondary, not contemporary testimony",
+    "location": "vol. I part 1, pp. 309–310, 381–382, 572–573"
+  },
+  "KA2": {
+    "url": "https://archive.org/details/sterreichische02austuoft",
+    "type": "official archival history; secondary with quoted returns",
+    "location": "vol. II, pp. 4–5, 58, opening of January 1741 chapter, 224–229, 245–246"
+  },
+  "PC1": {
+    "url": "https://friedrich.uni-trier.de/de/politKorr/1/text/",
+    "type": "edited primary correspondence; full text opened",
+    "location": "documents 192 (8 December 1740), 227 (26 December 1740), 344 (13 April 1741)"
+  },
+  "H8": {
+    "url": "https://net.jogtar.hu/ezer-ev-torveny?docid=74100008.TV",
+    "type": "primary statute in published Hungarian translation",
+    "location": "1741 Act VIII, full article"
+  },
+  "H63": {
+    "url": "https://net.jogtar.hu/ezer-ev-torveny?docid=74100063.TV",
+    "type": "primary statute in published Hungarian translation",
+    "location": "1741 Act LXIII, preamble and sections 1–4, 13–18"
+  },
+  "BERLIN": {
+    "url": "https://documentsdedroitinternational.fr/ressources/TdP/1742-07-28-TraitedeBerlin.pdf",
+    "type": "primary treaty in Wenck collection; PDF downloaded and text read",
+    "location": "28 July 1742, articles IV–VI and IX; printed pp. 742–745"
+  },
+  "GHDI44": {
+    "url": "https://germanhistorydocs.org/en/the-holy-roman-empire-1648-1815/ghdi:document-5366",
+    "type": "primary decree in translation",
+    "location": "December 1744 expulsion decree, opening paragraph"
+  },
+  "GHDI48": {
+    "url": "https://germanhistorydocs.org/en/the-holy-roman-empire-1648-1815/ghdi:document-3582",
+    "type": "primary military treatise in translation, later than campaign",
+    "location": "editorial dating 1748/1753 and chapter 2"
+  },
+  "TURIN": {
+    "url": "https://blog.nationalmuseum.ch/en/2023/05/the-encirclement-of-geneva-by-spanish-troops-in-1743/",
+    "type": "museum historical account; secondary corroboration only",
+    "location": "paragraph beginning “The invasion prompted…”; 1 February 1742"
+  }
+}

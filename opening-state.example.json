@@ -1,0 +1,5158 @@
+{
+  "schemaVersion": 2,
+  "campaignId": "habsburg-1740",
+  "turn": 0,
+  "parentTurn": null,
+  "date": "1740-10-21",
+  "title": "The inheritance",
+  "player": {
+    "name": "Commander with court access — office pending research",
+    "mode": "court",
+    "locationId": "vienna",
+    "provisional": true,
+    "note": "Candidate: Ludwig Andreas von Khevenhüller. The Kriegsarchiv (1896, pp. 309–310) lists him as Hofkriegsrat Vice-President for 1740/41 (one source; appointment month unknown). Whether he was in Vienna on 21 Oct 1740 is unverified."
+  },
+  "briefing": "Charles VI died on 20 October 1740. Interface demonstration: places are real; forces, offices and agendas are not yet researched.",
+  "locations": [
+    {
+      "id": "vienna",
+      "name": "Vienna",
+      "lat": 48.2082,
+      "lon": 16.3738,
+      "kind": "court",
+      "report": "Seat of the court. Your office, access to the ruler and standing in the Conference are still to be established.",
+      "lab": "n"
+    },
+    {
+      "id": "prague",
+      "name": "Prague",
+      "lat": 50.0755,
+      "lon": 14.4378,
+      "kind": "city",
+      "report": "Bohemia. Provincial institutions and the succession need a researched dossier.",
+      "lab": "w"
+    },
+    {
+      "id": "breslau",
+      "name": "Breslau",
+      "lat": 51.1079,
+      "lon": 17.0385,
+      "kind": "city",
+      "report": "Silesia. No later Prussian decision is knowledge available on this date.",
+      "lab": "e"
+    },
+    {
+      "id": "pressburg",
+      "name": "Pressburg",
+      "lat": 48.1486,
+      "lon": 17.1077,
+      "kind": "city",
+      "report": "Hungary. The Diet and its privileges are a separate negotiating channel from the court.",
+      "lab": "e"
+    },
+    {
+      "id": "linz",
+      "name": "Linz",
+      "lat": 48.3069,
+      "lon": 14.2858,
+      "kind": "city",
+      "report": "Upper Austria. Danube crossings and supply routes must be verified before orders are resolved.",
+      "lab": "w"
+    },
+    {
+      "id": "munich",
+      "name": "Munich",
+      "lat": 48.1351,
+      "lon": 11.582,
+      "kind": "foreign",
+      "report": "Bavaria. Diplomatic intentions must be separated from later events.",
+      "lab": "w"
+    },
+    {
+      "id": "dresden",
+      "name": "Dresden",
+      "lat": 51.0504,
+      "lon": 13.7373,
+      "kind": "foreign",
+      "report": "Saxony. Intelligence travels by envoy and correspondence, with delay.",
+      "lab": "w"
+    },
+    {
+      "id": "berlin",
+      "name": "Berlin",
+      "lat": 52.52,
+      "lon": 13.405,
+      "kind": "foreign",
+      "report": "Brandenburg-Prussia. What Vienna knew of Frederick II's intentions, and when, is a research gate.",
+      "lab": "e"
+    }
+  ],
+  "regionLabels": [
+    {
+      "name": "Bohemia",
+      "lat": 49.9,
+      "lon": 15.0
+    },
+    {
+      "name": "Silesia",
+      "lat": 50.9,
+      "lon": 17.3
+    },
+    {
+      "name": "Moravia",
+      "lat": 49.4,
+      "lon": 16.9
+    },
+    {
+      "name": "Austria",
+      "lat": 47.9,
+      "lon": 14.6
+    },
+    {
+      "name": "Hungary",
+      "lat": 47.3,
+      "lon": 19.2
+    },
+    {
+      "name": "Bavaria",
+      "lat": 48.5,
+      "lon": 11.8
+    },
+    {
+      "name": "Saxony",
+      "lat": 51.2,
+      "lon": 13.2
+    },
+    {
+      "name": "Brandenburg-Prussia",
+      "lat": 52.4,
+      "lon": 13.9
+    }
+  ],
+  "forces": [],
+  "forcesNote": "No forces are shown: no sourced order of battle exists yet. Paper strength and troops actually present must be researched separately.",
+  "reports": [
+    {
+      "id": "r1",
+      "place": "vienna",
+      "dated": "1740-10-21",
+      "category": "The succession",
+      "title": "An inheritance of obligations",
+      "text": "Learn what authority, resources and commitments your office actually possesses. Recognition abroad and cooperation at home are different things.",
+      "claim": "demo",
+      "from_id": "maria_theresa",
+      "via": "audience"
+    },
+    {
+      "id": "r2",
+      "place": "vienna",
+      "dated": "1740-10-21",
+      "category": "The council",
+      "title": "Ask what can be delivered",
+      "text": "A treasury promise, a provincial grant and coin in a paymaster's chest are different things. Ask for separate accounts of each.",
+      "claim": "demo",
+      "from_id": "quartermaster",
+      "via": "courier"
+    },
+    {
+      "id": "r3",
+      "place": "breslau",
+      "dated": "1740-10-21",
+      "category": "The frontier",
+      "title": "No report is the whole situation",
+      "text": "Ask who observed an event, when it was written, and how it reached court. Silence is not safety.",
+      "claim": "demo",
+      "from_id": "wallis",
+      "via": "courier"
+    }
+  ],
+  "knowledge": [
+    {
+      "text": "Professional knowledge your character would hold is listed here before consequential decisions (e.g. how long a dispatch takes to reach a frontier garrison). Not yet researched.",
+      "claim": "demo"
+    }
+  ],
+  "decision": {
+    "id": "d0-demo",
+    "title": "Where to spend your first days (illustrative)",
+    "context": "Illustrative advisers — role placeholders, not evidence.",
+    "options": [
+      {
+        "id": "a",
+        "title": "Seek an early audience with the ruler",
+        "objective": "Establish your standing and learn her priorities before others frame the situation.",
+        "by": "Illustrative court secretary",
+        "reasoning": "First access shapes later access.",
+        "risks": "Appearing to press while the court is in mourning; antagonising ministers who expected to brief her first.",
+        "needs": "A sponsor to secure the audience.",
+        "unknown": "Who currently controls access to the ruler.",
+        "delegation": "Your staff prepare memoranda; you speak personally."
+      },
+      {
+        "id": "b",
+        "title": "Commission an accounting of troops and money before speaking",
+        "objective": "Arrive with facts: paper strength versus men present, and coin versus promises.",
+        "by": "Illustrative quartermaster",
+        "reasoning": "Requests without numbers are easy to dismiss.",
+        "risks": "Delay; the inquiry itself alerts rivals and clerks who guard those figures.",
+        "needs": "Cooperation from the Hofkriegsrat clerks.",
+        "unknown": "How accurate the clerks' own figures are.",
+        "delegation": "Fully delegated; you review the summary."
+      },
+      {
+        "id": "c",
+        "title": "Consult trusted peers quietly first",
+        "objective": "Learn factions and obligations before committing to any position.",
+        "by": "Illustrative aide",
+        "reasoning": "Patronage decides outcomes; know the map of favours.",
+        "risks": "Rumour travels; neutrality may be read as weakness.",
+        "needs": "Time and discretion.",
+        "unknown": "Who among your peers is already committed.",
+        "delegation": "Personal."
+      }
+    ]
+  },
+  "scene": {
+    "id": "s0-demo",
+    "revision": 0,
+    "status": "open",
+    "title": "A first conversation (illustrative)",
+    "setting": "A corridor outside the council chamber, Vienna, evening.",
+    "participants": [
+      {
+        "id": "sec",
+        "name": "Illustrative court secretary",
+        "knows": "Who is waiting for an audience; the mood of the household.",
+        "wants": "To keep access orderly and protect his own standing.",
+        "claim": "demo"
+      }
+    ],
+    "lines": [
+      {
+        "who": "Illustrative court secretary",
+        "text": "Your Excellency. Her Majesty is receiving few visitors this week. What shall I say you wish to discuss?"
+      }
+    ],
+    "commitments": []
+  },
+  "sources": [
+    {
+      "title": "Maria Theresa — Habsburger.net",
+      "url": "https://www.habsburger.net/en/persons/habsburg-emperor/maria-theresa"
+    },
+    {
+      "title": "War of the Austrian Succession — National Army Museum",
+      "url": "https://www.nam.ac.uk/explore/war-austrian"
+    },
+    {
+      "title": "Ludwig Andreas von Khevenhüller — Croatian Biographical Lexicon (lead only)",
+      "url": "https://hbl.lzmk.hr/clanak/khevenhuller-ludwig-andreas"
+    }
+  ],
+  "ledger": [],
+  "pending": [],
+  "hidden": {
+    "status": "See hidden.world.verification; old documented labels do not establish independent verification.",
+    "world": {
+      "status": "TARGETED VERIFICATION PASS 2026-10-04. See verification.claims. Only the exact findings listed as confirmed are established by this pass. Other historical assertions remain provisional; counterfactual effects are design hypotheses, never facts or scheduled events.",
+      "how_to_use": [
+        "Advance the hidden plots only through causes in the world: preconditions met, actors informed, time passed.",
+        "Reveal signals to the player through reports, envoys and rumours at plausible delays; never skip ahead.",
+        "If the player's actions change a precondition, change the plot; do not force the historical timeline back.",
+        "Keep the player capable of failing. Defeats, disgrace and lost provinces are legitimate outcomes.",
+        "Update hidden variables after each turn; keep them as ranges, not false precision.",
+        "Verification verdicts override earlier DOC/DOCUMENTED labels in legacy notes. A verified date, law or treaty does not verify motives, actual delivery or a counterfactual consequence.",
+        "Never apply a historical future event automatically after divergence. Hypotheses may drive fictional events only with explicit campaign-invention status and a recorded causal basis.",
+        "Do not use authorised troop quotas as mustered strength, whole-army totals as theatre strength, or historical casualties as universal rout thresholds."
+      ],
+      "systems": [
+        {
+          "id": "money",
+          "name": "Money and credit",
+          "claim": "mixed: explicit source-backed findings plus provisional simulation rules",
+          "summary": "Money exists in four states: promised, granted, collected, paid. Each step takes time and leaks. A promise is not coin.",
+          "rules": [
+            "Model promised, authorised, collected, remitted and received funds separately. Delays depend on local records and campaign circumstances; there is no verified universal lag.",
+            "Confirmed legal baseline: Hungarian Act VIII protects noble fiscal privileges, while Act LXIII funds infantry and specifies other contributions, including town cash payments. Hungary is not exempt as a whole.",
+            "Credit and arrears can constrain operations; any precise interest, arrears duration or desertion response remains a design hypothesis until supported.",
+            "Occupation may disrupt current collections and seize cash as well as reduce future receipts. Silesia’s precise share of Habsburg revenue remains unverified.",
+            "British subsidy requires separate records of authorisation, remittance and receipt; do not assume automatic delay or automatic timely delivery."
+          ],
+          "hidden_variables": [
+            "chest_cash_by_place",
+            "arrears_months",
+            "credit_standing",
+            "grants_pending",
+            "revenue_lost"
+          ],
+          "research": "research/verified/economy.md"
+        },
+        {
+          "id": "food",
+          "name": "Bread, forage and the 1740 hunger",
+          "claim": "mixed: explicit source-backed findings plus provisional simulation rules",
+          "summary": "Supply scarcity can constrain operations. Specific 1740–41 local harvest failures, grain prices and unrest levels remain unverified in this pass.",
+          "rules": [
+            "Staff manage bread, forage, transport and quarters. Report consequential shortages and costs to the player.",
+            "Use local campaign evidence for stocks, routes, weather and requisitions. Do not manufacture historical price series or impose a universal few-days supply radius."
+          ],
+          "hidden_variables": [
+            "grain_price_index",
+            "magazine_stock_by_place",
+            "unrest_by_land"
+          ],
+          "research": "research/verified/economy.md"
+        },
+        {
+          "id": "court",
+          "name": "The court and the council",
+          "claim": "mixed: explicit source-backed findings plus provisional simulation rules",
+          "summary": "Power runs through the Geheime Konferenz, the ruler's trust, Francis Stephen's position and who controls access. Advice is partisan and often wrong.",
+          "rules": [
+            "Khevenhüller is listed as Hofkriegsrat Vice-President in the 1740/41 personnel account (KA I pp. 309–310); appointment month and opening-date presence are unverified.",
+            "Exact Conference membership, access and motives require dated evidence. Rivalries and delays are possible campaign developments, not automatic properties of every minister.",
+            "A general’s command and ability to influence the ruler are distinct; track actual delegations and correspondence."
+          ],
+          "hidden_variables": [
+            "standing_with_ruler",
+            "standing_with_conference",
+            "patrons",
+            "enemies",
+            "army_confidence"
+          ],
+          "research": "research/verified/politics.md"
+        },
+        {
+          "id": "powers",
+          "name": "The great powers",
+          "claim": "mixed: explicit source-backed findings plus provisional simulation rules",
+          "summary": "Each power decides from its own interests and what it believes. They do not know what the player knows, and the player does not know what they will decide.",
+          "rules": [
+            "PC I document 192 dates Gotter’s instructions to 8 December 1740; document 227 allows negotiation for part of Silesia. Do not force his demands to increase after every victory.",
+            "Treaties, perceived interests, resources and information constrain choices; the effectiveness of a player’s deterrence is contingent.",
+            "Sardinian cooperation with Austria began in 1742 according to the Swiss National Museum; the 1743 treaty was not its first involvement.",
+            "Courier delays and interception require a route and circumstances; exact durations remain assumptions."
+          ],
+          "hidden_variables": [
+            "power_intentions",
+            "treaty_state",
+            "envoy_reports_in_transit"
+          ],
+          "research": "research/verified/politics.md"
+        },
+        {
+          "id": "estates",
+          "name": "Estates, nobles and subjects",
+          "claim": "mixed: explicit source-backed findings plus provisional simulation rules",
+          "summary": "Consent has to be bargained for, land by land. Each Estate has its own privileges, grievances and price.",
+          "rules": [
+            "Different lands and social groups have different legal obligations; do not turn all Estates into one consent switch.",
+            "Hungarian Act LXIII authorises 21,622 infantry in six new regiments and separate mounted obligations. Actual mobilisation and arrival require returns.",
+            "A coronation or homage must be understood within its jurisdiction; a delay does not automatically erase every succession claim.",
+            "Local labour duties, poverty, recruiting and resistance require local evidence; avoid uniform national loyalty or unrest."
+          ],
+          "hidden_variables": [
+            "estate_loyalty_by_land",
+            "unrest_by_land",
+            "recruits_available"
+          ],
+          "research": "research/verified/society.md"
+        },
+        {
+          "id": "faith",
+          "name": "Religion and legitimacy",
+          "claim": "mixed: explicit source-backed findings plus provisional simulation rules",
+          "summary": "Religious affiliation, legal rights and institutional interests can matter without determining collective allegiance. Most proposed confessional reactions remain hypotheses.",
+          "rules": [
+            "Treaty of Berlin (28 July 1742), article VI protects the Catholic religious status quo and Protestant freedom of conscience; enforcement remains a separate question.",
+            "Hungarian Act LXIII sections 13–16 sets obligations for clerical categories. Papal authorisation and total clerical remittances remain unverified.",
+            "The Prague expulsion decree dates to December 1744. Do not project it or allegations of collaboration back into 1741–42.",
+            "Papal neutrality, Hungarian Protestant concessions and Orthodox Frontier rights still need specific dated verification. Treat communities as internally diverse."
+          ],
+          "hidden_variables": [
+            "confessional_goodwill_by_region"
+          ],
+          "research": "research/verified/religion.md"
+        },
+        {
+          "id": "army",
+          "name": "The army and the field",
+          "claim": "mixed: explicit source-backed findings plus provisional simulation rules",
+          "summary": "The army on paper is not the army present. Silesia is nearly empty in December 1740; the Prussian army is much larger and ready.",
+          "rules": [
+            "KA II pp. 58, 66 gives 7,359 in Silesia excluding Glatz, including garrisons, versus at least 26,000–27,000 Prussian invaders in late December 1740. KA I’s 99,446 is the whole Prussian army.",
+            "One Wallis regiment was present in October; 1,719 is its December return, not an October headcount.",
+            "KA II reconstructs Mollwitz strengths at 15,788 Austrian and 21,600 Prussian. These estimates do not define the tabletop demo’s counters.",
+            "The wooden/iron ramrod distinction does not establish sustained rates of fire or damage multipliers. The 1744 resolution is not a date of proven universal delivery.",
+            "Demo movement, fire, morale, casualty and visibility coefficients are uncalibrated design assumptions. Modern map terrain is a proxy. Results inform adjudication; they do not compel campaign outcomes."
+          ],
+          "hidden_variables": [
+            "strength_present_by_unit",
+            "magazines",
+            "morale",
+            "fortress_state"
+          ],
+          "research": "research/verified/military.md"
+        },
+        {
+          "id": "information",
+          "name": "What reaches you, and when",
+          "claim": "mixed: explicit source-backed findings plus provisional simulation rules",
+          "summary": "Everything you know is old. Reports have senders, routes and reasons to lie.",
+          "rules": [
+            "Each report carries a date, a sender and a route; couriers take days; absence of news is not safety.",
+            "Rumours may be true, half true or planted; label confidence honestly.",
+            "The player sees signals only through reports, envoys, letters and scouts."
+          ],
+          "hidden_variables": [
+            "reports_in_transit",
+            "rumour_pool"
+          ],
+          "research": "research/verified/politics.md"
+        }
+      ],
+      "stakes": [
+        {
+          "id": "battle-lost",
+          "what": "A lost or bloody battle",
+          "when": "Any engagement; the table battle is adaptive and can be lost",
+          "consequence": "Guns and officers lost, retreat, fortresses exposed, inquiry at court"
+        },
+        {
+          "id": "dismissal",
+          "what": "Dismissal or loss of command",
+          "when": "After defeat, insubordination, a failed promise, or a patron’s fall",
+          "consequence": "Recall, reassignment, disgrace; the campaign continues without you or with you in a lesser role"
+        },
+        {
+          "id": "inquiry",
+          "what": "Court inquiry or imprisonment",
+          "when": "After a catastrophic failure (precedent: Neipperg after Belgrade 1739)",
+          "consequence": "Loss of freedom of action; rehabilitation possible but slow"
+        },
+        {
+          "id": "province-lost",
+          "what": "A province or fortress falls",
+          "when": "Silesia in December 1740 and again in 1741; Bohemia and Upper Austria in 1741",
+          "consequence": "Revenue, recruiting and prestige drop; allies recalculate"
+        },
+        {
+          "id": "credit-collapse",
+          "what": "Money runs out",
+          "when": "Arrears pile up while grants are delayed",
+          "consequence": "Mutiny, desertion, forced requisitions, unrest"
+        },
+        {
+          "id": "isolation",
+          "what": "Diplomatic isolation",
+          "when": "Allies decide Vienna cannot win",
+          "consequence": "Subsidies and neutrality end; hostile coalition forms"
+        },
+        {
+          "id": "patron-fall",
+          "what": "Your patron falls or turns",
+          "when": "Faction struggle at court",
+          "consequence": "Doors close; rivals’ advice prevails"
+        }
+      ],
+      "calendar": [
+        {
+          "d": "1740-10-20",
+          "e": "Charles VI dies",
+          "c": "legacy chronological anchor; not independently checked in this pass"
+        },
+        {
+          "d": "1740-10-21",
+          "e": "First Conference under Maria Theresa, Francis Stephen at her left",
+          "c": "legacy chronological anchor; not independently checked in this pass"
+        },
+        {
+          "d": "1740-10-28",
+          "e": "Empress Anna of Russia dies (New Style)",
+          "c": "legacy chronological anchor; not independently checked in this pass"
+        },
+        {
+          "d": "1740-11-22",
+          "e": "Lower Austrian Estates’ homage",
+          "c": "legacy chronological anchor; not independently checked in this pass"
+        },
+        {
+          "d": "1740-12-16",
+          "e": "Frederick II crosses into Silesia",
+          "c": "legacy chronological anchor; not independently checked in this pass"
+        },
+        {
+          "d": "1740-12-22",
+          "e": "Neipperg named supreme commander in Silesia (23 Dec in some sources)",
+          "c": "legacy chronological anchor; not independently checked in this pass"
+        },
+        {
+          "d": "1741-04-10",
+          "e": "Battle of Mollwitz",
+          "c": "legacy chronological anchor; not independently checked in this pass"
+        },
+        {
+          "d": "1741-06-25",
+          "e": "Maria Theresa crowned in Pressburg",
+          "c": "legacy chronological anchor; not independently checked in this pass"
+        },
+        {
+          "d": "1741-09-11",
+          "e": "Address to the Hungarian Diet",
+          "c": "legacy chronological anchor; not independently checked in this pass"
+        },
+        {
+          "d": "1741-11-26",
+          "e": "Prague stormed by Franco-Bavarian-Saxon forces (night 25/26 Nov; sources differ)",
+          "c": "legacy chronological anchor; not independently checked in this pass"
+        },
+        {
+          "d": "1742-05-17",
+          "e": "Battle of Chotusitz",
+          "c": "legacy chronological anchor; not independently checked in this pass"
+        },
+        {
+          "d": "1740-12-08",
+          "e": "Gotter’s instructions, PC I document 192",
+          "c": "confirmed primary text"
+        },
+        {
+          "d": "1742-07-28",
+          "e": "Treaty of Berlin, including religious status and debt clauses",
+          "c": "confirmed primary text"
+        }
+      ],
+      "plots": [
+        {
+          "id": "pol_prussian_invasion",
+          "domain": "politics",
+          "title": "Frederick decides on Silesia",
+          "window": [
+            "1740-10",
+            "1740-12"
+          ],
+          "actors": [
+            "Frederick II",
+            "Podewils",
+            "Schwerin",
+            "Botta d'Adorno",
+            "Maria Theresa"
+          ],
+          "preconditions": [
+            "Charles VI dead 20 Oct 1740",
+            "Prussian army and treasury ready",
+            "Habsburg Silesian garrison small"
+          ],
+          "historical": "Frederick learns of the death about 26 Oct, drafts Silesian proposals on 17 Nov, leaves Berlin on 13 Dec and crosses into Silesia on 16 Dec 1740 without declaring war.",
+          "levers": [
+            {
+              "player_action": "Reinforce Silesian fortresses in Nov",
+              "effect": "Slows the Prussian advance and raises Frederick's price, but drains other fronts"
+            },
+            {
+              "player_action": "Send envoy to probe Berlin",
+              "effect": "Earlier warning, little chance of changing the decision"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1740-11",
+              "player_sees": "Reports of Prussian regiments concentrating near Crossen",
+              "via": "Botta in Berlin, 5-8 days"
+            },
+            {
+              "when": "1740-12-16",
+              "player_sees": "Invasion confirmed",
+              "via": "Courier from Breslau, about 5-7 days"
+            }
+          ],
+          "failure_modes": [
+            "Dispersed troops overrun",
+            "Court discounts warnings",
+            "No money for reinforcement"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Anderson 1995",
+            "Browning 1993",
+            "Politische Correspondenz vol. 1",
+            "Wikipedia: First Silesian War"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "pol_gotter_offer",
+          "domain": "politics",
+          "title": "Gotter mission and the Silesia offer",
+          "window": [
+            "1740-12",
+            "1741-01"
+          ],
+          "actors": [
+            "Gotter",
+            "Maria Theresa",
+            "Bartenstein",
+            "Robinson",
+            "Hyndford"
+          ],
+          "preconditions": [
+            "Prussian invasion under way",
+            "Vienna rejects cession in principle"
+          ],
+          "historical": "Document 192 is dated Berlin, 8 December 1740; it refers to earlier instructions to Borcke. Do not conflate those instructions with Gotter’s commission. On 26 December Frederick authorized Gotter to indicate willingness to accept a substantial part rather than all of Silesia. This documents an offer, not sincerity or certainty that agreement would last.",
+          "levers": [
+            {
+              "player_action": "Counsel partial cession of Lower Silesia",
+              "effect": "Possible Prussian alliance and a quiet northern front, at the cost of the PS principle and court anger"
+            },
+            {
+              "player_action": "Counsel refusal",
+              "effect": "Keeps principle, invites a longer war and a higher Prussian price"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1740-12",
+              "player_sees": "Gotter's audience and ultimatum",
+              "via": "Court report within days"
+            },
+            {
+              "when": "1740-12",
+              "player_sees": "British envoy urging concession",
+              "via": "Robinson's conversations"
+            }
+          ],
+          "failure_modes": [
+            "Prussia treats a late offer as weakness",
+            "Accepting and still facing French and Bavaria"
+          ],
+          "claim": "PARTIALLY CHECKED: Document 192 is dated Berlin, 8 December 1740; it refers to earlier instructions to Borcke. Do not conflate those instructions with Gotter’s commission. On 26 December Frederick authorized Gotter to indicate willingness to accept a substantial part rather than all of Silesia. This documents an offer, not sincerity or certainty that agreement would last.",
+          "sources": [
+            "https://friedrich.uni-trier.de/de/politKorr/1/text/"
+          ],
+          "verification": {
+            "verdict": "corrected",
+            "claims": [
+              "P01",
+              "P02"
+            ],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "pol_mollwitz",
+          "domain": "politics",
+          "title": "Mollwitz and the fortress war",
+          "window": [
+            "1741-01",
+            "1741-05"
+          ],
+          "actors": [
+            "Neipperg",
+            "Frederick II",
+            "Schwerin",
+            "Wallis"
+          ],
+          "preconditions": [
+            "Silesian fortresses isolated",
+            "Neipperg's army reaches Silesia via Moravia"
+          ],
+          "historical": "Glogau stormed in March; Mollwitz on 10 Apr 1741 is a Prussian infantry victory; Brieg falls in early May.",
+          "levers": [
+            {
+              "player_action": "Avoid pitched battle",
+              "effect": "Denies Prussia a prestige win and slows French commitment"
+            },
+            {
+              "player_action": "Fight with strong cavalry",
+              "effect": "May win early and break Frederick's momentum, with high variance"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1741-04-10",
+              "player_sees": "Battle result",
+              "via": "Courier, 1-3 days from field to Vienna"
+            }
+          ],
+          "failure_modes": [
+            "Army lost",
+            "Prussian prestige draws allies"
+          ],
+          "claim": "PARTIALLY CHECKED: Document 344 refers to treaty negotiations already underway and a French letter dated 7 April. Victory may have affected commitment, but diplomacy did not begin only after 10 April.",
+          "sources": [
+            "https://friedrich.uni-trier.de/de/politKorr/1/text/"
+          ],
+          "verification": {
+            "verdict": "corrected",
+            "claims": [
+              "P06"
+            ],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "pol_nymphenburg",
+          "domain": "politics",
+          "title": "Franco-Bavarian-Spanish combination",
+          "window": [
+            "1741-01",
+            "1741-09"
+          ],
+          "actors": [
+            "Belle-Isle",
+            "Fleury",
+            "Amelot",
+            "Charles Albert",
+            "Philip V",
+            "Elisabeth Farnese"
+          ],
+          "preconditions": [
+            "Prussian success",
+            "Spanish war with Britain",
+            "Charles Albert's imperial ambitions"
+          ],
+          "historical": "Bavaria and Spain sign at Nymphenburg 28 May 1741; France allies with Prussia in June; Saxony adheres in September; a written France-Bavaria treaty is disputed.",
+          "levers": [
+            {
+              "player_action": "Offer Bavaria concessions",
+              "effect": "Might peel off Charles Albert, but angers Saxony and Vienna's court"
+            },
+            {
+              "player_action": "Early success against Prussia",
+              "effect": "Strengthens Fleury's peace party"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1741-05",
+              "player_sees": "Belle-Isle at the German courts",
+              "via": "Reich envoys, Dutch and British reports, 7-14 days"
+            }
+          ],
+          "failure_modes": [
+            "Underrating French speed",
+            "Misjudging Fleury's hesitation"
+          ],
+          "claim": "PARTIALLY CHECKED: Document 344 refers to treaty negotiations already underway and a French letter dated 7 April. Victory may have affected commitment, but diplomacy did not begin only after 10 April.",
+          "sources": [
+            "https://friedrich.uni-trier.de/de/politKorr/1/text/"
+          ],
+          "verification": {
+            "verdict": "corrected",
+            "claims": [
+              "P06"
+            ],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "pol_hungary",
+          "domain": "politics",
+          "title": "Hungarian coronation, Diet and levy",
+          "window": [
+            "1741-01",
+            "1741-09"
+          ],
+          "actors": [
+            "Maria Theresa",
+            "Palatine Pálffy",
+            "Hungarian magnates"
+          ],
+          "preconditions": [
+            "Need for troops",
+            "Hungarian grievances over privileges"
+          ],
+          "historical": "Coronation at Pressburg on 25 June 1741; the Diet bargains and votes support by September; the dramatic 11 Sep scene is disputed.",
+          "levers": [
+            {
+              "player_action": "Grant privileges and constitutional concessions",
+              "effect": "More troops and irregulars, but long-term constraints"
+            },
+            {
+              "player_action": "Hold back concessions",
+              "effect": "Fewer troops and risk of unrest"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1741-06",
+              "player_sees": "Magnates' conditions",
+              "via": "Palatine and court officials, 1 day"
+            }
+          ],
+          "failure_modes": [
+            "Irregulars' atrocities harm the cause in the Reich",
+            "Overpromising"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Ingrao",
+            "Arneth",
+            "Anderson 1995"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "pol_britain_hanover",
+          "domain": "politics",
+          "title": "British subsidy and Hanover neutrality",
+          "window": [
+            "1741-01",
+            "1742-06"
+          ],
+          "actors": [
+            "George II",
+            "Walpole",
+            "Carteret",
+            "Robinson",
+            "Hyndford"
+          ],
+          "preconditions": [
+            "Britain at war with Spain",
+            "French army threatens Hanover"
+          ],
+          "historical": "Parliament votes about 300,000 pounds in 1741; Hanover agrees a neutrality in Oct 1741 and George II promises his vote to Charles Albert; Walpole falls in Feb 1742 and Carteret reverses course.",
+          "levers": [
+            {
+              "player_action": "Follow Hyndford's mediation",
+              "effect": "Keeps British money flowing, may cost territory"
+            },
+            {
+              "player_action": "Refuse mediation",
+              "effect": "Risks subsidy and Hanover's goodwill"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1741-08",
+              "player_sees": "French army near Hanover",
+              "via": "Robinson and Dutch reports, 14-21 days from London"
+            }
+          ],
+          "failure_modes": [
+            "Subsidy late",
+            "British pressure to cede more"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Browning 1993",
+            "Anderson 1995",
+            "Black"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "pol_klein_schnellendorf",
+          "domain": "politics",
+          "title": "Klein-Schnellendorf secret truce",
+          "window": [
+            "1741-09",
+            "1741-12"
+          ],
+          "actors": [
+            "Neipperg",
+            "Frederick II",
+            "Hyndford",
+            "Maria Theresa"
+          ],
+          "preconditions": [
+            "French advance on Austria",
+            "British mediation"
+          ],
+          "historical": "Oral agreement on 9 Oct 1741: Frederick gets Lower Silesia with Neisse and stays passive; the secret leaks and Frederick resumes war in December.",
+          "levers": [
+            {
+              "player_action": "Accept the truce",
+              "effect": "Frees forces for Bavaria and France, risks a leak and a later Prussian return"
+            },
+            {
+              "player_action": "Reject it",
+              "effect": "Keeps Silesian claim intact but fights on two fronts"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1741-09",
+              "player_sees": "Hyndford's approach",
+              "via": "Envoy in person"
+            },
+            {
+              "when": "1741-11",
+              "player_sees": "Rumours of a secret arrangement",
+              "via": "Dresden and Paris mail, British or Saxon sources"
+            }
+          ],
+          "failure_modes": [
+            "Leak",
+            "Frederick uses the leak as a pretext"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Anderson 1995",
+            "Carlyle",
+            "Browning 1993"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "pol_prague_advance",
+          "domain": "politics",
+          "title": "Advance on Linz and Prague",
+          "window": [
+            "1741-08",
+            "1741-12"
+          ],
+          "actors": [
+            "Charles Albert",
+            "Belle-Isle",
+            "Maurice de Saxe",
+            "Ogilvy",
+            "Khevenhüller"
+          ],
+          "preconditions": [
+            "French army across the Rhine",
+            "Bavarian army ready"
+          ],
+          "historical": "The allies take Linz in September; Charles Albert is homaged there on 2 Oct; the army turns to Bohemia; Prague is stormed on 25-26 Nov; Charles Albert is crowned King of Bohemia on 19 Dec.",
+          "levers": [
+            {
+              "player_action": "Concentrate forces for Vienna's defence",
+              "effect": "Protects capital but exposes Bohemia"
+            },
+            {
+              "player_action": "Reinforce Prague",
+              "effect": "May hold the city, thins the Danube"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1741-09",
+              "player_sees": "Bavarian-French crossing at Passau",
+              "via": "Courier, 2-4 days"
+            }
+          ],
+          "failure_modes": [
+            "Prague garrison too weak",
+            "Panic in Vienna"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Anderson 1995",
+            "Duffy",
+            "Browning 1993"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "pol_election",
+          "domain": "politics",
+          "title": "Imperial election of Charles VII",
+          "window": [
+            "1741-10",
+            "1742-02"
+          ],
+          "actors": [
+            "Charles Albert",
+            "Electors",
+            "George II",
+            "Frederick II"
+          ],
+          "preconditions": [
+            "Hanover and Brandenburg commitments",
+            "Bohemian vote excluded"
+          ],
+          "historical": "Charles Albert elected 24 Jan 1742 and crowned on 12 Feb; Khevenhüller takes Linz the same day and enters Bavaria.",
+          "levers": [
+            {
+              "player_action": "Lobby Mainz and Trier",
+              "effect": "Delay but not prevent the election"
+            },
+            {
+              "player_action": "Push the Bohemian vote claim",
+              "effect": "Legal protest only"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1742-01",
+              "player_sees": "Electoral college proceedings",
+              "via": "Habsburg envoy at Frankfurt, 6-8 days"
+            }
+          ],
+          "failure_modes": [
+            "Believing the Bavarian capture ends the war"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Anderson 1995",
+            "Browning 1993"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "pol_russia_sweden",
+          "domain": "politics",
+          "title": "Russian coups and the Swedish war",
+          "window": [
+            "1740-10",
+            "1742-08"
+          ],
+          "actors": [
+            "Anna",
+            "Biron",
+            "Münnich",
+            "Anna Leopoldovna",
+            "Ostermann",
+            "Elizabeth",
+            "La Chetardie",
+            "Hats"
+          ],
+          "preconditions": [
+            "Russo-Austrian alliance",
+            "French and Swedish scheming"
+          ],
+          "historical": "Anna dies 28 Oct 1740; Biron falls 20 Nov; Sweden declares war in summer 1741; Villmanstrand 3 Sep; Elizabeth seizes power 5-6 Dec 1741 NS; Helsinki capitulates 24 Aug 1742.",
+          "levers": [
+            {
+              "player_action": "Cultivate Ostermann and Elizabeth's circle",
+              "effect": "Modest chance of Russian pressure on Prussia"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1741-12",
+              "player_sees": "Coup in St Petersburg",
+              "via": "Envoy letters, 18-28 days"
+            }
+          ],
+          "failure_modes": [
+            "Counting on Russian troops"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Wikipedia: Russo-Swedish War 1741-43",
+            "Anderson 1995"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "pol_ottoman",
+          "domain": "politics",
+          "title": "Ottoman neutrality",
+          "window": [
+            "1740-10",
+            "1742-12"
+          ],
+          "actors": [
+            "Mahmud I",
+            "Villeneuve",
+            "Habsburg internuncio"
+          ],
+          "preconditions": [
+            "Belgrade 1739",
+            "Persian war pressure"
+          ],
+          "historical": "The Porte refuses French urging and stays neutral.",
+          "levers": [
+            {
+              "player_action": "Avoid frontier incidents",
+              "effect": "Keeps Ottoman neutrality"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1741",
+              "player_sees": "French agents at Constantinople",
+              "via": "Internuncio, 14-20 days"
+            }
+          ],
+          "failure_modes": [
+            "Provocation at the border"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Anderson 1995",
+            "Cambridge CEH article on Belgrade 1739"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "pol_italy",
+          "domain": "politics",
+          "title": "Spain and Sardinia in Italy",
+          "window": [
+            "1741-03",
+            "1742-12"
+          ],
+          "actors": [
+            "Elisabeth Farnese",
+            "Montemar",
+            "Charles Emmanuel III",
+            "Charles of Naples",
+            "Traun",
+            "Lobkowitz"
+          ],
+          "preconditions": [
+            "Spanish war with Britain",
+            "Sardinian territorial price"
+          ],
+          "historical": "The Swiss National Museum dates the Austrian–Sardinian Convention of Turin to 1 February 1742. Correct the 1743-only claim; the original convention was not opened, so this is secondary corroboration.",
+          "levers": [
+            {
+              "player_action": "Concede Milanese land to Sardinia",
+              "effect": "Secures Sardinian army, costs Lombard territory"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1741-11",
+              "player_sees": "Spanish embarkation",
+              "via": "Turin and Venice, 6-10 days"
+            }
+          ],
+          "failure_modes": [
+            "Neglecting Lombardy"
+          ],
+          "claim": "PARTIALLY CHECKED: The Swiss National Museum dates the Austrian–Sardinian Convention of Turin to 1 February 1742. Correct the 1743-only claim; the original convention was not opened, so this is secondary corroboration.",
+          "sources": [
+            "https://blog.nationalmuseum.ch/en/2023/05/the-encirclement-of-geneva-by-spanish-troops-in-1743/"
+          ],
+          "verification": {
+            "verdict": "corrected",
+            "claims": [
+              "P03"
+            ],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "pol_breslau_saxony",
+          "domain": "politics",
+          "title": "Chotusitz, Breslau peace and Saxon shift",
+          "window": [
+            "1741-12",
+            "1742-12"
+          ],
+          "actors": [
+            "Frederick II",
+            "Hyndford",
+            "Carteret",
+            "Brühl",
+            "Hanbury Williams",
+            "Belle-Isle"
+          ],
+          "preconditions": [
+            "Prussian army exhausted in Moravia",
+            "British pressure"
+          ],
+          "historical": "Chotusitz 17 May 1742; Breslau preliminaries 11 June; Berlin 28 July; Prussia keeps almost all Silesia; Saxony moves toward Vienna late in the year; Belle-Isle leaves Prague 16-26 Dec.",
+          "levers": [
+            {
+              "player_action": "Accept Prussian terms early",
+              "effect": "Frees forces for Bavaria and Bohemia"
+            },
+            {
+              "player_action": "Continue war",
+              "effect": "Risks losing British support"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1742-05",
+              "player_sees": "Hyndford's offer after Chotusitz",
+              "via": "Envoy in person"
+            }
+          ],
+          "failure_modes": [
+            "Paying twice",
+            "Antagonizing Saxony"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Wikipedia: First Silesian War",
+            "Anderson 1995",
+            "Browning 1993"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "eco-01",
+          "domain": "economy",
+          "title": "Empty chest and the first loans",
+          "window": [
+            "1740-10",
+            "1741-01"
+          ],
+          "actors": [
+            "Hofkammer",
+            "Hofkriegszahlamt",
+            "Viennese court bankers",
+            "Wiener Stadtbanco",
+            "Maria Theresa"
+          ],
+          "preconditions": [
+            "Charles VI dead 20 Oct 1740",
+            "Army arrears on the books"
+          ],
+          "historical": "The central chest held about 100,000 fl (disputed, possibly 87,000); the regime bridged by credit from Viennese bankers, the Stadtbanco and Estates' credit offices. Exact deals unverified.",
+          "levers": [
+            {
+              "player_action": "Pledge future Contribution to bankers",
+              "effect": "Immediate cash; less money later and worse terms after a defeat"
+            },
+            {
+              "player_action": "Delay regimental pay",
+              "effect": "Cash saved; desertion and weak recruiting rise"
+            },
+            {
+              "player_action": "Ask Estates for advances",
+              "effect": "Slower, but cheaper credit"
+            }
+          ],
+          "signals": [
+            {
+              "when": "First weeks after accession",
+              "player_sees": "Paymaster report of weeks of arrears per regiment",
+              "via": "Hofkriegszahlamt"
+            },
+            {
+              "when": "Dec 1740",
+              "player_sees": "Banker's quote after the Silesian invasion",
+              "via": "Court banker"
+            }
+          ],
+          "failure_modes": [
+            "Over-pledging",
+            "Banker refuses credit after a defeat"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Maria_Theresa",
+            "https://warhistory.org/article/the-great-empress-i",
+            "https://books.openedition.org/igpde/3878"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "eco-02",
+          "domain": "economy",
+          "title": "Homage and Estates' grants",
+          "window": [
+            "1740-11",
+            "1741-03"
+          ],
+          "actors": [
+            "Landtage",
+            "Estates' offices",
+            "Hofkammer"
+          ],
+          "preconditions": [
+            "Homage not yet complete in all lands"
+          ],
+          "historical": "Grants depended on homage and concessions; Bohemia's crown was contested later. Details from memory.",
+          "levers": [
+            {
+              "player_action": "Confirm privileges",
+              "effect": "Faster grants; less future reform room"
+            },
+            {
+              "player_action": "Send commissioners",
+              "effect": "Better collection; costs time"
+            }
+          ],
+          "signals": [
+            {
+              "when": "Winter 1740/41",
+              "player_sees": "Landtag grant with conditions",
+              "via": "Landtag minutes"
+            }
+          ],
+          "failure_modes": [
+            "Grant cut",
+            "Grant not collected"
+          ],
+          "claim": "PARTIALLY CHECKED: No comparable dated fiscal series or cash account checked. Remove exact ratios, balances and fixed lags from the operating rules.",
+          "sources": [],
+          "verification": {
+            "verdict": "corrected",
+            "claims": [
+              "E03"
+            ],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "eco-03",
+          "domain": "economy",
+          "title": "Bread and forage crisis",
+          "window": [
+            "1740-11",
+            "1741-09"
+          ],
+          "actors": [
+            "Estates",
+            "Contractors",
+            "Towns",
+            "Peasants"
+          ],
+          "preconditions": [
+            "1739-40 Great Frost",
+            "1740 harvest failure"
+          ],
+          "historical": "Prices rose after 1740 and stayed elevated into the mid-1740s in Bohemia; Prussia opened magazines.",
+          "levers": [
+            {
+              "player_action": "Ban grain exports",
+              "effect": "Eases towns; angers producers"
+            },
+            {
+              "player_action": "Shift billets",
+              "effect": "Spares famine districts; overloads others"
+            }
+          ],
+          "signals": [
+            {
+              "when": "Winter 1740/41",
+              "player_sees": "Rising bread price and town delegations",
+              "via": "Town magistrates"
+            }
+          ],
+          "failure_modes": [
+            "Unrest in supply districts",
+            "Requisitions trigger flight"
+          ],
+          "claim": "PARTIALLY CHECKED: The pass did not establish local harvest, price or mortality series. Weather background cannot determine a province’s unrest without local evidence.",
+          "sources": [],
+          "verification": {
+            "verdict": "corrected",
+            "claims": [
+              "E04"
+            ],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "eco-04",
+          "domain": "economy",
+          "title": "Neipperg's supply chain to Silesia",
+          "window": [
+            "1741-01",
+            "1741-04"
+          ],
+          "actors": [
+            "Neipperg",
+            "Kriegskommissariat",
+            "Contractors"
+          ],
+          "preconditions": [
+            "Silesia overrun"
+          ],
+          "historical": "A hasty army was assembled and lost at Mollwitz on 10 Apr 1741.",
+          "levers": [
+            {
+              "player_action": "Site magazines",
+              "effect": "Sets operational radius"
+            },
+            {
+              "player_action": "Wait for forage",
+              "effect": "Safer; gives Prussia time"
+            }
+          ],
+          "signals": [
+            {
+              "when": "Feb-Mar 1741",
+              "player_sees": "Days of bread and forage estimate",
+              "via": "Staff report"
+            }
+          ],
+          "failure_modes": [
+            "Marching past magazines",
+            "No remounts"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Battle_of_Mollwitz"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "eco-05",
+          "domain": "economy",
+          "title": "English subsidy",
+          "window": [
+            "1741-04",
+            "1742-12"
+          ],
+          "actors": [
+            "British Parliament",
+            "Sir Thomas Robinson",
+            "Dutch"
+          ],
+          "preconditions": [
+            "Alliance with Britain"
+          ],
+          "historical": "£300,000 voted in 1741; a larger vote of about £500,000 in 1742 is widely stated but unverified here.",
+          "levers": [
+            {
+              "player_action": "Accept peace pressure on Prussia",
+              "effect": "Faster money; loses Silesia"
+            }
+          ],
+          "signals": [
+            {
+              "when": "Spring 1741",
+              "player_sees": "Sterling bill via Amsterdam/London",
+              "via": "Ambassador"
+            }
+          ],
+          "failure_modes": [
+            "Money arrives after the season",
+            "Conditions bind policy"
+          ],
+          "claim": "PARTIALLY CHECKED: These absolutes are unsupported design rules. Occupation may interrupt current collections and seize chests; subsidy authorisation, remittance and receipt must be tracked separately. Exact British payment dates and sums remain unverified here.",
+          "sources": [],
+          "verification": {
+            "verdict": "corrected",
+            "claims": [
+              "E05"
+            ],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "eco-06",
+          "domain": "economy",
+          "title": "Hungarian Diet and insurrectio",
+          "window": [
+            "1741-05",
+            "1742-02"
+          ],
+          "actors": [
+            "Hungarian Diet",
+            "Palatine",
+            "Maria Theresa"
+          ],
+          "preconditions": [
+            "Coronation 25 Jun 1741"
+          ],
+          "historical": "Act LXIII funds infantry from the country’s tax fund, and section 18 specifies cash contributions by towns in lieu of some mounted obligations. Noble exemption is not national fiscal exemption. Act LXIII section 1 specifies 21,622 infantry in six new regiments; sections 1–2 specify funding and limits on replacement obligations. This is authorised establishment, not a verified muster or battlefield strength. Replace the unsourced delivered total with the 21,622 authorised infantry levy, separately from noble and mounted obligations. Actual mobilisation and arrival remain unverified.",
+          "levers": [
+            {
+              "player_action": "Negotiate a levy and its funding",
+              "effect": "May secure authorised commitments; delivery and costs require further evidence."
+            }
+          ],
+          "signals": [
+            {
+              "when": "Autumn 1741",
+              "player_sees": "Muster counts vs. promises",
+              "via": "Hungarian Chancellery"
+            }
+          ],
+          "failure_modes": [
+            "Levy melts away",
+            "Supply costs exceed value"
+          ],
+          "claim": "PARTIALLY CHECKED: Act LXIII funds infantry from the country’s tax fund, and section 18 specifies cash contributions by towns in lieu of some mounted obligations. Noble exemption is not national fiscal exemption. Act LXIII section 1 specifies 21,622 infantry in six new regiments; sections 1–2 specify funding and limits on replacement obligations. This is authorised establishment, not a verified muster or battlefield strength. Replace the unsourced delivered total with the 21,622 authorised infantry levy, separately from noble and mounted obligations. Actual mobilisation and arrival remain unverified.",
+          "sources": [
+            "https://net.jogtar.hu/ezer-ev-torveny?docid=74100063.TV",
+            "https://net.jogtar.hu/ezer-ev-torveny?docid=74100008.TV"
+          ],
+          "verification": {
+            "verdict": "corrected",
+            "claims": [
+              "E01",
+              "S02",
+              "S03"
+            ],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "eco-07",
+          "domain": "economy",
+          "title": "Franco-Bavarian invasion and revenue loss",
+          "window": [
+            "1741-08",
+            "1742-01"
+          ],
+          "actors": [
+            "Charles Albert",
+            "French army",
+            "Estates of Upper Austria and Bohemia"
+          ],
+          "preconditions": [
+            "Linz falls 15 Sep 1741",
+            "Prague falls 25-26 Nov 1741"
+          ],
+          "historical": "Collections stop in occupied districts.",
+          "levers": [
+            {
+              "player_action": "Evacuate treasure",
+              "effect": "Saves cash; signals weakness"
+            }
+          ],
+          "signals": [
+            {
+              "when": "Autumn 1741",
+              "player_sees": "Remittance drop",
+              "via": "Hofkammer"
+            }
+          ],
+          "failure_modes": [
+            "Cash offices captured",
+            "Elites switch"
+          ],
+          "claim": "PARTIALLY CHECKED: These absolutes are unsupported design rules. Occupation may interrupt current collections and seize chests; subsidy authorisation, remittance and receipt must be tracked separately. Exact British payment dates and sums remain unverified here.",
+          "sources": [],
+          "verification": {
+            "verdict": "corrected",
+            "claims": [
+              "E05"
+            ],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "eco-08",
+          "domain": "economy",
+          "title": "Silesian revenue loss and the Silesian loan",
+          "window": [
+            "1740-12",
+            "1742-07"
+          ],
+          "actors": [
+            "Frederick II",
+            "Dutch and English creditors"
+          ],
+          "preconditions": [
+            "Prussian invasion 16 Dec 1740"
+          ],
+          "historical": "Berlin article IX assigns debt owed to English and Dutch subjects to Prussia, subject to the Dutch settlement provision, while the queen retains debt owed to Brabant creditors. No principal amount verified. No comparable dated fiscal series or cash account checked. Remove exact ratios, balances and fixed lags from the operating rules.",
+          "levers": [
+            {
+              "player_action": "Separate peace",
+              "effect": "Frees troops; formalises loss"
+            }
+          ],
+          "signals": [
+            {
+              "when": "after occupation affects collections",
+              "player_sees": "Reported disruption to Silesian receipts; amount and timing need a dated account",
+              "via": "revenue officials"
+            }
+          ],
+          "failure_modes": [
+            "Creditors lose confidence"
+          ],
+          "claim": "PARTIALLY CHECKED: Berlin article IX assigns debt owed to English and Dutch subjects to Prussia, subject to the Dutch settlement provision, while the queen retains debt owed to Brabant creditors. No principal amount verified. No comparable dated fiscal series or cash account checked. Remove exact ratios, balances and fixed lags from the operating rules.",
+          "sources": [
+            "https://documentsdedroitinternational.fr/ressources/TdP/1742-07-28-TraitedeBerlin.pdf"
+          ],
+          "verification": {
+            "verdict": "corrected",
+            "claims": [
+              "E02",
+              "E03"
+            ],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "eco-09",
+          "domain": "economy",
+          "title": "Occupied Bohemia and Moravia contributions",
+          "window": [
+            "1741-11",
+            "1742-12"
+          ],
+          "actors": [
+            "Prussian army",
+            "French garrison",
+            "Pandurs"
+          ],
+          "preconditions": [
+            "Enemy field armies in Bohemia/Moravia"
+          ],
+          "historical": "Enemies lived off the land; Pandurs harassed lines of communication.",
+          "levers": [
+            {
+              "player_action": "Raid enemy lines",
+              "effect": "Raises their cost; harms subjects"
+            }
+          ],
+          "signals": [
+            {
+              "when": "Winter 1741/42",
+              "player_sees": "Requisition reports",
+              "via": "Local officials"
+            }
+          ],
+          "failure_modes": [
+            "Reprisals against own subjects"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Battle_of_Chotusitz"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "eco-10",
+          "domain": "economy",
+          "title": "Winter counteroffensive and Prague recovery",
+          "window": [
+            "1741-12",
+            "1742-12"
+          ],
+          "actors": [
+            "Khevenhuller",
+            "Hungarian light troops",
+            "Prince Charles"
+          ],
+          "preconditions": [
+            "Hungarian troops arrive",
+            "Prussia leaves war in June 1742"
+          ],
+          "historical": "Linz and Munich retaken Jan-Feb 1742 (from memory); garrisons stripped for 28,000 in Bohemia; French leave Prague by the turn of 1742/43.",
+          "levers": [
+            {
+              "player_action": "Use irregulars to live off Bavaria",
+              "effect": "Saves supply; angers neutrals"
+            }
+          ],
+          "signals": [
+            {
+              "when": "Summer 1742",
+              "player_sees": "Remittances recovering",
+              "via": "Hofkammer"
+            }
+          ],
+          "failure_modes": [
+            "Stripped garrisons",
+            "Plunder angers neutrals"
+          ],
+          "claim": "PARTIALLY CHECKED: No cost comparison or force composition sufficient for that claim checked. Retain possible raids and operational successes without that causal verdict.",
+          "sources": [],
+          "verification": {
+            "verdict": "corrected",
+            "claims": [
+              "E06"
+            ],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "soc-p01-coregency",
+          "domain": "society",
+          "title": "Succession shock and Francis Stephen's co-regency",
+          "window": [
+            "1740-10",
+            "1741-03"
+          ],
+          "actors": [
+            "Maria Theresa",
+            "Francis Stephen",
+            "Bartenstein",
+            "Sinzendorf",
+            "Charles of Lorraine"
+          ],
+          "preconditions": [
+            "Charles VI dead 20 Oct 1740",
+            "Old ministers retained"
+          ],
+          "historical": "Maria Theresa takes government; Francis Stephen named co-regent in the Austrian lands (about 21 Nov 1740, per memory of Arneth) without real power; factional tension persists through Mollwitz (10 Apr 1741).",
+          "levers": [
+            {
+              "player_action": "Align with the Lorrainer circle",
+              "effect": "Better access to the court; opposition from Old Court ministers over supplies"
+            },
+            {
+              "player_action": "Align with Bartenstein and ministers",
+              "effect": "Reliable orders and credit; hostility from Francis Stephen's entourage"
+            }
+          ],
+          "signals": [
+            {
+              "when": "Nov 1740",
+              "player_sees": "Orders signed by the Queen; titles of the co-regent",
+              "via": "Hofkriegsrat dispatches"
+            }
+          ],
+          "failure_modes": [
+            "Commander blamed for early defeat",
+            "Supplies stalled by faction"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Arneth, Geschichte Maria Theresias (not opened)",
+            "Wikipedia Maria Theresa"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "soc-p02-lower-austria-homage",
+          "domain": "society",
+          "title": "Lower Austrian homage and first money",
+          "window": [
+            "1740-11",
+            "1741-02"
+          ],
+          "actors": [
+            "Lower Austrian Estates",
+            "Starhemberg",
+            "Hofkammer"
+          ],
+          "preconditions": [
+            "Homage done 22 Nov 1740"
+          ],
+          "historical": "Lower Austrian Estates did Erbhuldigung 22 Nov 1740; contribution and loans followed (details inferred).",
+          "levers": [
+            {
+              "player_action": "Request an extra levy through the Verordnete",
+              "effect": "Cash within weeks if privileges are confirmed"
+            }
+          ],
+          "signals": [
+            {
+              "when": "Dec 1740",
+              "player_sees": "Estates' reply to a levy request",
+              "via": "Landesstelle letters"
+            }
+          ],
+          "failure_modes": [
+            "Slow collection",
+            "Vorspann refusals"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Search result: Vienna 1741 imprint on the Lower Austrian homage",
+            "Wangermann (not opened)"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "soc-p03-silesia",
+          "domain": "society",
+          "title": "Silesia and the Estates' loyalty",
+          "window": [
+            "1740-12",
+            "1742-07"
+          ],
+          "actors": [
+            "Frederick II",
+            "Silesian Estates",
+            "Neipperg",
+            "Breslau council"
+          ],
+          "preconditions": [
+            "Prussian invasion 16 Dec 1740"
+          ],
+          "historical": "Neutrality at Breslau Jan 1741; Mollwitz 10 Apr 1741; Klein-Schnellendorf 9 Oct 1741; homage to Frederick Nov 1741 (date disputed); Chotusitz 17 May 1742; Breslau preliminaries Jun 1742; Berlin 28 Jul 1742.",
+          "levers": [
+            {
+              "player_action": "Relieve fortresses",
+              "effect": "Delays Estates' homage"
+            },
+            {
+              "player_action": "Offer religious liberty to Protestants",
+              "effect": "Slows defection of Lower Silesia, at cost to Catholic lords"
+            }
+          ],
+          "signals": [
+            {
+              "when": "Jan 1741",
+              "player_sees": "Breslau's neutrality",
+              "via": "Local officials' reports"
+            }
+          ],
+          "failure_modes": [
+            "Estates take Prussian oath",
+            "Peace costs Silesia"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Standard accounts (Wikipedia, Duffy, not opened)"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "soc-p04-hungarian-bargain",
+          "domain": "society",
+          "title": "Hungarian coronation bargain",
+          "window": [
+            "1741-03",
+            "1741-06"
+          ],
+          "actors": [
+            "Maria Theresa",
+            "Janos Palffy",
+            "Imre Esterhazy",
+            "Hungarian counties"
+          ],
+          "preconditions": [
+            "1723 Pragmatic Sanction accepted",
+            "Queen not yet crowned"
+          ],
+          "historical": "Palffy elected Palatine 22 Jun 1741; coronation 25 Jun 1741 at Pressburg.",
+          "levers": [
+            {
+              "player_action": "Support concessions on tax exemption and county autonomy",
+              "effect": "Smoother Diet; fewer troops sent to Vienna's priorities"
+            },
+            {
+              "player_action": "Insist on Vienna's priorities",
+              "effect": "Risk of delay and unrest"
+            }
+          ],
+          "signals": [
+            {
+              "when": "May 1741",
+              "player_sees": "Palatine's reports on county instructions",
+              "via": "Hungarian Chancellery letters"
+            }
+          ],
+          "failure_modes": [
+            "Counties refuse",
+            "Protestant grievances reopened"
+          ],
+          "claim": "PARTIALLY CHECKED: Act VIII protects the estates’ fiscal privileges. It does not show that all inhabitants or all forms of contribution were exempt.",
+          "sources": [
+            "https://net.jogtar.hu/ezer-ev-torveny?docid=74100008.TV"
+          ],
+          "verification": {
+            "verdict": "corrected",
+            "claims": [
+              "S01"
+            ],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "soc-p05-insurrectio",
+          "domain": "society",
+          "title": "The Diet of September 1741 and the insurrectio",
+          "window": [
+            "1741-09",
+            "1742-06"
+          ],
+          "actors": [
+            "Diet",
+            "Palffy",
+            "Batthyany",
+            "Karolyi",
+            "Hungarian nobility"
+          ],
+          "preconditions": [
+            "Coronation completed"
+          ],
+          "historical": "Act LXIII section 1 specifies 21,622 infantry in six new regiments; sections 1–2 specify funding and limits on replacement obligations. This is authorised establishment, not a verified muster or battlefield strength. Replace the unsourced delivered total with the 21,622 authorised infantry levy, separately from noble and mounted obligations. Actual mobilisation and arrival remain unverified.",
+          "levers": [
+            {
+              "player_action": "Ask for paid regiments",
+              "effect": "Faster, costly"
+            },
+            {
+              "player_action": "Rely on noble insurrectio",
+              "effect": "Cheap, slow, short service"
+            }
+          ],
+          "signals": [
+            {
+              "when": "Oct 1741",
+              "player_sees": "Muster lists lagging behind votes",
+              "via": "Hungarian Chancellery and county reports"
+            }
+          ],
+          "failure_modes": [
+            "Nobles refuse service outside Hungary",
+            "Late arrival"
+          ],
+          "claim": "PARTIALLY CHECKED: Act LXIII section 1 specifies 21,622 infantry in six new regiments; sections 1–2 specify funding and limits on replacement obligations. This is authorised establishment, not a verified muster or battlefield strength. Replace the unsourced delivered total with the 21,622 authorised infantry levy, separately from noble and mounted obligations. Actual mobilisation and arrival remain unverified.",
+          "sources": [
+            "https://net.jogtar.hu/ezer-ev-torveny?docid=74100063.TV"
+          ],
+          "verification": {
+            "verdict": "corrected",
+            "claims": [
+              "S02",
+              "S03"
+            ],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "soc-p06-frontier",
+          "domain": "society",
+          "title": "Military Frontier irregulars",
+          "window": [
+            "1741-06",
+            "1742-12"
+          ],
+          "actors": [
+            "Trenck",
+            "Mentzel",
+            "Hofkriegsrat",
+            "Bavarian towns"
+          ],
+          "preconditions": [
+            "Frontier under Hofkriegsrat"
+          ],
+          "historical": "Pandurs and Croat corps used in Bavaria and Bohemia; plunder and atrocity reports.",
+          "levers": [
+            {
+              "player_action": "Enforce discipline",
+              "effect": "Fewer complaints, less shock effect"
+            },
+            {
+              "player_action": "Allow plunder",
+              "effect": "Faster pursuit, hostility from civilians and Reichsstaende"
+            }
+          ],
+          "signals": [
+            {
+              "when": "Spring 1742",
+              "player_sees": "Complaints from towns",
+              "via": "Letters"
+            }
+          ],
+          "failure_modes": [
+            "Desertion when unpaid",
+            "Diplomatic damage"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Duffy (not opened)",
+            "Karniel (not opened)"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "soc-p07-upper-austria",
+          "domain": "society",
+          "title": "Upper Austria and the Franco-Bavarian advance",
+          "window": [
+            "1741-07",
+            "1742-02"
+          ],
+          "actors": [
+            "Charles Albert",
+            "Upper Austrian Estates",
+            "Khevenhueller"
+          ],
+          "preconditions": [
+            "Passau fell 31 Jul 1741"
+          ],
+          "historical": "Linz taken mid-Sep 1741; Estates' homage to Charles Albert about 2 Oct (unverified); Khevenhueller retook Linz Jan 1742 and entered Munich 13 Feb 1742.",
+          "levers": [
+            {
+              "player_action": "Defend Linz line",
+              "effect": "Estates hold or the homage is delayed"
+            },
+            {
+              "player_action": "Abandon Linz",
+              "effect": "Estates swear to the invader"
+            }
+          ],
+          "signals": [
+            {
+              "when": "Sep 1741",
+              "player_sees": "Courier delays",
+              "via": "Landesstelle"
+            }
+          ],
+          "failure_modes": [
+            "Estates' swearing becomes precedent",
+            "Vienna panics"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Search result on Charles VII",
+            "Standard accounts"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "soc-p08-bohemia",
+          "domain": "society",
+          "title": "Bohemian Estates and Charles Albert",
+          "window": [
+            "1741-08",
+            "1742-02"
+          ],
+          "actors": [
+            "Bohemian Estates",
+            "Oberste Landesbeamte",
+            "Charles Albert",
+            "Kinsky Chancery"
+          ],
+          "preconditions": [
+            "Prague stormed 25/26 Nov 1741"
+          ],
+          "historical": "Estates' homage and Charles Albert's Bohemian coronation Dec 1741 (date disputed 9 or 19 Dec).",
+          "levers": [
+            {
+              "player_action": "Hold the Landtag and confirm privileges before the enemy arrives",
+              "effect": "Fewer defections"
+            },
+            {
+              "player_action": "Garrison Prague",
+              "effect": "Delays the fall"
+            }
+          ],
+          "signals": [
+            {
+              "when": "Nov 1741",
+              "player_sees": "Defections of lords",
+              "via": "Prague Statthalterei reports"
+            }
+          ],
+          "failure_modes": [
+            "Estates hedge",
+            "Reprisals afterwards"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "bohemia-online.de article 4675",
+            "historyofroyalwomen.com"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "soc-p09-prague-reckoning",
+          "domain": "society",
+          "title": "Prague reconquest and Estates' reckoning",
+          "window": [
+            "1742-07",
+            "1742-12"
+          ],
+          "actors": [
+            "Belle-Isle",
+            "Chevert",
+            "Habsburg army",
+            "Bohemian lords"
+          ],
+          "preconditions": [
+            "Prague held by France"
+          ],
+          "historical": "Belle-Isle retreat 16/17 Dec 1742; Chevert capitulated late Dec.",
+          "levers": [
+            {
+              "player_action": "Lenient terms for collaborators",
+              "effect": "Calms Estates"
+            },
+            {
+              "player_action": "Confiscations",
+              "effect": "Raises funds but alienates lords"
+            }
+          ],
+          "signals": [
+            {
+              "when": "Dec 1742",
+              "player_sees": "Lists of homage-takers",
+              "via": "Statthalterei"
+            }
+          ],
+          "failure_modes": [
+            "Reprisals radicalise",
+            "Peasant hunger"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Standard accounts"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "soc-p10-credit",
+          "domain": "society",
+          "title": "Money, credit and subsidy",
+          "window": [
+            "1740-10",
+            "1742-12"
+          ],
+          "actors": [
+            "Hofkammer",
+            "Wiener Stadtbanco",
+            "Estates committees",
+            "Britain"
+          ],
+          "preconditions": [
+            "Treasury strained"
+          ],
+          "historical": "War financed by contributions, Banco, loans and British subsidy (amount unverified); arrears persisted.",
+          "levers": [
+            {
+              "player_action": "Reduce winter quarters",
+              "effect": "Cheaper but fewer troops"
+            },
+            {
+              "player_action": "Pay from Banco",
+              "effect": "Short term fix"
+            }
+          ],
+          "signals": [
+            {
+              "when": "monthly",
+              "player_sees": "Pay lists, mutinies",
+              "via": "Hofkammer letters"
+            }
+          ],
+          "failure_modes": [
+            "Desertion",
+            "Estates credit limits"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Wangermann, Kann (not opened)"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "soc-p11-croatia-transylvania",
+          "domain": "society",
+          "title": "Croatian Sabor and Transylvanian contingents",
+          "window": [
+            "1741-06",
+            "1742-03"
+          ],
+          "actors": [
+            "Croatian Sabor",
+            "Ban",
+            "Transylvanian Diet",
+            "Gubernium"
+          ],
+          "preconditions": [
+            "Pragmatic Sanction accepted in both"
+          ],
+          "historical": "Both supply troops through their own institutions (details unverified).",
+          "levers": [
+            {
+              "player_action": "Confirm autonomy",
+              "effect": "Faster mobilisation"
+            }
+          ],
+          "signals": [
+            {
+              "when": "Autumn 1741",
+              "player_sees": "Sabor's reply",
+              "via": "Chancery letters"
+            }
+          ],
+          "failure_modes": [
+            "Slow mobilisation",
+            "Saxon-Hungarian disputes"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Kovács (not opened)"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "rel-silesia-protestants-1741",
+          "domain": "religion",
+          "title": "Silesian Protestants and the Prussian invasion",
+          "window": [
+            "1740-12",
+            "1742-06"
+          ],
+          "actors": [
+            "Frederick II",
+            "Silesian Lutheran pastors",
+            "Breslau magistrate",
+            "Cardinal Sinzendorf",
+            "Habsburg field commanders"
+          ],
+          "preconditions": [
+            "Prussian army in Silesia from Dec 1740",
+            "Altranstadt churches in place"
+          ],
+          "historical": "Most Protestant communities accepted Prussian rule or stayed neutral; Catholic clergy and nobility largely stayed loyal; Silesia ceded in 1742.",
+          "levers": [
+            {
+              "player_action": "Promise restoration of closed Protestant churches",
+              "effect": "Reduces local hostility; angers Catholic clergy"
+            },
+            {
+              "player_action": "Treat Lutheran villages as disloyal",
+              "effect": "Boosts Prussian intelligence and recruits"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1740-12",
+              "player_sees": "Reports of local welcome and requisition grievances",
+              "via": "commanders' dispatches"
+            },
+            {
+              "when": "1741-01",
+              "player_sees": "Breslau neutrality petition",
+              "via": "magistrate letters"
+            }
+          ],
+          "failure_modes": [
+            "Reprisals produce a rising of both confessions",
+            "Over-trusting Catholic nobles as the whole province"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Hanus, Church and State in Silesia under Frederick II",
+            "Bahlcke on Silesia",
+            "Britannica Silesian Wars"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "rel-catholic-status-quo-1742",
+          "domain": "religion",
+          "title": "Catholic status quo in ceded Silesia",
+          "window": [
+            "1741-01",
+            "1742-07"
+          ],
+          "actors": [
+            "Frederick II",
+            "Maria Theresa",
+            "Bishop of Breslau",
+            "Cathedral chapter"
+          ],
+          "preconditions": [
+            "Peace negotiations 1742"
+          ],
+          "historical": "Berlin article VI protects the Catholic religious status quo alongside Protestant freedom of conscience and constrains sovereign interference. Treaty obligation is not proof of perfect enforcement.",
+          "levers": [
+            {
+              "player_action": "Demand religious guarantees in peace talks",
+              "effect": "Reduces clerical resentment, costs bargaining capital"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1742-05",
+              "player_sees": "Draft terms with a religion clause",
+              "via": "negotiator letters"
+            }
+          ],
+          "failure_modes": [
+            "Guarantees omitted; clergy defect or emigrate"
+          ],
+          "claim": "PARTIALLY CHECKED: Berlin article VI protects the Catholic religious status quo alongside Protestant freedom of conscience and constrains sovereign interference. Treaty obligation is not proof of perfect enforcement.",
+          "sources": [
+            "https://documentsdedroitinternational.fr/ressources/TdP/1742-07-28-TraitedeBerlin.pdf"
+          ],
+          "verification": {
+            "verdict": "corrected",
+            "claims": [
+              "R01"
+            ],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "rel-clerical-contribution-1741",
+          "domain": "religion",
+          "title": "Clerical contributions and papal licence",
+          "window": [
+            "1740-11",
+            "1742-12"
+          ],
+          "actors": [
+            "Maria Theresa",
+            "Hofkammer",
+            "Prelates",
+            "Benedict XIV",
+            "Nuncio in Vienna"
+          ],
+          "preconditions": [
+            "War costs after Mollwitz",
+            "Church tax exemption"
+          ],
+          "historical": "Some clerical contribution with papal assent; one source gives 18,000 fl. from an archbishop.",
+          "levers": [
+            {
+              "player_action": "Request papal licence",
+              "effect": "Slow, legal, safer"
+            },
+            {
+              "player_action": "Take monastery plate",
+              "effect": "Fast cash, local protest"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1741-04",
+              "player_sees": "Treasury deficit report",
+              "via": "Hofkammer"
+            }
+          ],
+          "failure_modes": [
+            "Unlicensed levy causes canonical protest",
+            "Prelates withhold loans"
+          ],
+          "claim": "PARTIALLY CHECKED: Act LXIII sections 13–16 specify obligations for named clerical categories, with exemptions and assessment rules. It does not establish papal permission or a monarchy-wide cash total.",
+          "sources": [
+            "https://net.jogtar.hu/ezer-ev-torveny?docid=74100063.TV"
+          ],
+          "verification": {
+            "verdict": "corrected",
+            "claims": [
+              "R02"
+            ],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "rel-hungary-protestants-1741",
+          "domain": "religion",
+          "title": "Hungarian Protestants at the coronation diet",
+          "window": [
+            "1741-06",
+            "1742-12"
+          ],
+          "actors": [
+            "Maria Theresa",
+            "Palatine",
+            "Esztergom primate",
+            "Protestant nobles"
+          ],
+          "preconditions": [
+            "Carolina Resolutio 1731",
+            "Diet at Pressburg"
+          ],
+          "historical": "The Crown held to the Carolina Resolutio (24 Dec 1742) while Protestant nobles still supported the war.",
+          "levers": [
+            {
+              "player_action": "Offer local concessions",
+              "effect": "Eases tension; Catholic prelates protest"
+            },
+            {
+              "player_action": "Refuse any change",
+              "effect": "Keeps Catholic support; Protestant bitterness"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1741-06",
+              "player_sees": "County petitions to the Diet",
+              "via": "Pressburg dispatches"
+            }
+          ],
+          "failure_modes": [
+            "Officer resignations",
+            "False hopes"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Hungaricana library texts",
+            "Evans",
+            "Karniel"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "rel-prague-jews-1741",
+          "domain": "religion",
+          "title": "Prague Jews under occupation",
+          "window": [
+            "1741-11",
+            "1743-01"
+          ],
+          "actors": [
+            "Prague Jewish elders",
+            "Franco-Bavarian command",
+            "Habsburg officials",
+            "Vienna court Jews"
+          ],
+          "preconditions": [
+            "Familiants laws",
+            "Prague captured Nov 1741"
+          ],
+          "historical": "Contributions extracted from the community; the later expulsion (Dec 1744) is after the window.",
+          "levers": [
+            {
+              "player_action": "Issue protection letters",
+              "effect": "Keeps credit and order"
+            },
+            {
+              "player_action": "Act on rumours of collaboration",
+              "effect": "Damages credit and foreign opinion"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1742-01",
+              "player_sees": "Reports of rumours about Jews",
+              "via": "officers' letters"
+            }
+          ],
+          "failure_modes": [
+            "Premature expulsion",
+            "Loan loss"
+          ],
+          "claim": "PARTIALLY CHECKED: The decree is dated December 1744. It cannot be imported into 1741–42 as an event or proof of actual collaboration.",
+          "sources": [
+            "https://germanhistorydocs.org/en/the-holy-roman-empire-1648-1815/ghdi:document-5366"
+          ],
+          "verification": {
+            "verdict": "corrected",
+            "claims": [
+              "R03"
+            ],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "rel-papal-neutrality-1741",
+          "domain": "religion",
+          "title": "Papal neutrality",
+          "window": [
+            "1740-08",
+            "1742-12"
+          ],
+          "actors": [
+            "Benedict XIV",
+            "Spain",
+            "France",
+            "Maria Theresa"
+          ],
+          "preconditions": [
+            "Papal States crossed by armies"
+          ],
+          "historical": "The pope stayed neutral.",
+          "levers": [
+            {
+              "player_action": "Appeal to Rome",
+              "effect": "Sympathy but no action"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1741-06",
+              "player_sees": "Polite nuncio reply",
+              "via": "Rome dispatch"
+            }
+          ],
+          "failure_modes": [
+            "Demanding denunciation of France"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Encyclopedia.com Benedict XIV"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "rel-imperial-church-1742",
+          "domain": "religion",
+          "title": "Imperial Church and the 1742 election",
+          "window": [
+            "1741-10",
+            "1742-02"
+          ],
+          "actors": [
+            "Elector of Mainz",
+            "Elector of Trier",
+            "Clemens August of Cologne",
+            "Charles Albert"
+          ],
+          "preconditions": [
+            "Bohemian vote withheld"
+          ],
+          "historical": "Charles Albert elected 24 Jan 1742; crowned 12 Feb 1742 by Clemens August.",
+          "levers": [
+            {
+              "player_action": "Court ecclesiastical electors",
+              "effect": "Minor; French pressure dominates"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1742-01",
+              "player_sees": "Frankfurt envoy reports",
+              "via": "dispatches"
+            }
+          ],
+          "failure_modes": [
+            "Assuming confessional loyalty"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Wikipedia Charles VII (lead only)",
+            "Ingrao"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "rel-orthodox-frontier-1741",
+          "domain": "religion",
+          "title": "Orthodox Serbs and Frontier privileges",
+          "window": [
+            "1741-01",
+            "1742-12"
+          ],
+          "actors": [
+            "Metropolitan of Karlovci",
+            "Frontier colonels",
+            "Trenck"
+          ],
+          "preconditions": [
+            "Privileges since 1690"
+          ],
+          "historical": "Frontier troops served extensively; privileges maintained.",
+          "levers": [
+            {
+              "player_action": "Reaffirm privileges",
+              "effect": "Retains troops"
+            },
+            {
+              "player_action": "Push union with Rome",
+              "effect": "Alienates regiments"
+            }
+          ],
+          "signals": [
+            {
+              "when": "1741-06",
+              "player_sees": "Colonels' complaints",
+              "via": "Frontier reports"
+            }
+          ],
+          "failure_modes": [
+            "Plunder scandals",
+            "Church interference"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Rothenberg",
+            "Bruckmueller"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "mil-silesia-thin-screen",
+          "domain": "military",
+          "title": "The thin screen in Silesia",
+          "window": [
+            "1740-12",
+            "1741-01"
+          ],
+          "actors": [
+            "Browne",
+            "Wallis",
+            "Hofkriegsrat",
+            "Silesian Oberamt",
+            "Frederick II",
+            "Schwerin"
+          ],
+          "preconditions": [
+            "Prussian invasion underway",
+            "Small Habsburg forces dispersed among field posts and garrisons; exact strength depends on report date"
+          ],
+          "historical": "KA II counts 7,359 excluding Glatz against at least 26,000–27,000 invaders on Silesian soil in late December. KA I’s 99,446 is the whole Prussian army. The 7,359 includes garrisons and is not one field army. KA II says one regiment was in Silesia in October, but explicitly takes 1,719 from December strength lists. Do not label it an October return.",
+          "levers": [
+            {
+              "player_action": "Keep a mobile field force rather than garrisoning every fort",
+              "effect": "Forts fall sooner, a field force survives to join Neipperg"
+            },
+            {
+              "player_action": "Force Breslau before the Prussians arrive",
+              "effect": "Needs orders; city turns hostile"
+            },
+            {
+              "player_action": "Ruin roads, hold passes",
+              "effect": "Delay Prussians, cost local goodwill"
+            }
+          ],
+          "signals": [
+            {
+              "when": "early Dec",
+              "player_sees": "Prussian columns at Crossen",
+              "via": "scouts, officials"
+            },
+            {
+              "when": "13 Dec",
+              "player_sees": "Prussian envoy in Vienna",
+              "via": "Hofkriegsrat dispatch"
+            }
+          ],
+          "failure_modes": [
+            "garrisons invested one by one",
+            "Breslau lost without a shot",
+            "Vienna withholds authority"
+          ],
+          "claim": "PARTIALLY CHECKED: KA II counts 7,359 excluding Glatz against at least 26,000–27,000 invaders on Silesian soil in late December. KA I’s 99,446 is the whole Prussian army. The 7,359 includes garrisons and is not one field army. KA II says one regiment was in Silesia in October, but explicitly takes 1,719 from December strength lists. Do not label it an October return.",
+          "sources": [
+            "https://archive.org/details/p1sterreichisc01aust",
+            "https://archive.org/details/sterreichische02austuoft"
+          ],
+          "verification": {
+            "verdict": "corrected",
+            "claims": [
+              "M01",
+              "M02"
+            ],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "mil-neisse-relief-march",
+          "domain": "military",
+          "title": "Neipperg's mountain march",
+          "window": [
+            "1741-03",
+            "1741-04"
+          ],
+          "actors": [
+            "Neipperg",
+            "Frederick II",
+            "Schwerin",
+            "Pandurs and hussars"
+          ],
+          "preconditions": [
+            "Neipperg at Olmutz from 10 March",
+            "Glogau fell 9 March",
+            "Prussians dispersed over 2,000 square miles",
+            "snowy roads"
+          ],
+          "historical": "Left Olmutz 26 March, probed Jagerndorf 2 April, reached Mollwitz 9 April between Frederick and Ohlau.",
+          "levers": [
+            {
+              "player_action": "Screen with light troops",
+              "effect": "Prussians lose track; discipline risk"
+            },
+            {
+              "player_action": "Strike the Jagerndorf detachment",
+              "effect": "Chance to cripple the covering force"
+            },
+            {
+              "player_action": "Rest on 10 April",
+              "effect": "Invites surprise if scouting fails"
+            }
+          ],
+          "signals": [
+            {
+              "when": "2 April",
+              "player_sees": "weak Prussian force at Jagerndorf",
+              "via": "Pandur skirmishes"
+            },
+            {
+              "when": "9 April",
+              "player_sees": "Prussians near Pogarell",
+              "via": "hussar patrols"
+            }
+          ],
+          "failure_modes": [
+            "army scattered in villages",
+            "peasants no longer reporting",
+            "magazines distant"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "Carlyle XII",
+            "KA-II 224-229"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "mil-mollwitz-battle",
+          "domain": "military",
+          "title": "Mollwitz: the cavalry that charged too soon",
+          "window": [
+            "1741-04",
+            "1741-04"
+          ],
+          "actors": [
+            "Neipperg",
+            "Romer",
+            "Goldy",
+            "Browne",
+            "Berlichingen",
+            "Frederick II",
+            "Schwerin",
+            "Leopold of Anhalt-Dessau"
+          ],
+          "preconditions": [
+            "open snowy plain",
+            "Prussian guns about 3:1",
+            "Austrian recruits with wooden ramrods"
+          ],
+          "historical": "Prussian guns provoked Romer into a premature charge; Prussian cavalry broke; infantry held; Austrian infantry stalled; Schwerin advanced; retreat at 19:30.",
+          "levers": [
+            {
+              "player_action": "Hold cavalry under fire",
+              "effect": "Morale falls each turn; chance of premature charge"
+            },
+            {
+              "player_action": "Charge before Prussians finish deploying",
+              "effect": "May rout Prussian right; may lose control"
+            },
+            {
+              "player_action": "Advance infantry with the cavalry",
+              "effect": "Exploits breakthrough; stalling loses the battle"
+            },
+            {
+              "player_action": "Hold fire to 50-60 paces then bayonet",
+              "effect": "Keeps mobility but loses fire exchange"
+            }
+          ],
+          "signals": [
+            {
+              "when": "13:00",
+              "player_sees": "Prussian guns unlimbering at 1,000 paces",
+              "via": "outposts"
+            },
+            {
+              "when": "during cannonade",
+              "player_sees": "cavalry grumbling",
+              "via": "officer reports"
+            }
+          ],
+          "failure_modes": [
+            "cavalry charge without orders then scattered",
+            "left infantry swings away",
+            "ammunition spent, lines 30-40 deep"
+          ],
+          "claim": "PARTIALLY CHECKED: KA II p. 229 reconstructs 15,788 Austrians from post-battle returns plus losses; p. 224 gives 21,600 Prussians. Preserve source and estimation status. These totals do not map directly to the demo’s counters. KA II pp. 245–246 totals 4,551 Austrian personnel losses, including missing and prisoners as well as killed and wounded. Dividing by estimated strength describes one battle; it supplies no universal morale threshold.",
+          "sources": [
+            "https://archive.org/details/sterreichische02austuoft"
+          ],
+          "verification": {
+            "verdict": "corrected",
+            "claims": [
+              "M03",
+              "M04"
+            ],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "mil-reform-summer-1741",
+          "domain": "military",
+          "title": "Reform and discipline after Mollwitz",
+          "window": [
+            "1741-05",
+            "1741-10"
+          ],
+          "actors": [
+            "Neipperg",
+            "Thungen",
+            "Hofkriegsrat",
+            "Trenck",
+            "Hadik",
+            "Khevenhuller"
+          ],
+          "preconditions": [
+            "28,557 incl. light troops in late July",
+            "Hungarian insurrection regiments",
+            "Brieg lost 4 May"
+          ],
+          "historical": "Thungen's 10 July instructions; Trenck arrested; 500-hussar raids on Prussian convoys; Klein-Schnellendorf truce 9 Oct.",
+          "levers": [
+            {
+              "player_action": "Drill infantry to advance without firing",
+              "effect": "Fewer collapses, slow gain"
+            },
+            {
+              "player_action": "Raid convoys with hussars",
+              "effect": "Prussian supply disrupted; plunder and desertion risk"
+            },
+            {
+              "player_action": "Discipline irregulars",
+              "effect": "Fewer inquiries and atrocities"
+            }
+          ],
+          "signals": [
+            {
+              "when": "July",
+              "player_sees": "Prussian convoys Schweidnitz-Breslau",
+              "via": "hussar patrols"
+            }
+          ],
+          "failure_modes": [
+            "Hofkriegsrat overrides",
+            "truce lets Prussia mend its cavalry"
+          ],
+          "claim": "PARTIALLY CHECKED: KA I pp. 381–382 describes wooden ramrods and a December 1744 resolution for iron ones. Equipment difference alone establishes neither battlefield sustained rates nor a damage multiplier; universal delivery by that date is not shown. The treatise was written in 1748 and circulated in 1753. Use as later reflection, not contemporary evidence that the novice king or every unit already behaved that way.",
+          "sources": [
+            "https://archive.org/details/p1sterreichisc01aust",
+            "https://germanhistorydocs.org/en/the-holy-roman-empire-1648-1815/ghdi:document-3582"
+          ],
+          "verification": {
+            "verdict": "corrected",
+            "claims": [
+              "M05",
+              "M06"
+            ],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        },
+        {
+          "id": "mil-chotusitz-battle",
+          "domain": "military",
+          "title": "Chotusitz: won at nine, lost at eleven",
+          "window": [
+            "1742-05",
+            "1742-05"
+          ],
+          "actors": [
+            "Prince Charles of Lorraine",
+            "Konigsegg",
+            "Roth",
+            "Frederick II",
+            "Leopold of Anhalt-Dessau",
+            "Buddenbrock"
+          ],
+          "preconditions": [
+            "night march, delayed right wing",
+            "Prussians united only at 07:30",
+            "about 28,000 each incl. light troops"
+          ],
+          "historical": "Austrians took and burned Chotusitz and were ahead at 09:00; cavalry looted; Frederick's 21-battalion reserve wheeled left at 10:30 and broke the left at 11:00.",
+          "levers": [
+            {
+              "player_action": "Keep cavalry from the Prussian camp",
+              "effect": "Right wing stays available to exploit"
+            },
+            {
+              "player_action": "Commit reserve before 10:30",
+              "effect": "Blocks Frederick's wheel"
+            },
+            {
+              "player_action": "Hold both sides of the village",
+              "effect": "Keeps the army connected"
+            }
+          ],
+          "signals": [
+            {
+              "when": "10:00",
+              "player_sees": "dust settling, Prussian cavalry gone",
+              "via": "observers"
+            },
+            {
+              "when": "10:30",
+              "player_sees": "Prussian infantry wheeling with guns",
+              "via": "flank patrols"
+            }
+          ],
+          "failure_modes": [
+            "cavalry plundering",
+            "village fire splits army",
+            "reserve late; left collapses under guns"
+          ],
+          "claim": "PROVISIONAL: historical and causal details require verification.",
+          "sources": [
+            "KA-III 620-650",
+            "Carlyle XIII"
+          ],
+          "verification": {
+            "verdict": "still unverified",
+            "claims": [],
+            "scope": "Only linked findings checked; motives, signals, timing estimates and lever effects are provisional campaign hypotheses."
+          },
+          "field_status": {
+            "levers": "campaign-invention hypothesis; not a verified outcome",
+            "signals": "campaign-invention hypothesis; not a verified outcome",
+            "failure_modes": "campaign-invention hypothesis; not a verified outcome",
+            "historical": "provisional unless explicitly covered by linked verification finding",
+            "preconditions": "provisional unless explicitly covered by linked verification finding"
+          }
+        }
+      ],
+      "verification": {
+        "date": "2026-10-04",
+        "scope": "27 targeted claims across five domains; all 47 plot threads classified; not full historical validation",
+        "sources": {
+          "KA1": {
+            "url": "https://archive.org/details/p1sterreichisc01aust",
+            "type": "1896 official history citing archives; secondary, not contemporary testimony",
+            "location": "vol. I part 1, pp. 309–310, 381–382, 572–573"
+          },
+          "KA2": {
+            "url": "https://archive.org/details/sterreichische02austuoft",
+            "type": "official archival history; secondary with quoted returns",
+            "location": "vol. II, pp. 4–5, 58, opening of January 1741 chapter, 224–229, 245–246"
+          },
+          "PC1": {
+            "url": "https://friedrich.uni-trier.de/de/politKorr/1/text/",
+            "type": "edited primary correspondence; full text opened",
+            "location": "documents 192 (8 December 1740), 227 (26 December 1740), 344 (13 April 1741)"
+          },
+          "H8": {
+            "url": "https://net.jogtar.hu/ezer-ev-torveny?docid=74100008.TV",
+            "type": "primary statute in published Hungarian translation",
+            "location": "1741 Act VIII, full article"
+          },
+          "H63": {
+            "url": "https://net.jogtar.hu/ezer-ev-torveny?docid=74100063.TV",
+            "type": "primary statute in published Hungarian translation",
+            "location": "1741 Act LXIII, preamble and sections 1–4, 13–18"
+          },
+          "BERLIN": {
+            "url": "https://documentsdedroitinternational.fr/ressources/TdP/1742-07-28-TraitedeBerlin.pdf",
+            "type": "primary treaty in Wenck collection; PDF downloaded and text read",
+            "location": "28 July 1742, articles IV–VI and IX; printed pp. 742–745"
+          },
+          "GHDI44": {
+            "url": "https://germanhistorydocs.org/en/the-holy-roman-empire-1648-1815/ghdi:document-5366",
+            "type": "primary decree in translation",
+            "location": "December 1744 expulsion decree, opening paragraph"
+          },
+          "GHDI48": {
+            "url": "https://germanhistorydocs.org/en/the-holy-roman-empire-1648-1815/ghdi:document-3582",
+            "type": "primary military treatise in translation, later than campaign",
+            "location": "editorial dating 1748/1753 and chapter 2"
+          },
+          "TURIN": {
+            "url": "https://blog.nationalmuseum.ch/en/2023/05/the-encirclement-of-geneva-by-spanish-troops-in-1743/",
+            "type": "museum historical account; secondary corroboration only",
+            "location": "paragraph beginning “The invasion prompted…”; 1 February 1742"
+          }
+        },
+        "claims": [
+          {
+            "id": "P01",
+            "domain": "politics",
+            "verdict": "corrected",
+            "claim": "Gotter instructions dated 17 November 1740",
+            "finding": "Document 192 is dated Berlin, 8 December 1740; it refers to earlier instructions to Borcke. Do not conflate those instructions with Gotter’s commission.",
+            "sources": [
+              "PC1"
+            ]
+          },
+          {
+            "id": "P02",
+            "domain": "politics",
+            "verdict": "refuted",
+            "claim": "Frederick’s price could only rise; partial cession was unavailable",
+            "finding": "On 26 December Frederick authorized Gotter to indicate willingness to accept a substantial part rather than all of Silesia. This documents an offer, not sincerity or certainty that agreement would last.",
+            "sources": [
+              "PC1"
+            ]
+          },
+          {
+            "id": "P03",
+            "domain": "politics",
+            "verdict": "corrected",
+            "claim": "Sardinia joined openly only in 1743",
+            "finding": "The Swiss National Museum dates the Austrian–Sardinian Convention of Turin to 1 February 1742. Correct the 1743-only claim; the original convention was not opened, so this is secondary corroboration.",
+            "sources": [
+              "TURIN"
+            ]
+          },
+          {
+            "id": "P04",
+            "domain": "politics",
+            "verdict": "confirmed",
+            "claim": "Khevenhüller listed as Hofkriegsrat Vice-President in 1740/41",
+            "finding": "The official history gives that office and cites the 1740 and 1741 court calendars. Appointment month and presence in Vienna on 21 October remain unverified.",
+            "sources": [
+              "KA1"
+            ]
+          },
+          {
+            "id": "P05",
+            "domain": "politics",
+            "verdict": "still unverified",
+            "claim": "Court factions, exact Conference roster, all guarantors’ legal obligations, envoys and courier times",
+            "finding": "The pass does not establish these from dated records. Preserve as research hypotheses; no categorical legal or personal-motive conclusions.",
+            "sources": []
+          },
+          {
+            "id": "P06",
+            "domain": "politics",
+            "verdict": "corrected",
+            "claim": "Mollwitz created the entire coalition from nothing",
+            "finding": "Document 344 refers to treaty negotiations already underway and a French letter dated 7 April. Victory may have affected commitment, but diplomacy did not begin only after 10 April.",
+            "sources": [
+              "PC1"
+            ]
+          },
+          {
+            "id": "E01",
+            "domain": "economy",
+            "verdict": "refuted",
+            "claim": "Hungary paid only in men and loyalty, never cash",
+            "finding": "Act LXIII funds infantry from the country’s tax fund, and section 18 specifies cash contributions by towns in lieu of some mounted obligations. Noble exemption is not national fiscal exemption.",
+            "sources": [
+              "H63",
+              "H8"
+            ]
+          },
+          {
+            "id": "E02",
+            "domain": "economy",
+            "verdict": "confirmed",
+            "claim": "Silesian revenues secured foreign debt transferred by peace",
+            "finding": "Berlin article IX assigns debt owed to English and Dutch subjects to Prussia, subject to the Dutch settlement provision, while the queen retains debt owed to Brabant creditors. No principal amount verified.",
+            "sources": [
+              "BERLIN"
+            ]
+          },
+          {
+            "id": "E03",
+            "domain": "economy",
+            "verdict": "still unverified",
+            "claim": "Silesia supplied one tenth of revenue; treasury held 100,000 florins; grants took one to three quarters",
+            "finding": "No comparable dated fiscal series or cash account checked. Remove exact ratios, balances and fixed lags from the operating rules.",
+            "sources": []
+          },
+          {
+            "id": "E04",
+            "domain": "economy",
+            "verdict": "still unverified",
+            "claim": "Regional grain-price curves and automatic 1740–41 famine unrest",
+            "finding": "The pass did not establish local harvest, price or mortality series. Weather background cannot determine a province’s unrest without local evidence.",
+            "sources": []
+          },
+          {
+            "id": "E05",
+            "domain": "economy",
+            "verdict": "corrected",
+            "claim": "Occupation affects only next year’s budget; British subsidy never arrives when needed",
+            "finding": "These absolutes are unsupported design rules. Occupation may interrupt current collections and seize chests; subsidy authorisation, remittance and receipt must be tracked separately. Exact British payment dates and sums remain unverified here.",
+            "sources": []
+          },
+          {
+            "id": "E06",
+            "domain": "economy",
+            "verdict": "still unverified",
+            "claim": "The winter recovery was achieved by a cheap irregular army instead of the paid army",
+            "finding": "No cost comparison or force composition sufficient for that claim checked. Retain possible raids and operational successes without that causal verdict.",
+            "sources": []
+          },
+          {
+            "id": "S01",
+            "domain": "society",
+            "verdict": "confirmed",
+            "claim": "Hungarian noble tax privileges were reaffirmed",
+            "finding": "Act VIII protects the estates’ fiscal privileges. It does not show that all inhabitants or all forms of contribution were exempt.",
+            "sources": [
+              "H8"
+            ]
+          },
+          {
+            "id": "S02",
+            "domain": "society",
+            "verdict": "confirmed",
+            "claim": "1741 infantry levy authorised",
+            "finding": "Act LXIII section 1 specifies 21,622 infantry in six new regiments; sections 1–2 specify funding and limits on replacement obligations. This is authorised establishment, not a verified muster or battlefield strength.",
+            "sources": [
+              "H63"
+            ]
+          },
+          {
+            "id": "S03",
+            "domain": "society",
+            "verdict": "corrected",
+            "claim": "60,000 Hungarian troops actually provided",
+            "finding": "Replace the unsourced delivered total with the 21,622 authorised infantry levy, separately from noble and mounted obligations. Actual mobilisation and arrival remain unverified.",
+            "sources": [
+              "H63"
+            ]
+          },
+          {
+            "id": "S04",
+            "domain": "society",
+            "verdict": "still unverified",
+            "claim": "Exact homage dates, a delayed coronation delays any claim, fixed robot burden, national loyalty blocs",
+            "finding": "No uniform constitutional or social rule is justified. Verify each jurisdiction, institution, date and locality; never treat a whole confession or province as one actor.",
+            "sources": []
+          },
+          {
+            "id": "R01",
+            "domain": "religion",
+            "verdict": "confirmed",
+            "claim": "Catholic status quo protected in ceded Silesia",
+            "finding": "Berlin article VI protects the Catholic religious status quo alongside Protestant freedom of conscience and constrains sovereign interference. Treaty obligation is not proof of perfect enforcement.",
+            "sources": [
+              "BERLIN"
+            ]
+          },
+          {
+            "id": "R02",
+            "domain": "religion",
+            "verdict": "confirmed",
+            "claim": "Clerical obligations contributed to Hungarian mobilisation",
+            "finding": "Act LXIII sections 13–16 specify obligations for named clerical categories, with exemptions and assessment rules. It does not establish papal permission or a monarchy-wide cash total.",
+            "sources": [
+              "H63"
+            ]
+          },
+          {
+            "id": "R03",
+            "domain": "religion",
+            "verdict": "corrected",
+            "claim": "The Prague expulsion belongs to the 1741–42 opening",
+            "finding": "The decree is dated December 1744. It cannot be imported into 1741–42 as an event or proof of actual collaboration.",
+            "sources": [
+              "GHDI44"
+            ]
+          },
+          {
+            "id": "R04",
+            "domain": "religion",
+            "verdict": "still unverified",
+            "claim": "Papal neutrality, 1742 Protestant declaration, exact Carolina Resolutio effects, Orthodox Frontier privileges",
+            "finding": "No sufficient dated primary evidence opened for these specific claims. Leave provisional; do not hard-code confessional allegiance or a universal papal position.",
+            "sources": []
+          },
+          {
+            "id": "M01",
+            "domain": "military",
+            "verdict": "corrected",
+            "claim": "7,000 Austrians versus 100,000 Prussians invading Silesia",
+            "finding": "KA II counts 7,359 excluding Glatz against at least 26,000–27,000 invaders on Silesian soil in late December. KA I’s 99,446 is the whole Prussian army. The 7,359 includes garrisons and is not one field army.",
+            "sources": [
+              "KA1",
+              "KA2"
+            ]
+          },
+          {
+            "id": "M02",
+            "domain": "military",
+            "verdict": "corrected",
+            "claim": "1,719 men in October 1740",
+            "finding": "KA II says one regiment was in Silesia in October, but explicitly takes 1,719 from December strength lists. Do not label it an October return.",
+            "sources": [
+              "KA2"
+            ]
+          },
+          {
+            "id": "M03",
+            "domain": "military",
+            "verdict": "confirmed",
+            "claim": "Mollwitz force estimates in the official history",
+            "finding": "KA II p. 229 reconstructs 15,788 Austrians from post-battle returns plus losses; p. 224 gives 21,600 Prussians. Preserve source and estimation status. These totals do not map directly to the demo’s counters.",
+            "sources": [
+              "KA2"
+            ]
+          },
+          {
+            "id": "M04",
+            "domain": "military",
+            "verdict": "corrected",
+            "claim": "Austrian casualties imply a universal 29% rout threshold",
+            "finding": "KA II pp. 245–246 totals 4,551 Austrian personnel losses, including missing and prisoners as well as killed and wounded. Dividing by estimated strength describes one battle; it supplies no universal morale threshold.",
+            "sources": [
+              "KA2"
+            ]
+          },
+          {
+            "id": "M05",
+            "domain": "military",
+            "verdict": "corrected",
+            "claim": "Wooden ramrods prove a sustained 3:2 firing ratio",
+            "finding": "KA I pp. 381–382 describes wooden ramrods and a December 1744 resolution for iron ones. Equipment difference alone establishes neither battlefield sustained rates nor a damage multiplier; universal delivery by that date is not shown.",
+            "sources": [
+              "KA1"
+            ]
+          },
+          {
+            "id": "M06",
+            "domain": "military",
+            "verdict": "corrected",
+            "claim": "1748 Principles document Frederick’s exact 1740 doctrine",
+            "finding": "The treatise was written in 1748 and circulated in 1753. Use as later reflection, not contemporary evidence that the novice king or every unit already behaved that way.",
+            "sources": [
+              "GHDI48"
+            ]
+          },
+          {
+            "id": "M07",
+            "domain": "military",
+            "verdict": "still unverified",
+            "claim": "Demo speed, fire, morale, vision, strength and casualty coefficients",
+            "finding": "The 1.55 fire and 1.18 strength multipliers, movement speeds, 15-minute/12-phase cap and fog ranges remain game assumptions. No source supports substituting precise new coefficients in this pass.",
+            "sources": []
+          }
+        ],
+        "combat_parameters": "Unchanged; no source-to-simulation conversion verified."
+      }
+    }
+  },
+  "battleDemo": {
+    "id": "bd-demo",
+    "title": "Preview battlefield — illustrative deployment",
+    "center": [
+      50.845,
+      17.385
+    ],
+    "place": "Open farmland near Mollwitz (Małujowice), Silesia — location only",
+    "note": "Units and arrows are placeholders. The ground is real.",
+    "units": [
+      {
+        "id": "A1",
+        "side": "A",
+        "type": "inf",
+        "name": "Imperial infantry battalion 1 (illustrative)",
+        "strength": "placeholder",
+        "e": -1450,
+        "n": -300,
+        "facing": 0,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "A2",
+        "side": "A",
+        "type": "inf",
+        "name": "Imperial infantry battalion 2 (illustrative)",
+        "strength": "placeholder",
+        "e": -1260,
+        "n": -300,
+        "facing": 0,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "A3",
+        "side": "A",
+        "type": "inf",
+        "name": "Imperial infantry battalion 3 (illustrative)",
+        "strength": "placeholder",
+        "e": -1070,
+        "n": -300,
+        "facing": 0,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "A4",
+        "side": "A",
+        "type": "inf",
+        "name": "Imperial infantry battalion 4 (illustrative)",
+        "strength": "placeholder",
+        "e": -880,
+        "n": -300,
+        "facing": 0,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "A5",
+        "side": "A",
+        "type": "inf",
+        "name": "Imperial infantry battalion 5 (illustrative)",
+        "strength": "placeholder",
+        "e": -690,
+        "n": -300,
+        "facing": 0,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "A6",
+        "side": "A",
+        "type": "inf",
+        "name": "Imperial infantry battalion 6 (illustrative)",
+        "strength": "placeholder",
+        "e": -500,
+        "n": -300,
+        "facing": 0,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "A7",
+        "side": "A",
+        "type": "inf",
+        "name": "Imperial infantry battalion 7 (illustrative)",
+        "strength": "placeholder",
+        "e": -310,
+        "n": -300,
+        "facing": 0,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "A8",
+        "side": "A",
+        "type": "inf",
+        "name": "Imperial infantry battalion 8 (illustrative)",
+        "strength": "placeholder",
+        "e": -120,
+        "n": -300,
+        "facing": 0,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "A9",
+        "side": "A",
+        "type": "inf",
+        "name": "Imperial infantry battalion 9 (illustrative)",
+        "strength": "placeholder",
+        "e": -1350,
+        "n": -420,
+        "facing": 0,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "A10",
+        "side": "A",
+        "type": "inf",
+        "name": "Imperial infantry battalion 10 (illustrative)",
+        "strength": "placeholder",
+        "e": -1160,
+        "n": -420,
+        "facing": 0,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "A11",
+        "side": "A",
+        "type": "inf",
+        "name": "Imperial infantry battalion 11 (illustrative)",
+        "strength": "placeholder",
+        "e": -970,
+        "n": -420,
+        "facing": 0,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "A12",
+        "side": "A",
+        "type": "inf",
+        "name": "Imperial infantry battalion 12 (illustrative)",
+        "strength": "placeholder",
+        "e": -780,
+        "n": -420,
+        "facing": 0,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "A13",
+        "side": "A",
+        "type": "inf",
+        "name": "Imperial infantry battalion 13 (illustrative)",
+        "strength": "placeholder",
+        "e": -590,
+        "n": -420,
+        "facing": 0,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "A14",
+        "side": "A",
+        "type": "inf",
+        "name": "Imperial infantry battalion 14 (illustrative)",
+        "strength": "placeholder",
+        "e": -400,
+        "n": -420,
+        "facing": 0,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "A15",
+        "side": "A",
+        "type": "inf",
+        "name": "Imperial infantry battalion 15 (illustrative)",
+        "strength": "placeholder",
+        "e": -210,
+        "n": -420,
+        "facing": 0,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "AC1",
+        "side": "A",
+        "type": "cav",
+        "name": "Imperial cavalry squadron group 1 (illustrative)",
+        "strength": "placeholder",
+        "e": -2350,
+        "n": -330,
+        "facing": 0,
+        "w": 110,
+        "d": 16
+      },
+      {
+        "id": "AC2",
+        "side": "A",
+        "type": "cav",
+        "name": "Imperial cavalry squadron group 2 (illustrative)",
+        "strength": "placeholder",
+        "e": -2160,
+        "n": -330,
+        "facing": 0,
+        "w": 110,
+        "d": 16
+      },
+      {
+        "id": "AC3",
+        "side": "A",
+        "type": "cav",
+        "name": "Imperial cavalry squadron group 3 (illustrative)",
+        "strength": "placeholder",
+        "e": 200,
+        "n": -330,
+        "facing": 0,
+        "w": 110,
+        "d": 16
+      },
+      {
+        "id": "AC4",
+        "side": "A",
+        "type": "cav",
+        "name": "Imperial cavalry squadron group 4 (illustrative)",
+        "strength": "placeholder",
+        "e": 390,
+        "n": -330,
+        "facing": 0,
+        "w": 110,
+        "d": 16
+      },
+      {
+        "id": "AC5",
+        "side": "A",
+        "type": "cav",
+        "name": "Imperial cavalry squadron group 5 (illustrative)",
+        "strength": "placeholder",
+        "e": 580,
+        "n": -330,
+        "facing": 0,
+        "w": 110,
+        "d": 16
+      },
+      {
+        "id": "AA1",
+        "side": "A",
+        "type": "art",
+        "name": "Imperial battery 1 (illustrative)",
+        "strength": "placeholder",
+        "e": -1000,
+        "n": -230,
+        "facing": 0,
+        "w": 14,
+        "d": 10
+      },
+      {
+        "id": "AA2",
+        "side": "A",
+        "type": "art",
+        "name": "Imperial battery 2 (illustrative)",
+        "strength": "placeholder",
+        "e": -400,
+        "n": -230,
+        "facing": 0,
+        "w": 14,
+        "d": 10
+      },
+      {
+        "id": "AA3",
+        "side": "A",
+        "type": "art",
+        "name": "Imperial battery 3 (illustrative)",
+        "strength": "placeholder",
+        "e": 200,
+        "n": -230,
+        "facing": 0,
+        "w": 14,
+        "d": 10
+      },
+      {
+        "id": "B1",
+        "side": "B",
+        "type": "inf",
+        "name": "Opposing infantry battalion 1 (illustrative)",
+        "strength": "placeholder",
+        "e": -1100,
+        "n": 700,
+        "facing": 180,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "B2",
+        "side": "B",
+        "type": "inf",
+        "name": "Opposing infantry battalion 2 (illustrative)",
+        "strength": "placeholder",
+        "e": -910,
+        "n": 700,
+        "facing": 180,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "B3",
+        "side": "B",
+        "type": "inf",
+        "name": "Opposing infantry battalion 3 (illustrative)",
+        "strength": "placeholder",
+        "e": -720,
+        "n": 700,
+        "facing": 180,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "B4",
+        "side": "B",
+        "type": "inf",
+        "name": "Opposing infantry battalion 4 (illustrative)",
+        "strength": "placeholder",
+        "e": -530,
+        "n": 700,
+        "facing": 180,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "B5",
+        "side": "B",
+        "type": "inf",
+        "name": "Opposing infantry battalion 5 (illustrative)",
+        "strength": "placeholder",
+        "e": -340,
+        "n": 700,
+        "facing": 180,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "B6",
+        "side": "B",
+        "type": "inf",
+        "name": "Opposing infantry battalion 6 (illustrative)",
+        "strength": "placeholder",
+        "e": -150,
+        "n": 700,
+        "facing": 180,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "B7",
+        "side": "B",
+        "type": "inf",
+        "name": "Opposing infantry battalion 7 (illustrative)",
+        "strength": "placeholder",
+        "e": 40,
+        "n": 700,
+        "facing": 180,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "B8",
+        "side": "B",
+        "type": "inf",
+        "name": "Opposing infantry battalion 8 (illustrative)",
+        "strength": "placeholder",
+        "e": 230,
+        "n": 700,
+        "facing": 180,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "B9",
+        "side": "B",
+        "type": "inf",
+        "name": "Opposing infantry battalion 9 (illustrative)",
+        "strength": "placeholder",
+        "e": -1000,
+        "n": 820,
+        "facing": 180,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "B10",
+        "side": "B",
+        "type": "inf",
+        "name": "Opposing infantry battalion 10 (illustrative)",
+        "strength": "placeholder",
+        "e": -810,
+        "n": 820,
+        "facing": 180,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "B11",
+        "side": "B",
+        "type": "inf",
+        "name": "Opposing infantry battalion 11 (illustrative)",
+        "strength": "placeholder",
+        "e": -620,
+        "n": 820,
+        "facing": 180,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "B12",
+        "side": "B",
+        "type": "inf",
+        "name": "Opposing infantry battalion 12 (illustrative)",
+        "strength": "placeholder",
+        "e": -430,
+        "n": 820,
+        "facing": 180,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "B13",
+        "side": "B",
+        "type": "inf",
+        "name": "Opposing infantry battalion 13 (illustrative)",
+        "strength": "placeholder",
+        "e": -240,
+        "n": 820,
+        "facing": 180,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "B14",
+        "side": "B",
+        "type": "inf",
+        "name": "Opposing infantry battalion 14 (illustrative)",
+        "strength": "placeholder",
+        "e": -50,
+        "n": 820,
+        "facing": 180,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "B15",
+        "side": "B",
+        "type": "inf",
+        "name": "Opposing infantry battalion 15 (illustrative)",
+        "strength": "placeholder",
+        "e": 140,
+        "n": 820,
+        "facing": 180,
+        "w": 150,
+        "d": 12
+      },
+      {
+        "id": "BC1",
+        "side": "B",
+        "type": "cav",
+        "name": "Opposing cavalry squadron group 1 (illustrative)",
+        "strength": "placeholder",
+        "e": -1950,
+        "n": 730,
+        "facing": 180,
+        "w": 110,
+        "d": 16
+      },
+      {
+        "id": "BC2",
+        "side": "B",
+        "type": "cav",
+        "name": "Opposing cavalry squadron group 2 (illustrative)",
+        "strength": "placeholder",
+        "e": -1760,
+        "n": 730,
+        "facing": 180,
+        "w": 110,
+        "d": 16
+      },
+      {
+        "id": "BC3",
+        "side": "B",
+        "type": "cav",
+        "name": "Opposing cavalry squadron group 3 (illustrative)",
+        "strength": "placeholder",
+        "e": 450,
+        "n": 730,
+        "facing": 180,
+        "w": 110,
+        "d": 16
+      },
+      {
+        "id": "BC4",
+        "side": "B",
+        "type": "cav",
+        "name": "Opposing cavalry squadron group 4 (illustrative)",
+        "strength": "placeholder",
+        "e": 640,
+        "n": 730,
+        "facing": 180,
+        "w": 110,
+        "d": 16
+      },
+      {
+        "id": "BC5",
+        "side": "B",
+        "type": "cav",
+        "name": "Opposing cavalry squadron group 5 (illustrative)",
+        "strength": "placeholder",
+        "e": 830,
+        "n": 730,
+        "facing": 180,
+        "w": 110,
+        "d": 16
+      },
+      {
+        "id": "BA1",
+        "side": "B",
+        "type": "art",
+        "name": "Opposing battery 1 (illustrative)",
+        "strength": "placeholder",
+        "e": -800,
+        "n": 630,
+        "facing": 180,
+        "w": 14,
+        "d": 10
+      },
+      {
+        "id": "BA2",
+        "side": "B",
+        "type": "art",
+        "name": "Opposing battery 2 (illustrative)",
+        "strength": "placeholder",
+        "e": -200,
+        "n": 630,
+        "facing": 180,
+        "w": 14,
+        "d": 10
+      },
+      {
+        "id": "BA3",
+        "side": "B",
+        "type": "art",
+        "name": "Opposing battery 3 (illustrative)",
+        "strength": "placeholder",
+        "e": 400,
+        "n": 630,
+        "facing": 180,
+        "w": 14,
+        "d": 10
+      }
+    ],
+    "options": [
+      {
+        "id": "adv",
+        "title": "Advance the whole line",
+        "objective": "Close with the opposing line before it finishes forming.",
+        "by": "Illustrative infantry general",
+        "reasoning": "Initiative favours the side that deploys first.",
+        "risks": "Broken ground and fences disorder the line; the artillery cannot keep pace.",
+        "needs": "Clear orders to every battalion commander.",
+        "unknown": "Whether the opposing cavalry is on the field.",
+        "delegation": "Battalion commanders keep their own dressing; you hold a reserve.",
+        "arrows": [
+          {
+            "side": "A",
+            "from": [
+              -700,
+              -300
+            ],
+            "to": [
+              -700,
+              350
+            ]
+          },
+          {
+            "side": "A",
+            "from": [
+              -1750,
+              -300
+            ],
+            "to": [
+              -1750,
+              300
+            ]
+          }
+        ]
+      },
+      {
+        "id": "hold",
+        "title": "Hold the line and counter-attack",
+        "objective": "Receive the attack on prepared ground, then strike back with cavalry.",
+        "by": "Illustrative cavalry general",
+        "reasoning": "Defensive fire is steadier than fire on the advance.",
+        "risks": "Surrenders the initiative; flanks may be turned while waiting.",
+        "needs": "A reliable signal for the counter-attack.",
+        "unknown": "How steady the second line is.",
+        "delegation": "You keep control of the cavalry release; infantry holds fire discipline.",
+        "arrows": [
+          {
+            "side": "A",
+            "from": [
+              450,
+              -300
+            ],
+            "to": [
+              250,
+              450
+            ],
+            "dash": true
+          }
+        ]
+      },
+      {
+        "id": "flank",
+        "title": "Refuse the left, press the right",
+        "objective": "Hold the left wing back and strike the opposing left with the right wing and first line.",
+        "by": "Illustrative quartermaster",
+        "reasoning": "Concentrates strength where the opposing line ends.",
+        "risks": "A gap opens between the wings; slow lateral movement under fire.",
+        "needs": "Marching order for the right-hand battalions.",
+        "unknown": "The ground beyond the right wing.",
+        "delegation": "Wing commanders act on a stated trigger.",
+        "arrows": [
+          {
+            "side": "A",
+            "from": [
+              -300,
+              -300
+            ],
+            "to": [
+              300,
+              500
+            ]
+          },
+          {
+            "side": "A",
+            "from": [
+              450,
+              -300
+            ],
+            "to": [
+              900,
+              450
+            ]
+          }
+        ]
+      }
+    ],
+    "verification": {
+      "status": "uncalibrated demonstration",
+      "parameter_audit": "research/verified/military.md",
+      "numbers_changed": false,
+      "reason": "Historical totals and equipment evidence do not supply valid numerical replacements for demo combat coefficients."
+    }
+  },
+  "labels": {
+    "seas": [
+      {
+        "name": "Oceanus Atlanticus",
+        "lat": 44.5,
+        "lon": -9.0
+      },
+      {
+        "name": "German Ocean",
+        "lat": 56.2,
+        "lon": 3.2
+      },
+      {
+        "name": "Ost-See",
+        "lat": 55.6,
+        "lon": 17.5
+      },
+      {
+        "name": "Mare Mediterraneum",
+        "lat": 38.2,
+        "lon": 14.5
+      },
+      {
+        "name": "Adriatisches Meer",
+        "lat": 43.2,
+        "lon": 15.6
+      },
+      {
+        "name": "Mar Nero",
+        "lat": 43.4,
+        "lon": 34.5
+      },
+      {
+        "name": "Golfe de Gascogne",
+        "lat": 45.6,
+        "lon": -4.3
+      },
+      {
+        "name": "La Manche",
+        "lat": 50.1,
+        "lon": -1.6
+      },
+      {
+        "name": "Mar Tirreno",
+        "lat": 39.9,
+        "lon": 12.3
+      },
+      {
+        "name": "Archipelago",
+        "lat": 38.7,
+        "lon": 25.3
+      },
+      {
+        "name": "Skagerrak",
+        "lat": 57.8,
+        "lon": 9.2
+      },
+      {
+        "name": "Golf von Bothnia",
+        "lat": 62.8,
+        "lon": 20.5
+      }
+    ],
+    "rivers": [
+      {
+        "name": "Donau",
+        "lat": 48.46,
+        "lon": 15.75
+      },
+      {
+        "name": "Elbe",
+        "lat": 51.1,
+        "lon": 13.93
+      },
+      {
+        "name": "Oder",
+        "lat": 51.2,
+        "lon": 16.88
+      },
+      {
+        "name": "Weichsel",
+        "lat": 50.02,
+        "lon": 20.1
+      },
+      {
+        "name": "Moldau",
+        "lat": 50.33,
+        "lon": 14.5
+      },
+      {
+        "name": "Inn",
+        "lat": 48.2,
+        "lon": 12.78
+      },
+      {
+        "name": "March",
+        "lat": 48.62,
+        "lon": 16.97
+      },
+      {
+        "name": "Spree",
+        "lat": 52.4,
+        "lon": 14.0
+      },
+      {
+        "name": "Rhein",
+        "lat": 50.4,
+        "lon": 7.6
+      },
+      {
+        "name": "Rhône",
+        "lat": 44.8,
+        "lon": 4.8
+      },
+      {
+        "name": "Loire",
+        "lat": 47.4,
+        "lon": 0.4
+      },
+      {
+        "name": "Seine",
+        "lat": 49.2,
+        "lon": 1.2
+      },
+      {
+        "name": "Dnepr",
+        "lat": 50.8,
+        "lon": 30.6
+      },
+      {
+        "name": "Theiss",
+        "lat": 46.8,
+        "lon": 20.2
+      },
+      {
+        "name": "Garonne",
+        "lat": 44.7,
+        "lon": -0.1
+      },
+      {
+        "name": "Tajo",
+        "lat": 39.6,
+        "lon": -6.0
+      },
+      {
+        "name": "Po",
+        "lat": 45.05,
+        "lon": 10.6
+      }
+    ],
+    "ranges": [
+      {
+        "name": "Alpes",
+        "lat": 46.5,
+        "lon": 9.5
+      },
+      {
+        "name": "Pyrenaei",
+        "lat": 42.7,
+        "lon": 0.8
+      },
+      {
+        "name": "Karpaten",
+        "lat": 48.9,
+        "lon": 24.2
+      },
+      {
+        "name": "Apennini",
+        "lat": 43.2,
+        "lon": 12.6
+      },
+      {
+        "name": "Sudeten",
+        "lat": 50.7,
+        "lon": 16.3
+      },
+      {
+        "name": "Böhmerwald",
+        "lat": 49.2,
+        "lon": 13.2
+      },
+      {
+        "name": "Erzgebirge",
+        "lat": 50.5,
+        "lon": 13.1
+      },
+      {
+        "name": "Tatra",
+        "lat": 49.2,
+        "lon": 20.1
+      },
+      {
+        "name": "Harz",
+        "lat": 51.8,
+        "lon": 10.6
+      },
+      {
+        "name": "Dinarische Alpen",
+        "lat": 44.0,
+        "lon": 17.5
+      },
+      {
+        "name": "Skandes",
+        "lat": 63.0,
+        "lon": 12.5
+      },
+      {
+        "name": "Balkan",
+        "lat": 42.8,
+        "lon": 25.0
+      }
+    ]
+  },
+  "routes": [
+    {
+      "id": "danube",
+      "name": "Danube trade route",
+      "kind": "river",
+      "goods": "grain, salt, timber, wine, iron",
+      "claim": "inference",
+      "pts": [
+        [
+          49.0134,
+          12.1016
+        ],
+        [
+          48.5667,
+          13.4667
+        ],
+        [
+          48.3069,
+          14.2858
+        ],
+        [
+          48.4167,
+          15.6
+        ],
+        [
+          48.2082,
+          16.3738
+        ],
+        [
+          48.1486,
+          17.1077
+        ],
+        [
+          47.6875,
+          17.6504
+        ],
+        [
+          47.7636,
+          18.1236
+        ],
+        [
+          47.4979,
+          19.0402
+        ]
+      ]
+    },
+    {
+      "id": "elbe",
+      "name": "Bohemia–Saxony Elbe route",
+      "kind": "river",
+      "goods": "linen, glass, grain; Leipzig fair goods",
+      "claim": "inference",
+      "pts": [
+        [
+          50.0755,
+          14.4378
+        ],
+        [
+          50.5333,
+          14.1333
+        ],
+        [
+          51.0504,
+          13.7373
+        ],
+        [
+          51.3397,
+          12.3731
+        ]
+      ]
+    },
+    {
+      "id": "silesia",
+      "name": "Vienna–Silesia road",
+      "kind": "road",
+      "goods": "cloth, linen, iron, grain",
+      "claim": "inference",
+      "pts": [
+        [
+          48.2082,
+          16.3738
+        ],
+        [
+          49.1951,
+          16.6068
+        ],
+        [
+          49.5938,
+          17.2509
+        ],
+        [
+          49.9387,
+          17.9026
+        ],
+        [
+          50.4714,
+          17.3333
+        ],
+        [
+          50.8606,
+          17.4719
+        ],
+        [
+          51.1079,
+          17.0385
+        ]
+      ]
+    },
+    {
+      "id": "prague",
+      "name": "Vienna–Prague road",
+      "kind": "road",
+      "goods": "administration, cloth, glass",
+      "claim": "inference",
+      "pts": [
+        [
+          48.2082,
+          16.3738
+        ],
+        [
+          48.8556,
+          16.0489
+        ],
+        [
+          49.3961,
+          15.5912
+        ],
+        [
+          49.9481,
+          15.2658
+        ],
+        [
+          50.0755,
+          14.4378
+        ]
+      ]
+    },
+    {
+      "id": "nuremberg",
+      "name": "Prague–Nuremberg road",
+      "kind": "road",
+      "goods": "glass, metalwork, textiles",
+      "claim": "inference",
+      "pts": [
+        [
+          50.0755,
+          14.4378
+        ],
+        [
+          49.7475,
+          13.3776
+        ],
+        [
+          50.0795,
+          12.3705
+        ],
+        [
+          49.4521,
+          11.0767
+        ]
+      ]
+    },
+    {
+      "id": "adriatic",
+      "name": "Vienna–Adriatic road",
+      "kind": "road",
+      "goods": "wine, mercury, iron, colonial goods",
+      "claim": "inference",
+      "pts": [
+        [
+          48.2082,
+          16.3738
+        ],
+        [
+          47.0707,
+          15.4395
+        ],
+        [
+          46.0569,
+          14.5058
+        ]
+      ]
+    },
+    {
+      "id": "salt",
+      "name": "Salzach salt route",
+      "kind": "salt",
+      "goods": "salt",
+      "claim": "inference",
+      "pts": [
+        [
+          47.6803,
+          13.0975
+        ],
+        [
+          47.8095,
+          13.055
+        ],
+        [
+          48.1351,
+          11.582
+        ]
+      ]
+    },
+    {
+      "id": "krakow",
+      "name": "Moravia–Cracow road",
+      "kind": "road",
+      "goods": "cloth, salt, cattle",
+      "claim": "inference",
+      "pts": [
+        [
+          49.5938,
+          17.2509
+        ],
+        [
+          49.7478,
+          18.6322
+        ],
+        [
+          50.0647,
+          19.945
+        ]
+      ]
+    },
+    {
+      "id": "breslau-dresden",
+      "name": "Breslau–Dresden road",
+      "kind": "road",
+      "goods": "linen, wool, grain",
+      "claim": "inference",
+      "pts": [
+        [
+          51.1079,
+          17.0385
+        ],
+        [
+          51.1,
+          15.0
+        ],
+        [
+          51.0504,
+          13.7373
+        ]
+      ]
+    }
+  ],
+  "routesNote": "Corridors are approximate lines through major cities along well-known trade corridors; waypoints are not surveyed road geometry. Goods lists are indicative and need sourcing.",
+  "movements": [
+    {
+      "id": "mv1",
+      "side": "habsburg",
+      "label": "Winter-quarters shift, Moravia → Silesia",
+      "status": "confirmed",
+      "reported": "1740-10-18",
+      "source": "Hofkriegsrat order (DEMO)",
+      "claim": "demo",
+      "pts": [
+        [
+          49.5938,
+          17.2509
+        ],
+        [
+          50.1,
+          17.2
+        ],
+        [
+          50.8606,
+          17.4719
+        ]
+      ]
+    },
+    {
+      "id": "mv2",
+      "side": "habsburg",
+      "label": "Garrison rotation, Pressburg → Vienna",
+      "status": "confirmed",
+      "reported": "1740-10-19",
+      "source": "Garrison return (DEMO)",
+      "claim": "demo",
+      "pts": [
+        [
+          48.1486,
+          17.1077
+        ],
+        [
+          48.2082,
+          16.3738
+        ]
+      ]
+    },
+    {
+      "id": "mv3",
+      "side": "prussia",
+      "label": "Rumoured regimental movement toward the Silesian frontier",
+      "status": "rumour",
+      "reported": "1740-10-15",
+      "source": "Merchant letter via Dresden (DEMO)",
+      "claim": "demo",
+      "pts": [
+        [
+          52.52,
+          13.405
+        ],
+        [
+          52.2,
+          14.6
+        ],
+        [
+          51.78,
+          15.28
+        ]
+      ]
+    },
+    {
+      "id": "mv4",
+      "side": "bavaria",
+      "label": "Reported muster near Munich",
+      "status": "reported",
+      "reported": "1740-10-17",
+      "source": "Envoy dispatch (DEMO)",
+      "claim": "demo",
+      "pts": [
+        [
+          48.1351,
+          11.582
+        ],
+        [
+          48.3,
+          12.4
+        ],
+        [
+          48.5667,
+          13.4667
+        ]
+      ]
+    }
+  ],
+  "movementsNote": "Only movements your character has actually learned of appear here. Each shows its report date, source and confidence; absence of an arrow does not mean absence of movement.",
+  "fortresses": [
+    {
+      "id": "f-breslau",
+      "name": "Breslau",
+      "kind": "fortress",
+      "lat": 51.1079,
+      "lon": 17.0385,
+      "garrison": "unknown",
+      "note": "Silesian capital; fortified town.",
+      "claim": "inference"
+    },
+    {
+      "id": "f-glogau",
+      "name": "Glogau",
+      "kind": "fortress",
+      "lat": 51.6628,
+      "lon": 16.0833,
+      "garrison": "unknown",
+      "note": "Oder fortress.",
+      "claim": "inference"
+    },
+    {
+      "id": "f-brieg",
+      "name": "Brieg",
+      "kind": "fortress",
+      "lat": 50.8606,
+      "lon": 17.4719,
+      "garrison": "unknown",
+      "note": "Oder crossing in Silesia.",
+      "claim": "inference"
+    },
+    {
+      "id": "f-neisse",
+      "name": "Neisse",
+      "kind": "fortress",
+      "lat": 50.4714,
+      "lon": 17.3333,
+      "garrison": "unknown",
+      "note": "Silesian fortress town.",
+      "claim": "inference"
+    },
+    {
+      "id": "f-glatz",
+      "name": "Glatz",
+      "kind": "fortress",
+      "lat": 50.4379,
+      "lon": 16.6575,
+      "garrison": "unknown",
+      "note": "Mountain gateway between Bohemia and Silesia.",
+      "claim": "inference"
+    },
+    {
+      "id": "f-olmutz",
+      "name": "Olmütz",
+      "kind": "fortress",
+      "lat": 49.5938,
+      "lon": 17.2509,
+      "garrison": "unknown",
+      "note": "Moravian fortress on the March.",
+      "claim": "inference"
+    },
+    {
+      "id": "f-brunn",
+      "name": "Brünn (Spielberg)",
+      "kind": "fortress",
+      "lat": 49.1951,
+      "lon": 16.6068,
+      "garrison": "unknown",
+      "note": "Citadel above the town.",
+      "claim": "inference"
+    },
+    {
+      "id": "f-prague",
+      "name": "Prague",
+      "kind": "fortress",
+      "lat": 50.0755,
+      "lon": 14.4378,
+      "garrison": "unknown",
+      "note": "Walled city on the Moldau.",
+      "claim": "inference"
+    },
+    {
+      "id": "f-vienna",
+      "name": "Vienna",
+      "kind": "fortress",
+      "lat": 48.2082,
+      "lon": 16.3738,
+      "garrison": "unknown",
+      "note": "Bastioned capital.",
+      "claim": "inference"
+    },
+    {
+      "id": "f-pressburg",
+      "name": "Pressburg",
+      "kind": "fortress",
+      "lat": 48.1486,
+      "lon": 17.1077,
+      "garrison": "unknown",
+      "note": "Danube crossing; Hungarian coronation city.",
+      "claim": "inference"
+    },
+    {
+      "id": "f-komorn",
+      "name": "Komorn",
+      "kind": "fortress",
+      "lat": 47.7636,
+      "lon": 18.1236,
+      "garrison": "unknown",
+      "note": "Danube fortress.",
+      "claim": "inference"
+    },
+    {
+      "id": "f-raab",
+      "name": "Raab",
+      "kind": "fortress",
+      "lat": 47.6875,
+      "lon": 17.6504,
+      "garrison": "unknown",
+      "note": "Fortress guarding the Danube approach.",
+      "claim": "inference"
+    },
+    {
+      "id": "f-ofen",
+      "name": "Buda / Pest",
+      "kind": "fortress",
+      "lat": 47.4979,
+      "lon": 19.0402,
+      "garrison": "unknown",
+      "note": "Danube crossing.",
+      "claim": "inference"
+    },
+    {
+      "id": "f-linz",
+      "name": "Linz",
+      "kind": "bridge",
+      "lat": 48.3069,
+      "lon": 14.2858,
+      "garrison": "unknown",
+      "note": "Danube crossing in Upper Austria.",
+      "claim": "inference"
+    },
+    {
+      "id": "f-passau",
+      "name": "Passau",
+      "kind": "fortress",
+      "lat": 48.5667,
+      "lon": 13.4667,
+      "garrison": "unknown",
+      "note": "Bavarian frontier on the Danube.",
+      "claim": "inference"
+    },
+    {
+      "id": "f-ingolstadt",
+      "name": "Ingolstadt",
+      "kind": "fortress",
+      "lat": 48.7651,
+      "lon": 11.4237,
+      "garrison": "unknown",
+      "note": "Bavarian fortress on the Danube.",
+      "claim": "inference"
+    },
+    {
+      "id": "f-kustrin",
+      "name": "Küstrin",
+      "kind": "fortress",
+      "lat": 52.5936,
+      "lon": 14.6692,
+      "garrison": "unknown",
+      "note": "Prussian fortress at the Oder and Warthe.",
+      "claim": "inference"
+    },
+    {
+      "id": "f-magdeburg",
+      "name": "Magdeburg",
+      "kind": "fortress",
+      "lat": 52.1205,
+      "lon": 11.6276,
+      "garrison": "unknown",
+      "note": "Prussian fortress on the Elbe.",
+      "claim": "inference"
+    },
+    {
+      "id": "f-konigstein",
+      "name": "Königstein",
+      "kind": "fortress",
+      "lat": 50.9187,
+      "lon": 14.0594,
+      "garrison": "unknown",
+      "note": "Saxon fortress above the Elbe.",
+      "claim": "inference"
+    }
+  ],
+  "annotations": [],
+  "cast": [
+    {
+      "id": "maria_theresa",
+      "name": "Maria Theresa",
+      "office": "Archduchess; claims Hungary and Bohemia",
+      "place": "vienna",
+      "claim": "documented"
+    },
+    {
+      "id": "francis_stephen",
+      "name": "Francis Stephen of Lorraine",
+      "office": "Grand Duke of Tuscany; co-regent",
+      "place": "vienna",
+      "claim": "documented"
+    },
+    {
+      "id": "harrach_joseph",
+      "name": "Joseph Graf Harrach",
+      "office": "President of the Hofkriegsrat",
+      "place": "vienna",
+      "claim": "documented"
+    },
+    {
+      "id": "harrach_alois",
+      "name": "Alois Raimund Graf Harrach",
+      "office": "Landmarschall of Lower Austria; Conference",
+      "place": "vienna",
+      "claim": "documented"
+    },
+    {
+      "id": "sinzendorf",
+      "name": "Count Sinzendorf",
+      "office": "Oberster Hofkanzler (foreign affairs)",
+      "place": "vienna",
+      "claim": "documented"
+    },
+    {
+      "id": "starhemberg",
+      "name": "Count Starhemberg (Gundaker Thomas)",
+      "office": "Banco-Deputation; Conference",
+      "place": "vienna",
+      "claim": "documented"
+    },
+    {
+      "id": "koenigsegg",
+      "name": "Count Königsegg",
+      "office": "Obersthofmeister of the Dowager Empress; Conference",
+      "place": "vienna",
+      "claim": "inference"
+    },
+    {
+      "id": "bartenstein",
+      "name": "Johann Christoph Bartenstein",
+      "office": "Hofrat; secretary of the Conference",
+      "place": "vienna",
+      "claim": "documented"
+    },
+    {
+      "id": "neipperg",
+      "name": "Count Neipperg",
+      "office": "General; imprisoned after Belgrade, soon rehabilitated",
+      "place": "breslau",
+      "claim": "inference"
+    },
+    {
+      "id": "demeradt",
+      "name": "Franz von Demeradt",
+      "office": "Austrian Resident in Berlin",
+      "place": "berlin",
+      "claim": "documented"
+    },
+    {
+      "id": "perusa",
+      "name": "Count Perusa",
+      "office": "Bavarian envoy in Vienna",
+      "place": "vienna",
+      "claim": "documented"
+    },
+    {
+      "id": "wallis",
+      "name": "FML Franz Wenzel Wallis",
+      "office": "General-Commando in Silesia at Glogau (from June 1740; one source)",
+      "place": "breslau",
+      "claim": "documented"
+    },
+    {
+      "id": "quartermaster",
+      "name": "Quartermaster staff",
+      "office": "Role: supply and returns",
+      "place": "vienna",
+      "claim": "demo"
+    },
+    {
+      "id": "dresden-envoy",
+      "name": "Envoy at Dresden",
+      "office": "Role: diplomatic post",
+      "place": "dresden",
+      "claim": "demo"
+    },
+    {
+      "id": "munich-envoy",
+      "name": "Envoy at Munich",
+      "office": "Role: diplomatic post",
+      "place": "munich",
+      "claim": "demo"
+    },
+    {
+      "id": "inf-general",
+      "name": "Infantry general",
+      "office": "Role: commands the foot",
+      "place": "vienna",
+      "claim": "demo"
+    },
+    {
+      "id": "cav-general",
+      "name": "Cavalry general",
+      "office": "Role: commands the horse",
+      "place": "vienna",
+      "claim": "demo"
+    },
+    {
+      "id": "art-officer",
+      "name": "Artillery officer",
+      "office": "Role: commands the guns",
+      "place": "vienna",
+      "claim": "demo"
+    },
+    {
+      "id": "steward",
+      "name": "Your steward",
+      "office": "Role: household and travel",
+      "place": "vienna",
+      "claim": "demo"
+    },
+    {
+      "id": "own-forces",
+      "name": "My assigned forces",
+      "office": "Direct command (field only)",
+      "place": "vienna",
+      "claim": "demo"
+    }
+  ]
+}
