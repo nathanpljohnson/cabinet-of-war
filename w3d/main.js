@@ -5,6 +5,7 @@ import { setWindTime, disposeTree } from './lib.js';
 import { createShell, locName, fmtDate } from './shell.js';
 import { createSound } from './sound.js';
 import { travel, loc, roadKm, travelDays, letterDays } from './places.js';
+import { checkContinuity, correctionRequest } from './continuity.js';
 
 /* Cabinet of War: the 3D world over the desk's engine. Views: room (walk), map (the desk's live map, reached by leaning
    over the map table), field (3D battlefield, reached by zooming the map into it), hall (conference chamber).
@@ -16,7 +17,7 @@ const PRESETS = {
   medium: { scale: .8, shadows: 1024, terrain: 3, trees: .85, grass: 22000 },
   high: { scale: 1, shadows: 2048, terrain: 2.5, trees: 1, grass: 40000 },
 };
-let gfx = { preset: 'medium', scale: null, shadows: null, veg: null, fps: false, sound: false };
+let gfx = { preset: 'medium', scale: null, shadows: null, veg: null, fps: false, sound: true, auto: true };
 try { Object.assign(gfx, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch { }
 const Q = () => { const p = PRESETS[gfx.veg || gfx.preset]; return { ...p, scale: gfx.scale ?? PRESETS[gfx.preset].scale, shadows: gfx.shadows ?? PRESETS[gfx.preset].shadows }; };
 const saveGfx = () => { try { localStorage.setItem(KEY, JSON.stringify(gfx)); } catch { } };
@@ -25,7 +26,7 @@ const saveGfx = () => { try { localStorage.setItem(KEY, JSON.stringify(gfx)); } 
 for (const id of ['w3d', 'w3d-float', 'w3d-shell', 'w3d-back']) document.getElementById(id)?.remove();
 const root = document.createElement('div'); root.id = 'w3d';
 root.innerHTML = `<canvas id="w3d-c" tabindex="0" aria-label="3D view. WASD to walk, drag to look, E to interact."></canvas>
-<div class="w3d-prompt" id="w3d-prompt" hidden></div><div class="w3d-help" id="w3d-help"></div>`;
+<div class="w3d-prompt" id="w3d-prompt" hidden></div><div class="w3d-overheard" id="w3d-overheard"></div><div class="w3d-help" id="w3d-help"></div>`;
 const float = document.createElement('div'); float.id = 'w3d-float';
 float.innerHTML = `<div class="w3d-toast" id="w3d-toast" role="status" aria-live="polite"></div>
 <div class="w3d-panel" id="w3d-gfx" hidden>
@@ -34,6 +35,7 @@ float.innerHTML = `<div class="w3d-toast" id="w3d-toast" role="status" aria-live
   <label>Resolution <input type="range" id="g-scale" min="0.4" max="1" step="0.05"> <span id="g-scale-v"></span></label>
   <label>Shadows <select id="g-shadows"><option value="0">Off</option><option value="1024">Low</option><option value="2048">High</option><option value="4096">Ultra</option></select></label>
   <label>Vegetation <select id="g-veg"><option value="low">Sparse</option><option value="medium">Normal</option><option value="high">Dense</option></select></label>
+  <label><input type="checkbox" id="g-auto"> Lower the resolution when it can’t keep up</label>
   <label><input type="checkbox" id="g-sound"> Ambient sound</label>
   <label><input type="checkbox" id="g-fps"> Show frame time</label>
   <div class="row"><button id="g-tools">Map tools</button><button id="g-layers">Map layers</button></div>
@@ -51,7 +53,24 @@ $3('w3d-skip-opening').onclick = () => morning();
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-function applyGfx() { const q = Q(); renderer.setPixelRatio(Math.min(devicePixelRatio, 2) * q.scale); renderer.shadowMap.enabled = q.shadows > 0; resize(); for (const s of [world, battle]) if (s && s.setShadows) s.setShadows(q.shadows); }
+// the shadow map is redrawn only when its window moves or the scene changes (it was half the GPU's work when redrawn every
+// frame); moving people and animals use ground blobs instead (actors.js). The field redraws its own a few times a second.
+renderer.shadowMap.autoUpdate = false;
+let shadowKey = '';
+const shadowsDirty = () => { shadowKey = ''; renderer.shadowMap.needsUpdate = true; };
+// automatic resolution: a multiplier on the chosen resolution that drops when frames run long and creeps back with headroom
+const dyn = { k: 1, t: 0, n: 0, fast: 0, grace: 2 };
+const pixelRatio = () => Math.min(devicePixelRatio, 2) * Q().scale * (gfx.auto ? dyn.k : 1);
+function adaptResolution(dt) {
+  if (!gfx.auto || mode === 'trans' || mode === 'loading') return;
+  if (dyn.grace > 0) { dyn.grace -= dt; dyn.t = dyn.n = 0; return; }
+  dyn.t += dt; dyn.n++; if (dyn.t < 1) return;
+  const ms = dyn.t / dyn.n * 1000; dyn.t = dyn.n = 0;
+  if (ms > 19 && dyn.k > .6) { dyn.k = Math.max(.6, dyn.k - .1); dyn.fast = -4; renderer.setPixelRatio(pixelRatio()); resize(); }
+  else if (ms < 17.5 && dyn.k < 1) { if (++dyn.fast >= 4) { dyn.k = Math.min(1, dyn.k + .05); dyn.fast = 0; renderer.setPixelRatio(pixelRatio()); resize(); } }
+  else if (ms >= 17.5) dyn.fast = Math.min(dyn.fast, 0);
+}
+function applyGfx() { const q = Q(); renderer.setPixelRatio(pixelRatio()); shadowsDirty(); renderer.shadowMap.enabled = q.shadows > 0; resize(); for (const s of [world, battle]) if (s && s.setShadows) s.setShadows(q.shadows); }
 function resize() { renderer.setSize(innerWidth, innerHeight, false); for (const c of [camera, battle && battle.camera]) if (c) { c.aspect = innerWidth / innerHeight; c.updateProjectionMatrix(); } hall && hall.resize(); }
 addEventListener('resize', resize);
 
@@ -89,11 +108,36 @@ const uTime = { value: 0 };
 let world = null, actors = null, player, aide, steed, followTrail = [], lights, skyMesh, cloudG;
 let mode = 'loading', mapFrom = 'room', battle = null, hall = null, builtFor = null, builtMode = null, builtCues = null, account = false, introOn = false;
 // what the state says the world looks like where you are (the reply contract keeps state.world; defaults follow the date)
+/* ---------- the hour: a turn is days you live through. Time passes as you walk (an hour every 40 s), and what you
+   do takes time; letting the day pass brings the next morning's post. Light, people and the Conference follow it. ---------- */
+const CLOCK_KEY = 'cabinet-of-war:w3d-clock';
+let clockH = 9, clockTurn = null, lastWhole = 9;
+function loadClock() { try { const c = JSON.parse(localStorage.getItem(CLOCK_KEY) || 'null'); if (c && c.turn === state.turn && c.day === shell.today) { clockH = c.h; return; } } catch { } clockH = 8.5; saveClock(); }
+function saveClock() { try { localStorage.setItem(CLOCK_KEY, JSON.stringify({ turn: state.turn, day: shell.today, h: clockH })); } catch { } }
+const timeWord = h => h < 5 ? 'night' : h < 7 ? 'dawn' : h < 11.5 ? 'morning' : h < 13.5 ? 'midday' : h < 17 ? 'afternoon' : h < 19.5 ? 'evening' : 'night';
+const clock = { get hour() { return clockH; }, get word() { return timeWord(clockH); } };
+function advanceClock(hours) {
+  const before = clockH; clockH = Math.min(23.5, clockH + hours); saveClock();
+  if (Math.floor(clockH) !== Math.floor(before)) { onHour(Math.floor(clockH)); }
+  if (Math.abs(clockH - before) >= .25 || Math.floor(clockH * 4) !== Math.floor(before * 4)) applyAtmosphere();
+}
+function onHour(h) { world && world.region.setHour(clockH); if (mode === 'room' && h >= 6 && h <= 21) sound.cue('bell', h > 12 ? h - 12 : h); if (h === 20) toast('Evening. The Conference sits; the courtyard empties.'); if (h === 22) toast(shell.passDay ? 'Night. Let the day pass when you are ready for the morning post.' : 'Night.'); }
+function newDay() { clockH = 8.5; saveClock(); world && world.region.setHour(clockH); applyAtmosphere(); }
 function worldCues() {
   const W = state.world || {}, m = new Date(state.date + 'T12:00:00').getMonth(), here = travel.here();
   const men = (state.forces || []).filter(f => f.locationId === here).reduce((s, f) => s + (+f.men || 0), 0);
   return { season: m === 11 || m <= 1 ? 'winter' : 'open', mourning: W.mourning ?? (state.date >= '1740-10-20' && state.date < '1741-10-20'), pay: W.pay || 'paid', roads: W.roads || 'good',
-    refugees: (W.refugees || []).includes(here), men: men || null, standing: (state.hidden || {}).standing || {}, dismissed: !!state.player.dismissed };
+    refugees: (W.refugees || []).includes(here), men: men || null, standing: (state.hidden || {}).standing || {}, dismissed: !!state.player.dismissed,
+    overheard: (state.overheard || []).filter(o => !o.place || o.place === here), carried: carriedOrders(), rivalHere: rivalHere(here) };
+}
+// the rival's courier leaves at dawn wherever the rival is lodged (state.hidden.rival, kept by the adjudicator)
+function rivalHere(here) { const r = (state.hidden || {}).rival, c = r && state.cast.find(x => x.id === r.id); return !!(c && c.place === here && !c.dead); }
+// your last dispatch, as it is carried out: seen on the first day after the reply
+function carriedOrders() {
+  let sent = []; try { sent = JSON.parse(localStorage.getItem('cabinet-of-war:w3d-sent') || '[]'); } catch { }
+  const last = sent.find(s => s.turn === state.turn - 1); if (!last || (shell && shell.today !== (state.reports.map(r => r.arrives || r.dated).sort()[0] || state.date))) return {};
+  const all = last.orders.map(o => typeof o === 'string' ? o : o.line).join(' ').toLowerCase();
+  return { march: /march|regiment|troops|battalion|reinforce|move .* to/.test(all), supply: /bread|wagon|stores|forage|boat|money|pay|magazine|suppl/.test(all), letters: /by letter|write|envoy|courier|send/.test(all) };
 }
 
 async function buildWorld() {
@@ -102,8 +146,10 @@ async function buildWorld() {
   const here = loc(travel.here()) || { id: 'vienna', name: 'Vienna' }, pmode = travel.mode();
   const people = (state.cast || []).filter(c => c.place === here.id && !['maria_theresa', 'francis_stephen', 'own-forces', 'steward'].includes(c.id));
   const cues = worldCues(), region = buildRegion({ actors, quality: q, uTime, place: here, people, mode: pmode, cues });
-  scene.add(region.group); builtFor = here.id; builtMode = pmode; builtCues = JSON.stringify(cues); activeTable = null; portableUp = false;
-  world = { region, buildMs: Math.round(performance.now() - t0), setShadows: n => lights.setShadows(n) };
+  scene.add(region.group); builtFor = here.id; builtMode = pmode; builtCues = JSON.stringify(cues);
+  region.setHour(clockH); region.onOverhear = o => { const names = (o.who || []).map(id => (state.cast.find(c => c.id === id) || {}).name || id).join(' and '); shell.overhear(o, names); const e = $3('w3d-overheard'); e.innerHTML = '“' + o.line.replace(/[<>&]/g, '') + '”<small>overheard · ' + names.replace(/[<>&]/g, '') + '</small>'; e.classList.add('on'); clearTimeout(e.t); e.t = setTimeout(() => e.classList.remove('on'), 7000); };
+  region.setArchive && region.setArchive(shell.archivedCount()); activeTable = null; portableUp = false;
+  world = { region, buildMs: Math.round(performance.now() - t0), setShadows: n => lights.setShadows(n) }; shadowsDirty(); dyn.grace = 2;
   const sp = pmode === 'field' ? region.spawnCamp : region.spawn; // with the army you live at the camp
   if (!player) { player = makePerson('commander'); aide = makePerson('aide'); steed = makeHorse(actors.hw, { saddle: true }); scene.add(player.obj, aide.obj, steed.obj); }
   pl.x = sp.x; pl.z = sp.z; pl.ry = sp.ry;
@@ -124,7 +170,8 @@ function stepPlayer(dt) {
     if (keys.has('KeyW') || keys.has('ArrowUp')) iz -= 1; if (keys.has('KeyS') || keys.has('ArrowDown')) iz += 1;
     if (keys.has('KeyA') || keys.has('ArrowLeft')) ix -= 1; if (keys.has('KeyD') || keys.has('ArrowRight')) ix += 1;
   }
-  const run = keys.has('ShiftLeft') || keys.has('ShiftRight'), want = (ix || iz) ? (run ? 5.6 : 2.1) : 0;
+  const tired = ['tired', 'ill', 'gravely ill'].includes(state.player.health || (state.household || {}).health) || (travel.get() && travelDays(roadKm(loc(state.player.locationId) || loc('vienna'), loc(travel.here()) || loc('vienna'))) >= 5);
+  const run = keys.has('ShiftLeft') || keys.has('ShiftRight'), want = (ix || iz) ? (run ? (tired ? 3.6 : 5.6) : (tired ? 1.6 : 2.1)) : 0;
   pl.v += (want - pl.v) * Math.min(1, dt * 8);
   if (ix || iz) {
     const s = Math.sin(cam.yaw), c = Math.cos(cam.yaw), dx = ix * c + iz * s, dz = -ix * s + iz * c, L = Math.hypot(dx, dz), dir = Math.atan2(dx / L, dz / L);
@@ -178,13 +225,13 @@ function tweenCamera(toPos, toQuat, dur, toFollow, look) { return new Promise(re
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 function stepInteract() {
   const R = world.region; let best = null, bd = 1e9;
-  if (!shell.papersOpen) for (const it of R.interact) { const d = Math.hypot(it.pos.x - pl.x, it.pos.z - pl.z); if (d < it.r && d < bd) { bd = d; best = it; } }
+  if (!shell.papersOpen) for (const it of R.interact) { if (it.who && it.who.off) continue; const d = Math.hypot(it.pos.x - pl.x, it.pos.z - pl.z); if (d < it.r && d < bd) { bd = d; best = it; } }
   if (best !== nearest) { nearest = best; const p = $3('w3d-prompt'); p.hidden = !best; if (best) p.innerHTML = '<kbd>E</kbd> ' + best.label + ' <small>' + best.hint + '</small>'; }
 }
 
 /* ---------- one world: views and the transitions between them ---------- */
 const body = document.body, sleep = ms => new Promise(r => setTimeout(r, ms));
-function setView(v) { mode = v; if (v === 'map') drawSightings(); body.classList.remove('w3d-room', 'w3d-map', 'w3d-field', 'w3d-hall'); body.classList.add('w3d-' + v); if (v !== 'room') { nearest = null; $3('w3d-prompt').hidden = true; } refreshHud(); if (v !== 'map') canvas.focus(); }
+function setView(v) { mode = v; dyn.grace = 1.5; if (v === 'map') drawSightings(); body.classList.remove('w3d-room', 'w3d-map', 'w3d-field', 'w3d-hall'); body.classList.add('w3d-' + v); if (v !== 'room') { nearest = null; $3('w3d-prompt').hidden = true; } refreshHud(); if (v !== 'map') canvas.focus(); }
 async function fadeCanvas(on, ms = 420) { root.style.transition = 'opacity ' + ms + 'ms ease'; root.style.opacity = on ? '1' : '0'; await sleep(ms + 20); }
 
 // the map table: its sheet shows zoom-6 tiles x32–37, y20–23; lean over it, then cross-fade to the same view on the live map
@@ -202,7 +249,7 @@ async function roomToMap() {
   // the nearest map table within reach; otherwise the aide sets up the folding table with the field map
   const R = world.region; let tp = null, bd = 9;
   for (const tb of R.tables) { const d = Math.hypot(tb.x - pl.x, tb.z - pl.z); if (d < bd) { bd = d; tp = tb; } }
-  if (!tp) { const x = pl.x + Math.sin(pl.ry) * 2.2, z = pl.z + Math.cos(pl.ry) * 2.2; tp = R.setUpTable(x, z, pl.ry); portableUp = true; toast('Your aide sets up the folding table and unrolls the field map.'); await sleep(450); }
+  if (!tp) { const x = pl.x + Math.sin(pl.ry) * 2.2, z = pl.z + Math.cos(pl.ry) * 2.2; tp = R.setUpTable(x, z, pl.ry); shadowsDirty(); portableUp = true; toast('Your aide sets up the folding table and unrolls the field map.'); await sleep(450); }
   activeTable = tp; const o = overheadPose(tp); await tweenCamera(o.pos, o.quat, 1.05, false, { l0: cam.tgt.clone(), l1: V3(tp.x, tp.y, tp.z), u0: V3(0, 1, 0), u1: V3(0, 0, -1) });
   const m = desk.map; m.invalidateSize(); m.setView([latOf(22), lngOf(35)], Math.round(o.zoom), { animate: false });
   await fadeCanvas(false, 380); setView('map'); camera.up.set(0, 1, 0);
@@ -278,7 +325,11 @@ function act(a) {
   if (a === 'room' || a === 'map' || a === 'field') return goView(a);
   if (a === 'battle') return goView(mode === 'field' ? 'room' : 'field');
   if (a === 'account') { account = travel.mode() !== 'field'; return mode === 'room' ? roomToField() : goView('room').then(() => roomToField()); }
-  if (a.startsWith('post:')) { const n = +a.slice(5); pendingArrival = n > 0; shell.refresh(); world.region.setLetters(shell.unread().length); refreshHud(); if (n) toast(fmtDate(shell.today) + ' — the day passes.'); return; }
+  if (a.startsWith('hours:')) return advanceClock(+a.slice(6));
+  if (a.startsWith('sound:')) return sound.cue(a.slice(6));
+  if (a === 'archive') return shell.showLetters(null, 'archive');
+  if (a === 'heir') return beginAsHeir();
+  if (a.startsWith('post:')) { const n = +a.slice(5); newDay(); if (n) sound.cue('letters'); pendingArrival = n > 0; shell.refresh(); world.region.setLetters(shell.unread().length); refreshHud(); if (n) toast(fmtDate(shell.today) + ' — the day passes.'); return; }
   if (a.startsWith('sighting:')) return showSighting(a.slice(9));
   if (a === 'hall') return enterHall();
   if (a === 'orders') return shell.toggleSheet();
@@ -300,7 +351,7 @@ function syncCourierOnBoot() {
 }
 let pendingArrival = false, lastTurn = null;
 async function onNewTurn() {
-  applyAtmosphere();
+  loadClock(); applyAtmosphere();
   if (builtFor !== travel.here() || builtMode !== travel.mode() || builtCues !== JSON.stringify(worldCues())) { showLoading(builtFor !== travel.here() ? 'Riding to ' + locName(travel.here()) + '…' : travel.mode() === 'field' ? 'Joining the army in camp…' : 'Returning to headquarters…'); await sleep(40); await buildWorld(); hideLoading(); }
   if (courierSaved()?.away) pendingArrival = true;
   shell.refresh(); world.region.setLetters(shell.unread().length);
@@ -311,6 +362,7 @@ function stepCourierArrival() {
   const msg = (d ? ', ' + d + ' day' + (d > 1 ? 's' : '') + ' on the road from Vienna' : '') + (n ? ': ' + n + ' new letter' + (n > 1 ? 's' : '') + ' (Letters, R).' : '.');
   if (atGate) world.region.courierRide.arrive(false, () => toast('A courier rides in with despatches' + msg));
   else world.region.courierRide.arriveAt(pl.x, pl.z, () => toast('The courier has found you on the road with despatches' + msg));
+  sound.cue('hoof', 4);
   toast(state.world && (state.world.roads === 'heavy' || state.world.roads === 'impassable') ? 'Hoofbeats at last — the roads are heavy, and the courier is late.' : 'Hoofbeats: a courier is coming.');
 }
 
@@ -334,13 +386,17 @@ function applyAtmosphere(night) {
   const d = new Date(state.date + 'T12:00:00'), m = d.getMonth(), h = [...(state.campaignId + state.turn)].reduce((a, c) => a * 31 + c.charCodeAt(0) | 0, 3);
   const weather = state.turn === 0 ? 'clear' : ['clear', 'haze', 'overcast', 'mist', 'clear'][Math.abs(h) % 5];
   const winter = m === 11 || m <= 1, summer = m >= 5 && m <= 7, elev = winter ? .22 : summer ? .55 : .36;
-  sunDir.set(.74, elev, .28).normalize();
+  const day = Math.max(0, Math.sin((clockH - 6.5) / 12.5 * Math.PI)), az = (clockH - 12.5) / 7 * 1.2; // the sun crosses from east to west
+  sunDir.set(Math.cos(az) * .8 + .1, Math.max(.06, elev * (.35 + .65 * day)), Math.sin(az) * .8 + .2).normalize();
+  if (!night && day < .1) night = true;
   const W = { clear: [3.4, 0xffd9a8, 1.25, 0x5b8fd6, 0xf3dcb4, 0xe8d4b2, 110, 1500], haze: [2.6, 0xffe2b8, 1.4, 0x7aa0d0, 0xf0dcc0, 0xe6d6bc, 60, 900], overcast: [1.1, 0xe8e4dc, 1.75, 0x8e98a6, 0xcfccc4, 0xc4c0b8, 80, 950], mist: [.9, 0xf0e8dc, 1.6, 0xb8bcc0, 0xdcdad2, 0xd6d4cc, 12, 280] }[weather];
   lights.sun.intensity = W[0] * (winter ? .8 : 1); lights.sun.color.set(winter ? 0xf2e6d8 : W[1]); lights.hemi.intensity = W[2];
   const u = skyMesh.material.uniforms; u.top.value.set(W[3]); u.hor.value.set(W[4]);
   scene.fog.color.set(W[5]); scene.fog.near = W[6]; scene.fog.far = W[7]; scene.background.set(W[5]);
   cloudG.userData.mat.emissiveIntensity = weather === 'overcast' || weather === 'mist' ? .45 : .75;
-  atmos = weather;
+  atmos = weather; shadowsDirty();
+  if (!night && day < .45) { const k = 1 - day / .45; lights.sun.intensity *= 1 - .55 * k; lights.sun.color.lerp(new THREE.Color(0xff9a5a), .6 * k); u.hor.value.lerp(new THREE.Color(0xf0a070), .5 * k); }
+  world && world.region.setNight(night || clockH < 6.5 || clockH > 19.3);
   if (night) { lights.sun.intensity = .06; lights.sun.color.set(0x8aa0d0); lights.hemi.intensity = .14; u.top.value.set(0x02040a); u.hor.value.set(0x0c121c); scene.fog.color.set(0x0e131b); scene.fog.near = 25; scene.fog.far = 320; scene.background.set(0x0e131b); cloudG.userData.mat.emissiveIntensity = .05; }
 }
 let atmos = 'clear';
@@ -384,6 +440,7 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 function clickWorld(e) {
   const r = canvas.getBoundingClientRect(); ray.setFromCamera(new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1), camera); ray.far = 60;
   for (const it of world.region.interact) {
+    if (it.who && it.who.off) continue;
     if (!it.obj) continue; const h = ray.intersectObject(it.obj, true)[0];
     if (h) { if (Math.hypot(it.pos.x - pl.x, it.pos.z - pl.z) < 9) act(it.act); else toast('Walk closer: ' + it.label.toLowerCase() + '.'); return; }
   }
@@ -403,7 +460,7 @@ new MutationObserver(() => { const s = $3('status').textContent; if (s && mode !
 function refreshHud() {
   if (!shell) return; const S = state;
   const view = mode === 'map' ? 'map' : mode === 'field' ? 'field' : mode === 'trans' ? null : 'room';
-  if (mode === 'field') shell.refresh('field', 'The field · ' + (S.battleDemo.place || '').split('—')[0].trim(), account ? 'An account of a battle you were not at · Esc to put it down' : S.player.mode === 'field' ? 'Your orders are the fight itself · scroll far out to rise onto the map' : 'At court this is a rehearsal on the table; the adjudicator decides · scroll far out to rise onto the map');
+  if (mode === 'field') shell.refresh('field', 'The field · ' + (S.battleDemo.place || '').split('—')[0].trim(), account ? 'An account of a battle you were not at · Esc to put it down' : travel.mode() === 'field' ? 'Your orders are the fight itself · scroll far out to rise onto the map' : 'At court this is a rehearsal on the table; the adjudicator decides · scroll far out to rise onto the map');
   else if (mode === 'map') shell.refresh('map', 'The map table', (battleCentreIn(desk.map) && desk.map.getZoom() >= 10 ? 'Zoom in on the battle ground to go down into the field · ' : '') + 'Right-click a place to add it to your orders · scroll out or Esc to stand up');
   else if (mode === 'hall') shell.refresh('room', 'The Conference chamber', 'The council in session · Esc to step back outside');
   else shell.refresh(view, world ? world.region.zoneName(pl.x, pl.z) : 'Headquarters', (worldCues().season === 'winter' ? 'Snow on the ground · ' : '') + { clear: 'fair weather', haze: 'a hazy day', overcast: 'grey skies', mist: 'mist on the fields' }[atmos].replace(/^./, c => worldCues().season === 'winter' ? c : c.toUpperCase()));
@@ -416,37 +473,41 @@ function showLoading(t) { const l = $3('w3d-loading'); l.querySelector('.eyebrow
 function hideLoading() { $3('w3d-loading').hidden = true; }
 
 // graphics panel
-const gp = { preset: $3('g-preset'), scale: $3('g-scale'), shadows: $3('g-shadows'), veg: $3('g-veg'), fps: $3('g-fps'), sound: $3('g-sound') };
-function syncGfxUi() { const q = Q(); gp.preset.value = gfx.preset; gp.scale.value = q.scale; $3('g-scale-v').textContent = Math.round(q.scale * 100) + '%'; gp.shadows.value = String(q.shadows); gp.veg.value = gfx.veg || gfx.preset; gp.fps.checked = gfx.fps; gp.sound.checked = gfx.sound; $3('w3d-stats').hidden = !gfx.fps; }
+const gp = { auto: $3('g-auto'), preset: $3('g-preset'), scale: $3('g-scale'), shadows: $3('g-shadows'), veg: $3('g-veg'), fps: $3('g-fps'), sound: $3('g-sound') };
+function syncGfxUi() { const q = Q(); gp.preset.value = gfx.preset; gp.scale.value = q.scale; $3('g-scale-v').textContent = Math.round(q.scale * 100) + '%'; gp.shadows.value = String(q.shadows); gp.veg.value = gfx.veg || gfx.preset; gp.fps.checked = gfx.fps; gp.auto.checked = gfx.auto; gp.sound.checked = gfx.sound; $3('w3d-stats').hidden = !gfx.fps; }
 gp.preset.onchange = () => { const vegWas = gfx.veg || gfx.preset; gfx = { ...gfx, preset: gp.preset.value, scale: null, shadows: null, veg: null }; saveGfx(); syncGfxUi(); applyGfx(); if ((gfx.veg || gfx.preset) !== vegWas) rebuild(); };
 gp.scale.oninput = () => { gfx.scale = +gp.scale.value; saveGfx(); syncGfxUi(); applyGfx(); };
 gp.shadows.onchange = () => { gfx.shadows = +gp.shadows.value; saveGfx(); applyGfx(); };
 gp.veg.onchange = () => { gfx.veg = gp.veg.value; saveGfx(); rebuild(); };
+gp.auto.onchange = () => { gfx.auto = gp.auto.checked; dyn.k = 1; saveGfx(); applyGfx(); };
 gp.fps.onchange = () => { gfx.fps = gp.fps.checked; saveGfx(); syncGfxUi(); };
 gp.sound.onchange = () => { gfx.sound = gp.sound.checked; saveGfx(); sound.enabled = gfx.sound; };
 $3('g-tools').onclick = () => $3('toggleT').click(); $3('g-layers').onclick = () => $3('toggleY').click();
 async function rebuild() { showLoading('Replanting…'); await sleep(30); await buildWorld(); hideLoading(); }
 
 /* ---------- loop ---------- */
-const clk = new THREE.Clock(); let frames = 0, acc = 0, ftimes = [];
+const clk = new THREE.Clock(); let frames = 0, acc = 0, ftimes = [], shadowTick = 0, paperTick = 0;
 const perf = { fps: 0, ms: 0, calls: 0, tris: 0 };
 function loop() { requestAnimationFrame(loop); const dt = Math.min(.05, clk.getDelta()); if (mode === 'map' && state.turn !== lastTurn) { lastTurn = state.turn; onNewTurn(); } if (mode === 'loading' || mode === 'map' || document.hidden) { sound.update(dt, uTime.value, 1e9, 1e9, true); return; } tick(dt); }
 function tick(dt) {
-  const t0 = performance.now();
+  const t0 = performance.now(); adaptResolution(dt);
   uTime.value += dt; setWindTime(uTime.value);
   if (toastT > 0 && (toastT -= dt) <= 0) $3('w3d-toast').classList.remove('on');
   if (state.turn !== lastTurn) { const first = lastTurn === null; lastTurn = state.turn; if (!first) onNewTurn(); }
   const room = mode === 'room' || (mode === 'trans' && !body.classList.contains('w3d-field') && !body.classList.contains('w3d-hall') && world);
   if (room) {
     stepPlayer(dt); stepCamera(dt); if (mode === 'room') stepInteract(); stepCourierArrival();
-    world.region.update(dt, uTime.value, camera);
-    lights.follow(player.obj.position); skyMesh.position.copy(camera.position); cloudG.rotation.y += dt * .002;
-    if (portableUp && mode === 'room' && activeTable && Math.hypot(activeTable.x - pl.x, activeTable.z - pl.z) > 7) { world.region.packTable(); portableUp = false; activeTable = null; } // the aide packs the folding table when you move on
+    if (mode === 'room' && !shell.papersOpen && !introOn && clockH < 23.5) { const b = clockH; clockH += dt / 40; if (Math.floor(clockH * 4) !== Math.floor(b * 4)) { saveClock(); applyAtmosphere(); } if (Math.floor(clockH) !== Math.floor(b)) onHour(Math.floor(clockH)); }
+    world.region.update(dt, uTime.value, camera, pl);
+    { const p = player.obj.position, sx = Math.round(p.x / 8) * 8, sz = Math.round(p.z / 8) * 8, k = sx + ',' + sz; // the shadow window moves in 8 m steps
+      if (k !== shadowKey || ++shadowTick % 240 === 0) { shadowKey = k; lights.follow(tmp2.set(sx, p.y, sz)); renderer.shadowMap.needsUpdate = true; } }
+    skyMesh.position.copy(camera.position); cloudG.rotation.y += dt * .002;
+    if (portableUp && mode === 'room' && activeTable && Math.hypot(activeTable.x - pl.x, activeTable.z - pl.z) > 7) { world.region.packTable(); portableUp = false; activeTable = null; shadowsDirty(); } // the aide packs the folding table when you move on
     if (mode === 'room') { const z = world.region.zoneName(pl.x, pl.z); if ($3('sh-zone').textContent !== z) $3('sh-zone').textContent = z; }
-    renderer.render(scene, camera);
-    const R = world.region; sound.update(dt, uTime.value, Math.min(...R.fires.map(([x, z]) => Math.hypot(x - pl.x, z - pl.z))), Math.hypot(R.camp.x - pl.x, R.camp.z - pl.z), shell.papersOpen);
+    if (!shell.papersOpen || mode !== 'room' || ++paperTick % 8 === 0) renderer.render(scene, camera); // behind open papers the dimmed world needs few frames
+    const R = world.region; sound.update(dt, uTime.value, Math.min(...R.fires.map(([x, z]) => Math.hypot(x - pl.x, z - pl.z))), Math.hypot(R.camp.x - pl.x, R.camp.z - pl.z), shell.papersOpen, { night: clockH < 6.5 || clockH > 19.5 || introOn });
   } else if (body.classList.contains('w3d-field')) { battle.frame(dt, uTime.value); sound.update(dt, uTime.value, 1e9, 120, shell.papersOpen); }
-  else if (body.classList.contains('w3d-hall')) { hall.frame(dt); sound.update(dt, uTime.value, 1e9, 1e9, true); }
+  else if (body.classList.contains('w3d-hall')) { renderer.shadowMap.needsUpdate = true; hall.frame(dt); sound.update(dt, uTime.value, 1e9, 1e9, true); }
   frames++; acc += dt; ftimes.push(performance.now() - t0); if (ftimes.length > 120) ftimes.shift();
   if (acc > .5) {
     perf.fps = Math.round(frames / acc); perf.ms = +(ftimes.reduce((a, b) => a + b, 0) / ftimes.length).toFixed(2); perf.calls = renderer.info.render.calls; perf.tris = renderer.info.render.triangles; frames = 0; acc = 0;
@@ -479,11 +540,20 @@ async function mockReply(name) { // test replies in w3d/mocks: a patch over the 
   reviewWorld(JSON.stringify(s)); await sleep(150); document.getElementById('accept').click(); await sleep(300); return state.turn;
 }
 
+/* ---------- disgrace is not the end: your heir inherits your letters, enemies and name ---------- */
+function beginAsHeir() {
+  const st = (state.hidden || {}).standing || {}, legacy = { from: state.player.name, ended: state.date, memoirs: (draft.w3d && draft.w3d.memoir) || '', friends: Object.keys(st).filter(k => st[k] === 'warm'), enemies: Object.keys(st).filter(k => st[k] === 'hostile'), dismissed: !!state.player.dismissed };
+  try { snapshotLocal(); localStorage.setItem('cabinet-of-war:w3d-legacy', JSON.stringify(legacy)); localStorage.removeItem('cabinet-of-war:state8:' + state.campaignId); for (const k of ['opening', 'post', 'clock', 'sent', 'travel']) localStorage.removeItem('cabinet-of-war:w3d-' + k); } catch { }
+  location.reload();
+}
+
 /* ---------- boot ---------- */
 let shell = null; const sound = createSound();
 (async function boot() {
   // original-desk bug: a persisted battleDemo._sim makes initSim() skip setting BS.mem, so runPhase() throws after a reload
   if (!BS.mem) BS.mem = battleMem();
+  // a new campaign begun as the heir of the last one
+  try { const lg = JSON.parse(localStorage.getItem('cabinet-of-war:w3d-legacy') || 'null'); if (lg && state.turn === 0 && !state.legacy) { state.legacy = lg; state.player.name = 'The heir of ' + lg.from; state.player.note = 'A new campaign as the heir of ' + lg.from + '; the adjudicator decides who that is. ' + (state.player.note || ''); persistState(); } } catch { }
   // older saves predate the open-ground deployment (see src/w3d_build.py); move an un-fought battle the same way
   { const bd = state.battleDemo, SHIFT = { A: [360, -690], B: [300, -360] };
     if (!bd.deployment && !BS.log.length && !draft.battleResult) {
@@ -493,9 +563,19 @@ let shell = null; const sound = createSound();
     } }
   body.classList.add('w3d-on', 'w3d-room');
   showLoading('Raising the country…'); syncGfxUi();
-  shell = createShell({ act, onSeal });
+  shell = createShell({ act, onSeal, clock });
   // the commission, the world and the secretary's remarks came with the 3D page's opening state; older saves at turn 0 take them from it
-  if (state.turn === 0) { const init = JSON.parse(document.getElementById('initial-state').textContent); for (const k of ['mandate', 'world', 'remarks']) if (state[k] == null && init[k] != null) state[k] = init[k]; if (init.hidden && init.hidden.standing && !(state.hidden || {}).standing) state.hidden = Object.assign(state.hidden || {}, { standing: init.hidden.standing }); }
+  // a campaign still at its opening takes the researched opening (letters, counsel, people, household, rival, canon)
+  if (state.turn === 0) { const init = JSON.parse(document.getElementById('initial-state').textContent);
+    if ((state.openingVersion || 1) < (init.openingVersion || 1)) { for (const k of ['openingVersion', 'mandate', 'world', 'remarks', 'household', 'reports', 'decision', 'knowledge', 'forces', 'forcesNote', 'sourcesAppendix', 'cast', 'locations', 'player']) if (init[k] != null) state[k] = init[k]; state.hidden = Object.assign(state.hidden || {}, { standing: init.hidden.standing, rival: init.hidden.rival, memory: init.hidden.memory, canon: init.hidden.canon }); draft.option = ''; persistState(); saveDraft(); } }
+  // this campaign's departures from history, drawn once and kept hidden: knowing the history helps, but is not a walkthrough
+  if (!(state.hidden || {}).divergences) { const D = [['frederick_waits', .22, 'Frederick waits until spring 1741 before moving on Silesia.'], ['bavaria_first', .15, 'Bavaria moves on Upper Austria before Prussia moves on Silesia.'], ['saxony_early', .2, 'Saxony joins the coalition against the succession early.'], ['fleury_dies', .12, 'Cardinal Fleury dies in the winter of 1740–41, and French policy is decided by younger, bolder men.'], ['prussian_offer', .25, 'Frederick’s offer — support for the succession in return for Silesia — is sincere and could be negotiated down.']];
+    const pick = D.filter(([, p]) => Math.random() < p).map(([id, , text]) => ({ id, text })); state.hidden = Object.assign(state.hidden || {}, { divergences: pick.length ? pick : [{ id: 'history', text: 'Events follow their historical course unless the player’s actions change them.' }] }); persistState(); }
+  loadClock();
+  // the keeper of continuity: a reply is checked against what is settled before you accept it
+  { const review = window.reviewWorld; window.reviewWorld = text => { review(text); if (!candidate) return; const issues = checkContinuity(state, candidate); if (!issues.length) return;
+    const b = $3('confirm-body'), box = document.createElement('div'); box.className = 'w3d-continuity'; box.innerHTML = '<b>' + (issues.some(i => i.level === 'error') ? 'This reply contradicts what is settled' : 'This reply may contradict what is settled') + '</b>' + issues.map(i => '<p class="' + i.level + '">' + i.text.replace(/[<>&]/g, '') + '</p>').join('');
+    const c = document.createElement('button'); c.className = 'btn'; c.textContent = 'Copy a correction request for Claude'; c.onclick = () => { navigator.clipboard.writeText(correctionRequest(issues, candidate.turn)).then(() => toast('Correction request copied — paste it into the same chat.'), () => toast('Could not copy.')); }; box.append(c); b.append(box); }; }
 
   scene.background = new THREE.Color(0xf1d9b0); scene.fog = new THREE.Fog(0xe8d4b2, 110, 1500);
   skyMesh = makeSky(scene, sunDir); lights = makeLights(scene, sunDir, 75, Q().shadows); cloudG = clouds(scene, Math.random);

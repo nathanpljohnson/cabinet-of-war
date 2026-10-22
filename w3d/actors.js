@@ -86,9 +86,15 @@ export async function initActors(base = 'w3d/assets/') {
   return { m, hb, hw, sh, dg };
 }
 
+// moving people and animals do not cast into the shadow map (it is redrawn only when the view moves, see main.js);
+// a soft blob on the ground under them stands in for their shadow
+const blobTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 4, 32, 32, 31); g.addColorStop(0, 'rgba(0,0,0,.55)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+const blobMat = new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }), blobGeo = new THREE.PlaneGeometry(2, 2).rotateX(-Math.PI / 2);
+function groundShadow(obj, rx, rz) { obj.traverse(x => { x.castShadow = false; }); const m = new THREE.Mesh(blobGeo, blobMat); m.scale.set(rx, 1, rz); m.position.y = .05; m.renderOrder = 1; obj.add(m); }
+
 const geoCache = {};
 /* A dressed, animated person. Returns {obj, mixer, play(name, fade), clips} */
-export function makePerson(kind) {
+export function makePerson(kind, look = {}) {
   const o = OUTFITS[kind], root = SkeletonUtils.clone(mannequin.scene);
   root.updateMatrixWorld(true);
   root.traverse(x => {
@@ -106,7 +112,14 @@ export function makePerson(kind) {
   if (o.musket) attach(root, 'spine_03', musket(), propMat, new THREE.Vector3(.19, .92, -.08), new THREE.Euler(.1, 0, -.12));
   if (o.sword) attach(root, 'pelvis', merge([box(.03, .85, .02, 0xb8b8bc, 0, 0, 0), box(.12, .03, .04, 0xd4b24a, 0, .85, 0)]), propMat, new THREE.Vector3(-.24, .42, -.1), new THREE.Euler(.5, 0, .1));
   if (o.pouch) attach(root, 'pelvis', box(.2, .14, .08, 0x15110d, 0, 0, 0), propMat, new THREE.Vector3(.2, .92, -.12));
-  const obj = new THREE.Group(); obj.add(root);
+  // what makes a principal recognisable across the courtyard (people.js): build and what they carry
+  const props = look.props || [];
+  if (props.includes('spectacles')) attach(root, 'Head', merge([place(tint(new THREE.TorusGeometry(.028, .005, 4, 10), 0x2a2620), .035, 0, 0), place(tint(new THREE.TorusGeometry(.028, .005, 4, 10), 0x2a2620), -.035, 0, 0), box(.02, .005, .005, 0x2a2620, 0, -.002, 0)]), propMat, new THREE.Vector3(0, 1.665, .1));
+  if (props.includes('papers')) attach(root, 'spine_03', merge([box(.24, .03, .32, 0xf3ecd8, 0, 0, 0), box(.05, .035, .32, 0xa3302a, .06, 0, 0)]), propMat, new THREE.Vector3(.2, 1.12, .02), new THREE.Euler(0, 0, -1.2));
+  if (props.includes('star')) attach(root, 'spine_03', place(tint(new THREE.CylinderGeometry(.045, .045, .01, 8), 0xe8d48a), 0, 0, 0, 0, 1, 1, 1, Math.PI / 2), propMat, new THREE.Vector3(.09, 1.3, .13));
+  if (props.includes('cane')) attach(root, 'pelvis', merge([box(.025, .98, .025, 0x3a2416, 0, 0, 0), box(.05, .05, .05, 0xd4b24a, 0, .98, 0)]), propMat, new THREE.Vector3(.3, .02, .14), new THREE.Euler(.1, 0, -.06));
+  if (look.scale) root.scale.set(...look.scale);
+  const obj = new THREE.Group(); obj.add(root); groundShadow(obj, .5, .5);
   const mixer = new THREE.AnimationMixer(root), clips = {};
   for (const c of mannequin.animations) clips[c.name] = c;
   return wrapAnim(obj, mixer, clips);
@@ -138,6 +151,7 @@ export function makeAnimal(gltf, height, opts = {}) {
     const body = root.getObjectByName('Torso') || root.getObjectByName('Body');
     if (body) attach(root, body.name, cloth, propMat, new THREE.Vector3(cx, back + .02, sb.min.z + len * .52));
   }
+  groundShadow(obj, height * .3, height * .62);
   const mixer = new THREE.AnimationMixer(root), clips = {};
   for (const c of gltf.animations) if (!c.name.includes('|')) clips[c.name] = c;
   return wrapAnim(obj, mixer, clips);

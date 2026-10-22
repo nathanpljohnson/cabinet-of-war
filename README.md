@@ -27,7 +27,7 @@ python3 w3d/dev_server.py 8000
 ```
 Then open http://localhost:8000/. On macOS, `app/build_app.sh` installs `Cabinet of War.app` in `~/Applications`.
 
-To rebuild the page after changing the sources: `python3 src/pdx_build.py && python3 src/w3d_build.py`. The 3D code in `w3d/` loads directly. `w3d/mocks/` holds test replies; in the browser console, `__w3d.mockReply('answers')` (or `'winter'`, `'dismissed'`) applies one.
+To rebuild the page after changing the sources: `python3 src/pdx_build.py && python3 src/w3d_build.py`. The 3D code in `w3d/` loads directly. `w3d/mocks/` holds test replies; in the browser console, `__w3d.mockReply('answers')` (or `'winter'`, `'dismissed'`) applies one, and `contradiction` shows the continuity check. The opening (letters, counsel, people, household, rival, canon, sources) is `src/opening.json`; the reply contract the adjudicator follows is in `src/w3d_build.py`.
 
 ## What's here
 
