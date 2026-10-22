@@ -167,6 +167,7 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   /* ---------- camera ---------- */
   const cam = { tx: -250, tz: 720, yaw: .12, pitch: .62, dist: 1500 };
   const tmpM = new THREE.Matrix4(), tq = new THREE.Quaternion(), tv = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1), up = new THREE.Vector3(0, 1, 0);
+  let shadowView = '', shadowTick = 0;
   const keys = new Set(); let hover = null, inspected = null, prevBattleOn = false, lastCardKey = '', readOnly = false; // readOnly: an account of a battle he was not at
   function placeCamera() {
     const ty = hAt(cam.tx, cam.tz), o = tv.set(Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch));
@@ -306,7 +307,11 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
       if (keys.has('KeyA') || keys.has('ArrowLeft')) { cam.tx -= c * sp; cam.tz += s * sp; } if (keys.has('KeyD') || keys.has('ArrowRight')) { cam.tx += c * sp; cam.tz -= s * sp; }
       if (keys.has('KeyQ')) cam.yaw += dt * 1.1; if (keys.has('KeyE')) cam.yaw -= dt * 1.1;
       cam.tx = Math.max(-W / 2, Math.min(W / 2, cam.tx)); cam.tz = Math.max(-H / 2, Math.min(H / 2, cam.tz));
-      placeCamera(); draw(dt, t); renderer.render(scene, camera);
+      placeCamera(); draw(dt, t);
+      // the shadow map (thousands of figures) is redrawn when the view moves and a few times a second while men move
+      const ck = [cam.tx, cam.tz, cam.dist, cam.yaw, cam.pitch].map(v => Math.round(v * 10)).join();
+      if (ck !== shadowView || ++shadowTick % (BS.running ? 2 : 6) === 0) { shadowView = ck; renderer.shadowMap.needsUpdate = true; }
+      renderer.render(scene, camera);
     },
     key(e) {
       const k = e.code;

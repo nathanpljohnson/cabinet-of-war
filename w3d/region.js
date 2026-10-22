@@ -6,6 +6,7 @@ import * as P from './props.js';
 import { makePerson, makeHorse, makeAnimal } from './actors.js';
 import { infantryFrames, FramePool, rider as riderGeo } from './figures.js';
 import { place as placeGeom } from './lib.js';
+import { personOf } from './people.js';
 import { placeCfg, townHouse, church, landmark, viennaSkyline, marianColumn, stall } from './places.js';
 
 /* The explorable ground: headquarters courtyard → road over the river → a small camp.
@@ -232,7 +233,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
 
   /* ---------- people and animals ---------- */
   const live = [];
-  const person = (kind, x, z, ry, anim, y) => { const p = makePerson(kind); p.obj.position.set(x, y ?? hAt(x, z), z); p.obj.rotation.y = ry; p.play(anim, 0); p.mixer.update(rnd() * 3); group.add(p.obj); live.push(p); return p; };
+  const person = (kind, x, z, ry, anim, y, look) => { const p = makePerson(kind, look); p.obj.position.set(x, y ?? hAt(x, z), z); p.obj.rotation.y = ry; p.play(anim, 0); p.mixer.update(rnd() * 3); group.add(p.obj); live.push(p); return p; };
   const horse = (which, x, z, ry, anim, saddle) => { const h = makeHorse(which, { saddle }); h.obj.position.set(x, hAt(x, z), z); h.obj.rotation.y = ry; h.play(anim, 0); h.mixer.update(rnd() * 3); group.add(h.obj); live.push(h); colliders.push({ c: [x, z, 1.4] }); return h; };
   const adviser = person('adviser', -184.6, -23.2, Math.PI * .1, 'Idle_Talking_Loop', hqH); colliders.push({ c: [-184.6, -23.2, .5] });
   person('clerk', -178.5, -20.3, Math.PI, 'Sitting_Idle_Loop', hqH - .02); // at the writing desk
@@ -250,17 +251,24 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
 
   const v3 = (x, z, y) => new THREE.Vector3(x, (y ?? hAt(x, z)) + 1, z);
   // the people who are here: you can walk up and speak with them (cast from the campaign state; soldiers' roles in camp)
-  const reports = (typeof state !== 'undefined' && state.reports) || [], talk = [], MIL = new Set(['neipperg', 'wallis', 'inf-general', 'cav-general', 'art-officer', 'quartermaster']);
+  const reports = (typeof state !== 'undefined' && state.reports) || [], talk = [], present = {}, MIL = new Set(['neipperg', 'wallis', 'inf-general', 'cav-general', 'art-officer', 'quartermaster']);
   const COURT = [[-183, 2, 2.4], [-180.4, 3.6, -2.2], [-170, -20.5, 3.4], [-166.6, -17.6, -2.4], [-186, -3, 1.6], [-171, 3.6, 3.1], [-176.6, 4.4, 2.9], [-168, -24.6, .5], [-162.6, -21, -1.5], [-162.6, -24.4, -1.2], [-188.5, 3.6, 2.4], [-173.5, -15.8, 0]], CAMPS = [[192, 37, -1.8], [195.6, 39.4, -2.5], [150, 48, .8], [146, 44, 2.2]];
   let ci = 0, mi = 0;
   for (const c of people) {
     const mil = MIL.has(c.id) && mode === 'field', sp = mil ? CAMPS[mi++] : COURT[ci++]; if (!sp) continue;
-    const kind = MIL.has(c.id) ? (c.id === 'quartermaster' ? 'clerk' : 'general') : c.id === 'bartenstein' ? 'clerk' : cues.mourning ? (ci % 2 ? 'mourner' : 'mournerHat') : (ci % 2 ? 'minister' : 'courtier');
+    const look = personOf(c.id).look, gen = MIL.has(c.id) ? (c.id === 'quartermaster' ? 'clerk' : 'general') : cues.mourning ? (ci % 2 ? 'mourner' : 'mournerHat') : (ci % 2 ? 'minister' : 'courtier');
+    const kind = look ? (cues.mourning && (look.kind === 'minister' || look.kind === 'courtier') ? 'mourner' : look.kind) : gen;
     const st = (cues.standing || {})[c.id], away = st === 'cool' || st === 'hostile'; // how they stand towards you shows; it is never counted
-    const y = mil ? ch : hqH, p = person(kind, sp[0], sp[1], sp[2] + (away ? Math.PI : 0), away ? 'Idle_Loop' : 'Idle_Talking_Loop', y); colliders.push({ c: [sp[0], sp[1], .5] });
+    const y = mil ? ch : hqH, p = person(kind, sp[0], sp[1], sp[2] + (away ? Math.PI : 0), away ? 'Idle_Loop' : 'Idle_Talking_Loop', y, look); colliders.push({ c: [sp[0], sp[1], .5] }); p.hours = [8.5, 18]; p.cid = c.id;
     const manner = { warm: 'greets you warmly', cool: 'keeps a polite distance', hostile: 'turns away as you approach' }[st];
-    talk.push({ id: 'talk:' + c.id, pos: v3(sp[0], sp[1], y), r: 1.9, label: 'Give orders to ' + c.name, hint: manner || ((c.office || '') + (reports.some(r => r.from_id === c.id) ? ' · has written to you' : '')), act: 'talk:' + c.id, obj: p.obj });
+    talk.push({ id: 'talk:' + c.id, pos: v3(sp[0], sp[1], y), r: 1.9, label: 'Give orders to ' + c.name, hint: manner || ((c.office || '') + (reports.some(r => r.from_id === c.id) ? ' · has written to you' : '')), act: 'talk:' + c.id, obj: p.obj, who: p });
+    present[c.id] = p;
   }
+  // what you can only overhear in person: two of those present, standing together (lines come from the reply: state.overheard)
+  const PAIR = [[-177.2, -.6, 1.2], [-175.4, .8, -2]], heard = [];
+  for (const o of cues.overheard || []) { const [a, b] = (o.who || []).map(id => present[id]); if (!a || !b) continue;
+    for (const [p, [x, z, r]] of [[a, PAIR[0]], [b, PAIR[1]]]) { p.obj.position.set(x, hqH, z); p.obj.rotation.y = r; p.play('Idle_Talking_Loop', 0); const it = talk.find(i => i.who === p); it.pos.set(x, hqH + 1, z); }
+    heard.push({ o, at: [(PAIR[0][0] + PAIR[1][0]) / 2, (PAIR[0][1] + PAIR[1][1]) / 2], done: false }); break; }
   if (place.id === 'vienna') { const p = person(cues.mourning ? 'mournerHat' : 'courtier', -189.4, -14.8, 1.4, 'Idle_Loop', hqH); colliders.push({ c: [-189.4, -14.8, .5] }); talk.push({ id: 'chamberlain', pos: v3(-189.4, -14.8, hqH), r: 1.8, label: 'Request an audience at the Hofburg', hint: 'The chamberlain carries it to the Archduchess or the Grand Duke', act: cues.dismissed ? 'toast:The chamberlain regrets that Her Majesty is not receiving you.' : 'chamberlain', obj: p.obj }); }
   { const p = person('clerk', -168.6, 4.4, 2.6, 'Idle_Loop', hqH); colliders.push({ c: [-168.6, 4.4, .5] }); talk.push({ id: 'steward', pos: v3(-168.6, 4.4, hqH), r: 1.8, label: 'Tell your steward where you are going', hint: 'Travel: you leave at once; the journey goes into your orders', act: 'travel', obj: p.obj }); }
   // townsfolk going about the square and the lanes; a few on the road out of Vienna
@@ -274,6 +282,17 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   if (cues.refugees) { const back = [...PP].reverse().map(([x, z], i) => [x + Math.sin(i) * 1.1, z + Math.cos(i * 1.3) * 1.1]); for (let i = 0; i < 7; i++) walkRoad(['labourer', 'woman', 'labourer', 'woman', 'burgher', 'woman', 'labourer'][i], back, .8 + rnd() * .3, i / 7); }
   if (cues.pay === 'unpaid') { const out = [[176, 40], [196, 52], [222, 66], [252, 84]]; for (let i = 0; i < 2; i++) walkRoad('infantry', out, 1.0, i / 2); }
   const drilling = cues.pay !== 'unpaid' && cues.pay !== 'in arrears';
+  // your last dispatch, carried out where you can see it (cues.carried, the first day after a reply): a column marching out,
+  // wagons leaving, a messenger riding off. A rider leaving at dawn is your rival's courier.
+  const outRoad = [...PP, [PP[PP.length - 1][0] + 60, PP[PP.length - 1][1] + 30], [PP[PP.length - 1][0] + 200, PP[PP.length - 1][1] + 120]];
+  const fromGate = [[-163, 1], [-156, -8], ...outRoad];
+  const movers = [], mover = (obj, pts, v, at, hours) => { obj.position.set(pts[0][0], 0, pts[0][1]); group.add(obj); movers.push({ obj, pts, i: 0, v, at, hours }); obj.visible = false; };
+  const c = cues.carried || {};
+  if (c.march) for (let i = 0; i < 12; i++) { const p = person('infantry', CAMP.x, CAMP.z, 0, 'Walk_Formal_Loop'); p.road = { pts: [[CAMP.x - 10, CAMP.z - 14], ...outRoad.slice(-12)], i: 0, v: 1.25, delay: Math.floor(i / 3) * 2.2 + (i % 3) * .2, off: (i % 3 - 1) * .9 }; }
+  if (c.supply) for (let i = 0; i < 2; i++) { const w = new THREE.Mesh(P.wagon(), propsMat); w.castShadow = false; mover(w, [[140, 44], ...outRoad.slice(-14)], 1.6, i * 7); }
+  const rider = () => { const h = makeHorse(actors.hb, { saddle: true }); h.play('Gallop', 0); const sb = new THREE.Box3().setFromObject(h.obj, true), m = new THREE.Mesh(riderGeo({ coat: 0x5a6a3a, facing: 0xa3302a, breeches: 0xd8cdb4, hat: 0x1a1612, trim: 0xf2eee4 }, false), propsMat); m.position.set((sb.min.x + sb.max.x) / 2, sb.min.y + (sb.max.y - sb.min.y) * .66 + .1, (sb.min.z + sb.max.z) / 2); h.obj.add(m); live.push(h); return h; };
+  if (c.letters) { const h = rider(); mover(h.obj, fromGate, 8.5, 1); }
+  if (cues.rivalHere) { const h = rider(); mover(h.obj, fromGate, 8.5, 0, [5.5, 8.5]); }
   // court mourning: black cloth on the gate pillars and over the main door
   if (cues.mourning) { for (const z of [-14.15, -5.85]) add(box(1.45, 2.4, 1.45, 0x151313), CY.x1 + .3, z, 0, hqH + 1.3); add(box(.25, 4.2, 4.6, 0x151313), -191.2, -10, 0, hqH + 3.2); }
   // lanterns at the gate: lit at night
@@ -283,7 +302,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   let snow = null; if (winter) { const n = 1800, g = new THREE.BufferGeometry(), pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) { pos[i * 3] = (rnd() - .5) * 80; pos[i * 3 + 1] = rnd() * 40; pos[i * 3 + 2] = (rnd() - .5) * 80; } g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); snow = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: .12, transparent: true, opacity: .85, depthWrite: false })); snow.frustumCulled = false; group.add(snow); }
 
   // a company at drill and a rank paraded by the colours: instanced figures, cheap
-  const drill = new FramePool(infantryFrames('A'), 64, stdMat({ roughness: .85 })); group.add(drill.group);
+  const drill = new FramePool(infantryFrames('A'), 64, stdMat({ roughness: .85 })); drill.setShadow(false); group.add(drill.group);
   const dm4 = new THREE.Matrix4(), dq = new THREE.Quaternion(), dv = new THREE.Vector3(), d1 = new THREE.Vector3(1, 1, 1), upY = new THREE.Vector3(0, 1, 0);
   const drillStep = t => {
     drill.begin();
@@ -305,7 +324,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
     { id: 'map', pos: v3(-184, -19.2, hqH), r: 2.4, label: 'Study the maps', hint: 'Open the campaign map', act: 'map', obj: tableM },
     { id: 'orders', pos: v3(-178.5, -23.2, hqH), r: 2.6, label: 'Write the orders of the day', hint: 'Orders', act: 'orders', obj: desk },
     { id: 'council', pos: v3(-186.4, -22.6, hqH), r: 2, label: 'Consult your adviser', hint: 'Council', act: 'council', obj: adviser.obj },
-    { id: 'record', pos: v3(-175.4, -24.6, hqH), r: 2.2, label: 'Open the campaign record', hint: 'Record · save & load', act: 'record' },
+    { id: 'record', pos: v3(-175.4, -24.6, hqH), r: 2.2, label: 'Your archive of letters', hint: 'Every letter that has reached you', act: 'archive' },
     { id: 'reports', pos: v3(-165, -1, hqH), r: 2.8, label: 'Take the courier’s reports', hint: 'Reports received', act: 'reports', obj: courier.obj },
     { id: 'staff', pos: v3(186, 28, ch), r: 2.8, label: 'Hear the officer of the day', hint: 'What your staff knows', act: 'staff', obj: officer.obj },
     { id: 'hall', pos: v3(-190.2, -10, hqH), r: 2.4, label: 'Enter the Conference chamber', hint: cues.dismissed ? 'The doors stay closed to you' : 'Your advisers’ counsel', act: cues.dismissed ? 'toast:The Conference meets without you now.' : 'hall' },
@@ -327,7 +346,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   const cum = [0]; for (let i = 1; i < route.length; i++) cum.push(cum[i - 1] + Math.hypot(route[i][0] - route[i - 1][0], route[i][1] - route[i - 1][1]));
   const routeLen = cum[cum.length - 1];
   const steed = makeHorse(actors.hb, { saddle: true }); steed.play('Gallop', 0); steed.obj.visible = false; group.add(steed.obj);
-  { const sb = new THREE.Box3().setFromObject(steed.obj, true), g = riderGeo({ coat: 0x5a6a3a, facing: 0xa3302a, breeches: 0xd8cdb4, hat: 0x1a1612, trim: 0xf2eee4 }, false); const m = new THREE.Mesh(g, propsMat); m.castShadow = true; m.position.set((sb.min.x + sb.max.x) / 2, sb.min.y + (sb.max.y - sb.min.y) * .66 + .1, sb.min.z + (sb.max.z - sb.min.z) * .5); steed.obj.add(m); }
+  { const sb = new THREE.Box3().setFromObject(steed.obj, true), g = riderGeo({ coat: 0x5a6a3a, facing: 0xa3302a, breeches: 0xd8cdb4, hat: 0x1a1612, trim: 0xf2eee4 }, false); const m = new THREE.Mesh(g, propsMat); m.position.set((sb.min.x + sb.max.x) / 2, sb.min.y + (sb.max.y - sb.min.y) * .66 + .1, sb.min.z + (sb.max.z - sb.min.z) * .5); steed.obj.add(m); }
   const courierRide = { state: 'home', s: 0, onArrive: null }, pace = cues.roads === 'impassable' ? .3 : cues.roads === 'heavy' ? .55 : 1;
   const setHome = home => { courier.obj.visible = home; hitched.obj.visible = home; };
   const atS = s => { let i = 1; while (i < cum.length - 1 && cum[i] < s) i++; const f = (s - cum[i - 1]) / (cum[i] - cum[i - 1] || 1), [ax, az] = route[i - 1], [bx, bz] = route[i]; return [ax + (bx - ax) * f, az + (bz - az) * f, Math.atan2(bx - ax, bz - az)]; };
@@ -352,17 +371,36 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
 
   // unread letters on the dispatch desk, each with a red seal
   const letterG = merge([box(.3, .012, .22, 0xf3ecd8, 0, 0, 0), box(.05, .02, .05, 0xa3302a, 0, .006, 0)]), letters = new THREE.InstancedMesh(letterG, propsMat, 10); letters.count = 0; letters.castShadow = true; group.add(letters);
+  // the pigeonholes of the writing desk fill as your archive grows
+  const pigeon = new THREE.InstancedMesh(merge([box(.2, .1, .16, 0xece2c8, 0, 0, 0), box(.04, .101, .161, 0x8a2f26, .05, 0, 0)]), propsMat, 30); pigeon.count = 0; group.add(pigeon);
+  const setArchive = n => { const d = new THREE.Object3D(); pigeon.count = Math.min(30, n); for (let i = 0; i < pigeon.count; i++) { const cell = i % 10, layer = Math.floor(i / 10); d.position.set(-178.5 + .6 - (cell % 5) * .3, hqH + .87 + Math.floor(cell / 5) * .22 + layer * .05, -21.5 + .3); d.rotation.set(0, (i * .37) % .3 - .15, 0); d.updateMatrix(); pigeon.setMatrixAt(i, d.matrix); } pigeon.instanceMatrix.needsUpdate = true; };
   const setLetters = n => { const d = new THREE.Object3D(); letters.count = Math.min(10, n); for (let i = 0; i < letters.count; i++) { d.position.set(-178.9 + (i % 3) * .07, hqH + .82 + i * .014, -21.35 + (i % 2) * .05); d.rotation.set(0, i * .37, 0); d.updateMatrix(); letters.setMatrixAt(i, d.matrix); } letters.instanceMatrix.needsUpdate = true; };
 
   const tmpV = new THREE.Vector3();
-  function update(dt, t, cam) {
+  // the hour of the day (main.js): people keep hours, the Conference sits in the evening
+  let hour = 9;
+  const hallItem = () => interact.find(i => i.id === 'hall');
+  function setHour(h) {
+    hour = h; for (const a of live) if (a.hours) a.off = h < a.hours[0] || h > a.hours[1];
+    const it = hallItem(); if (it && !cues.dismissed) it.hint = h >= 16 && h <= 21 ? 'The Conference sits this evening' : 'Your advisers’ counsel';
+  }
+  function update(dt, t, cam, pl) {
     stepCourier(dt);
+    for (const m of movers) { // carts and riders on the road: once, then gone
+      if (m.done || (m.hours && (hour < m.hours[0] || hour > m.hours[1]))) { m.obj.visible = false; continue; }
+      if ((m.at -= dt) > 0) continue; const [tx, tz] = m.pts[m.i], o = m.obj.position, dx = tx - o.x, dz = tz - o.z, L = Math.hypot(dx, dz);
+      m.obj.visible = true; if (L < 1) { if (++m.i >= m.pts.length) { m.done = true; m.obj.visible = false; } continue; }
+      o.x += dx / L * m.v * dt; o.z += dz / L * m.v * dt; o.y = groundAt(o.x, o.z); m.obj.rotation.y = Math.atan2(dx, dz);
+    }
+    if (pl) for (const h of heard) if (!h.done && Math.hypot(pl.x - h.at[0], pl.z - h.at[1]) < 5 && hour >= 8.5 && hour <= 18) { h.done = true; out.onOverhear && out.onOverhear(h.o); }
     for (const a of live) {
       const d = a.obj.position.distanceToSquared(cam.position);
-      a.obj.visible = d < 260 * 260;
+      if (a.road) { const r = a.road; if ((r.delay -= dt) > 0 || r.done) { a.obj.visible = false; continue; } const [tx, tz] = r.pts[r.i], o = a.obj.position, dx = tx + r.off - o.x, dz = tz - o.z, L = Math.hypot(dx, dz); if (L < .8) { if (++r.i >= r.pts.length) { r.done = true; a.obj.visible = false; continue; } } else { o.x += dx / L * r.v * dt; o.z += dz / L * r.v * dt; o.y = groundAt(o.x, o.z); a.obj.rotation.y = Math.atan2(dx, dz); } }
+      a.obj.visible = !a.off && d < 260 * 260;
       if (a.follow) { const f = a.follow, o = a.obj.position, [tx, tz] = f.pts[f.i], dx = tx - o.x, dz = tz - o.z, L = Math.hypot(dx, dz); if (L < .6) { f.i++; if (f.i >= f.pts.length) { f.i = 0; o.set(f.pts[0][0], 0, f.pts[0][1]); } } else { o.x += dx / L * f.v * dt; o.z += dz / L * f.v * dt; a.obj.rotation.y = Math.atan2(dx, dz); } o.y = groundAt(o.x, o.z); }
       if (a.patrol) { const p = a.patrol, o = a.obj.position, tgt = p.flip ? p.b : p.a, dx = tgt[0] - o.x, dz = tgt[1] - o.z, L = Math.hypot(dx, dz); if (L < .5) p.flip = !p.flip; else { o.x += dx / L * p.v * dt; o.z += dz / L * p.v * dt; a.obj.rotation.y = Math.atan2(dx, dz); if (p.ground) o.y = groundAt(o.x, o.z); } }
-      if (d < 120 * 120) a.mixer.update(dt);
+      if (d < 35 * 35) a.mixer.update(dt); // further off, animate less often
+      else if (d < 120 * 120) { a.lag = (a.lag || 0) + dt; a.tick = (a.tick || 0) + 1; if (a.tick % (d < 70 * 70 ? 2 : 3) === 0) { a.mixer.update(a.lag); a.lag = 0; } }
     }
     for (let i = 0; i < fireLights.length; i++) fireLights[i].intensity = 26 + Math.sin(t * 13 + i) * 4 + Math.sin(t * 7.3 + i * 2) * 3;
     flames.forEach((f, i) => { f.scale.set(1, .8 + Math.sin(t * 11 + i * 1.7) * .25, 1); f.rotation.y = t * 2 + i; });
@@ -399,7 +437,8 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   };
   const packTable = () => { if (portable) { group.remove(portable.g); portable = null; } };
   const tablePose = tables[0];
-  return { setNight, group, heightAt: groundAt, courierRide, setLetters, tablePose, tables, setUpTable, packTable, spawnCamp: { x: 193, z: 31, ry: Math.PI * .75 }, fires: fires.map(([x, z]) => [x, z]), camp: CAMP, place, blockedAt, interact, zoneName, update, solid, spawn: { x: -167.5, z: -6.5, ry: -2.41 }, live, counts: { trees: Object.values(trees).reduce((s, a) => s + a.length, 0), farTrees: Object.values(far).reduce((s, a) => s + a.length, 0), rocks: rocks.length, grass: grass.length, people: live.length } };
+  const out = { setNight, setHour, setArchive, onOverhear: null, group, heightAt: groundAt, courierRide, setLetters, tablePose, tables, setUpTable, packTable, spawnCamp: { x: 193, z: 31, ry: Math.PI * .75 }, fires: fires.map(([x, z]) => [x, z]), camp: CAMP, place, blockedAt, interact, zoneName, update, solid, spawn: { x: -167.5, z: -6.5, ry: -2.41 }, live, counts: { trees: Object.values(trees).reduce((s, a) => s + a.length, 0), farTrees: Object.values(far).reduce((s, a) => s + a.length, 0), rocks: rocks.length, grass: grass.length, people: live.length } };
+  return out;
 }
 
 function makeSmoke(group, sources) {

@@ -1,5 +1,5 @@
 {
- "note": "Test reply: letters over three days, sources, contradictory sightings, answers to T0-1 and T0-3. Illustrative.",
+ "note": "Test reply: letters over three days, sources, contradictory sightings, answers to T0-1 and T0-3. Illustrative. Also: an overheard exchange, an intercepted letter in cipher, a captured order.",
  "patch": {
   "date": "1740-10-24",
   "world": {
@@ -18,6 +18,11 @@
     "bartenstein": "warm",
     "sinzendorf": "cordial",
     "harrach_joseph": "cordial"
+   },
+   "memory": {
+    "starhemberg": [
+     "The player asked for the Hofkammer accounts through a clerk, not in person."
+    ]
    }
   },
   "reports": [
@@ -88,6 +93,51 @@
     "re": [
      "T0-3"
     ]
+   },
+   {
+    "id": "r14",
+    "place": "vienna",
+    "dated": "1740-10-23",
+    "arrives": "1740-10-24",
+    "category": "An intercepted letter",
+    "title": "To Berlin, by the Prussian envoy's courier",
+    "text": "The court is in mourning and in disorder. The old ministers quarrel; the treasury is empty; Silesia has no army. If His Majesty means to act, the season will not be kinder in the spring.",
+    "from": "The Prussian envoy in Vienna",
+    "via": "courier",
+    "source": "taken from the envoy's courier at the Moravian border",
+    "cipher": true,
+    "intercepted": {
+     "from": "the Prussian envoy in Vienna",
+     "to": "Berlin"
+    }
+   },
+   {
+    "id": "r15",
+    "place": "breslau",
+    "dated": "1740-10-22",
+    "arrives": "1740-10-24",
+    "category": "The frontier",
+    "title": "An order found at Crossen",
+    "text": "One of our people brought me a copy of an order posted at Crossen. I send it as it is; make of it what you will.",
+    "from_id": "wallis",
+    "via": "courier",
+    "source": "a copy made by an innkeeper's son",
+    "enclosure": {
+     "kind": "order",
+     "title": "An order to the magistrates of Crossen (copy)",
+     "text": "Quarters, forage and bread are to be held ready for regiments on the march, against the end of next month.",
+     "from": "The Prussian commissariat"
+    }
+   }
+  ],
+  "overheard": [
+   {
+    "place": "vienna",
+    "who": [
+     "sinzendorf",
+     "starhemberg"
+    ],
+    "line": "…and Neipperg will have the Silesian command before Christmas, mark me — the Grand Duke has already asked for him."
    }
   ]
  }

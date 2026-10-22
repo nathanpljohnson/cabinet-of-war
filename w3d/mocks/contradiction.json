@@ -1,0 +1,9 @@
+{
+ "note": "Test reply that breaks continuity: time runs backwards and the canon is wiped.",
+ "patch": {
+  "date": "1740-10-10",
+  "hidden": {
+   "canon": []
+  }
+ }
+}

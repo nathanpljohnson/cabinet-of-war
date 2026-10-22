@@ -1,0 +1,373 @@
+{
+ "openingVersion": 3,
+ "locations_add": [
+  {
+   "id": "brunn",
+   "name": "Brünn",
+   "lat": 49.1951,
+   "lon": 16.6068,
+   "kind": "city",
+   "report": "Moravia. The Spielberg fortress above the town holds state prisoners.",
+   "lab": "w"
+  }
+ ],
+ "cast_update": {
+  "maria_theresa": {
+   "agenda": "Keep every province; be obeyed as ruler, not managed as an heiress; trust few until they prove themselves.",
+   "voice": "Direct and warm with those she trusts, imperious when crossed; writes in a quick, underlined hand.",
+   "office": "Archduchess of Austria; Queen of Hungary and Bohemia by the succession"
+  },
+  "bartenstein": {
+   "agenda": "Hold the courts to the Pragmatic Sanction; concede nothing to Prussia; keep his own primacy over the old ministers.",
+   "voice": "Long, lawyerly periods; cites treaties by article."
+  },
+  "sinzendorf": {
+   "agenda": "Diplomacy and delay; avoid war while the chancellery keeps its hand on foreign business.",
+   "voice": "Ornate, courteous, never quite committed."
+  },
+  "starhemberg": {
+   "agenda": "No war without credit: the treasury first, then the army.",
+   "voice": "An old man's brevity; numbers rather than adjectives."
+  },
+  "neipperg": {
+   "place": "brunn",
+   "office": "General; held at the fortress of Brünn since the Belgrade peace",
+   "agenda": "Release, restoration, and the command in Silesia; counts on the Grand Duke, his former pupil.",
+   "voice": "Brisk, proud, wounded; military plainness.",
+   "claim": "documented"
+  },
+  "wallis": {
+   "agenda": "Money and orders for the Silesian garrisons before the winter.",
+   "voice": "A soldier's report: plain figures, few compliments.",
+   "office": "Commanding general in Silesia, at Glogau"
+  },
+  "francis_stephen": {
+   "office": "Grand Duke of Tuscany; Her Majesty's husband"
+  },
+  "quartermaster": {
+   "office": "The quartermaster's office: supply and returns"
+  },
+  "dresden-envoy": {
+   "office": "Her Majesty's envoy at Dresden"
+  },
+  "munich-envoy": {
+   "office": "Her Majesty's envoy at Munich"
+  },
+  "inf-general": {
+   "office": "Commands the foot"
+  },
+  "cav-general": {
+   "office": "Commands the horse"
+  },
+  "art-officer": {
+   "office": "Commands the guns"
+  },
+  "steward": {
+   "office": "Your steward: household and travel"
+  },
+  "own-forces": {
+   "office": "Your own command (with the army only)"
+  }
+ },
+ "cast_add": [
+  {
+   "id": "frederick",
+   "name": "Frederick II, King in Prussia",
+   "office": "King in Prussia since 31 May 1740",
+   "place": "berlin",
+   "claim": "documented",
+   "agenda": "Silesia, while Vienna is weak and divided.",
+   "voice": "Never seen; known by his envoys, his rumours and his actions."
+  },
+  {
+   "id": "countess_khevenhuller",
+   "name": "Philippine, Countess Khevenhüller",
+   "office": "Your wife, born Countess Lamberg",
+   "place": "vienna",
+   "claim": "documented",
+   "agenda": "The family's standing and the daughters' futures; your safety.",
+   "voice": "Affectionate, practical, sharp about money and people."
+  }
+ ],
+ "household": {
+  "spouse": "countess_khevenhuller",
+  "children": [
+   {
+    "name": "Maria Antonia",
+    "born": "1726-03-29"
+   },
+   {
+    "name": "your younger daughter"
+   }
+  ],
+  "health": "well",
+  "estate": "Your house in the city and the family's lands; the accounts are not yet before you."
+ },
+ "mandate": {
+  "from_id": "maria_theresa",
+  "dated": "1740-10-21",
+  "title": "Your commission",
+  "claim": "invention",
+  "text": "By Her Majesty’s command. In this hour of loss you are to serve on the War Council. Learn the true state of the army and of the treasury, and tell Her Majesty plainly what you find. Hold the provinces of the succession — Austria, Bohemia, Silesia and Hungary — against any who would take advantage of the Emperor’s death. Report in writing on every matter of moment, and do nothing that would give a foreign court a pretext."
+ },
+ "reports": [
+  {
+   "id": "r1",
+   "place": "breslau",
+   "dated": "1740-10-16",
+   "arrives": "1740-10-21",
+   "category": "The province of Silesia",
+   "title": "The state of the garrisons",
+   "from_id": "wallis",
+   "via": "courier",
+   "source": "the garrison returns at Glogau",
+   "claim": "inference",
+   "text": "Your Excellency will forgive plain figures. In all Silesia I can count something above three thousand foot and six hundred horse fit for duty, scattered in garrisons too small to hold a determined attack. The works at Glogau want repair; Brieg and Neisse are no better provided. Talk across the Brandenburg border has been loud since the new King came to the throne. I ask for orders and for money before I ask for men.",
+   "enclosure": {
+    "kind": "return",
+    "title": "Return of troops fit for duty in Silesia",
+    "rows": [
+     [
+      "Foot, all garrisons",
+      "about 3,000"
+     ],
+     [
+      "Horse",
+      "about 600"
+     ],
+     [
+      "Guns fit to fire",
+      "not counted"
+     ],
+     [
+      "Months of bread in store",
+      "under two"
+     ]
+    ],
+    "note": "Figures as the Glogau office reckons them."
+   },
+   "sketch": {
+    "title": "The Oder fortresses",
+    "places": [
+     "f-glogau",
+     "f-breslau",
+     "f-brieg",
+     "f-neisse",
+     "f-glatz"
+    ]
+   }
+  },
+  {
+   "id": "r2",
+   "place": "vienna",
+   "dated": "1740-10-21",
+   "arrives": "1740-10-21",
+   "category": "The Sanction",
+   "title": "What the courts will be asked",
+   "from_id": "bartenstein",
+   "via": "courier",
+   "source": "his own drafts for the Conference",
+   "claim": "invention",
+   "text": "Every court that set its name to the Pragmatic Sanction will now be asked to honour it, and asked at once. Some will hesitate; one or two will name a price. Her Majesty must be seen to expect full recognition as a matter of right, not of favour, and the notes to Versailles, London, Berlin and Dresden must leave Vienna before the week is out. I would be glad of your support in the Conference: the old ministers mean well, but they mean slowly."
+  },
+  {
+   "id": "r3",
+   "place": "vienna",
+   "dated": "1740-10-21",
+   "arrives": "1740-10-21",
+   "category": "The treasury",
+   "title": "What lies in the chests",
+   "from_id": "starhemberg",
+   "via": "courier",
+   "source": "the Hofkammer accounts",
+   "claim": "documented",
+   "text": "Something like one hundred thousand florins lies in the exchequer. The debts are many times that, and the provinces have pledged their next grants already. Regiments are paid late or not at all, and men desert where they are not paid. I set this down so that no one in the Conference may say he was not told: no war can be made on promises."
+  },
+  {
+   "id": "r4",
+   "place": "brunn",
+   "dated": "1740-10-18",
+   "arrives": "1740-10-21",
+   "category": "A kinsman",
+   "title": "From the fortress at Brünn",
+   "from_id": "neipperg",
+   "via": "post",
+   "source": "his own hand",
+   "claim": "invention",
+   "text": "Cousin — I write as family, since I may not write as a general. I have borne a year of this place for a peace I was sent to make and was then blamed for making. If a word from you could reach the Grand Duke, who knows me better than any man alive, I would serve wherever I am sent, and I would not forget who sent the word."
+  },
+  {
+   "id": "r5",
+   "place": "vienna",
+   "dated": "1740-10-21",
+   "arrives": "1740-10-21",
+   "category": "Home",
+   "title": "The house is in black",
+   "from_id": "countess_khevenhuller",
+   "via": "audience",
+   "source": "your wife",
+   "claim": "invention",
+   "text": "The house is hung in black and the tailor wants paying for it. Maria Antonia asks whether there will be war; I told her that is for you and the Empress to decide, and that she should say her prayers. Dine with us tonight if the Conference lets you go. And be careful of Bartenstein: he is kind to whoever is useful to him this week."
+  }
+ ],
+ "decision": {
+  "id": "d1",
+  "title": "The first days of a new reign",
+  "context": "Your advisers' counsel on where to begin.",
+  "options": [
+   {
+    "id": "a",
+    "title": "Go to Her Majesty before the Conference meets",
+    "by": "Johann Christoph Bartenstein",
+    "objective": "Be among the first she hears, and learn her mind before the old ministers frame it.",
+    "reasoning": "First access shapes all later access.",
+    "risks": "The ministers who expected to brief her first will remember it.",
+    "needs": "An audience, through the chamberlain.",
+    "unknown": "Whom she already trusts.",
+    "delegation": "You speak yourself; your secretary prepares a short memorial."
+   },
+   {
+    "id": "b",
+    "title": "Count the men and the money first",
+    "by": "Count Starhemberg (Gundaker Thomas)",
+    "objective": "Arrive with true figures: men present against the rolls, coin against promises.",
+    "reasoning": "A request without numbers is easy to refuse.",
+    "risks": "Delay, and clerks who guard their figures.",
+    "needs": "The Hofkriegsrat and Hofkammer registers.",
+    "unknown": "How far the registers can be trusted.",
+    "delegation": "Your staff gather the returns; you review them."
+   },
+   {
+    "id": "c",
+    "title": "Put Silesia in a state of defence now",
+    "by": "FML Franz Wenzel Wallis",
+    "objective": "Money, bread and men for the Oder fortresses before winter.",
+    "reasoning": "The province is weakest where it is nearest Brandenburg.",
+    "risks": "Alarming Berlin, or spending money the treasury does not have.",
+    "needs": "An order from the Conference and a first payment.",
+    "unknown": "What the King in Prussia intends.",
+    "delegation": "Orders go by courier; Wallis acts on them."
+   }
+  ]
+ },
+ "knowledge": [
+  {
+   "text": "A courier riding post covers Vienna to Breslau in about four or five days; the ordinary post is slower.",
+   "claim": "inference"
+  },
+  {
+   "text": "The Prussian army is reckoned at above eighty thousand men, well drilled, and the late King left his son a full treasury.",
+   "claim": "documented"
+  },
+  {
+   "text": "The Austrian army is large on paper and much smaller in the field; regiments are under strength and desertion is common.",
+   "claim": "documented"
+  },
+  {
+   "text": "The Silesian fortresses — Glogau, Brieg, Neisse — are old and poorly provisioned.",
+   "claim": "inference"
+  }
+ ],
+ "forces": [
+  {
+   "id": "f-silesia",
+   "name": "Garrisons of Silesia",
+   "locationId": "breslau",
+   "men": 3600,
+   "claim": "inference"
+  }
+ ],
+ "forcesNote": "Garrison returns from Silesia are enclosed with Count Wallis's letter of 16 October.",
+ "remarks": [
+  "The court is in mourning; the ministers expect to be consulted before anyone goes to Her Majesty.",
+  "Count Neipperg is your kinsman by marriage. Whatever you do for him, the Grand Duke will remember — and so will those who blame him for Belgrade."
+ ],
+ "hidden_add": {
+  "standing": {
+   "bartenstein": "warm",
+   "sinzendorf": "cordial",
+   "harrach_joseph": "cordial",
+   "starhemberg": "cool",
+   "koenigsegg": "cordial",
+   "neipperg": "warm",
+   "countess_khevenhuller": "warm"
+  },
+  "rival": {
+   "id": "neipperg",
+   "aim": "The Silesian command and the Grand Duke's ear — the place you might want.",
+   "note": "Kinsman by marriage and rival: released soon after the Emperor's death in history, given the Silesian command in 1741."
+  },
+  "memory": {},
+  "canon": [
+   "Charles VI died at the Favorita in the night of 19–20 October 1740.",
+   "Maria Theresa succeeds to the hereditary lands under the Pragmatic Sanction.",
+   "Count Neipperg is held at the fortress of Brünn for the Belgrade peace.",
+   "Frederick II has been King in Prussia since 31 May 1740.",
+   "Your wife is Philippine, born Countess Lamberg; your elder daughter is Maria Antonia."
+  ]
+ },
+ "sourcesAppendix": [
+  {
+   "about": "Your character",
+   "claim": "inference",
+   "note": "Ludwig Andreas von Khevenhüller (1683–1744), listed as Hofkriegsrat vice-president for 1740/41 in one source; whether he was in Vienna on 21 October 1740 is unverified.",
+   "url": "https://www.deutsche-biographie.de/sfz68571.html"
+  },
+  {
+   "about": "Your household",
+   "claim": "documented",
+   "note": "Married Philippine Maria Anna von Lamberg (1695–1762) in 1718; two daughters, the elder Maria Antonia (b. 29 March 1726). Where the family was in October 1740 is assumed.",
+   "url": "https://austria-forum.org/af/AustriaWiki/Ludwig_Andreas_von_Khevenh%C3%BCller"
+  },
+  {
+   "about": "Neipperg",
+   "claim": "documented",
+   "note": "Arrested after the Belgrade peace and held at the fortress of Brünn; released soon after Charles VI's death; Francis Stephen's former tutor and friend; married a Countess Khevenhüller; given the Silesian command in 1741.",
+   "url": "https://de.wikisource.org/wiki/BLK%C3%96:Neipperg,_Wilhelm_Reinhard_Graf"
+  },
+  {
+   "about": "The treasury",
+   "claim": "documented",
+   "note": "About 100,000 florins in the exchequer at Charles VI's death; heavy debts; widespread desertion.",
+   "url": "https://en.wikipedia.org/wiki/Charles_VI,_Holy_Roman_Emperor"
+  },
+  {
+   "about": "Silesian garrisons",
+   "claim": "inference",
+   "note": "About 3,000 foot and 600 horse in the province shortly before the invasion, per Carlyle's narrative; a secondary source.",
+   "url": "https://en.wikipedia.org/wiki/Maximilian_Ulysses_Browne"
+  },
+  {
+   "about": "Bartenstein",
+   "claim": "documented",
+   "note": "Secretary of the Secret Conference since 1727; the most powerful minister at Charles VI's death; urged firm resistance to Prussia.",
+   "url": "https://www.britannica.com/biography/Johann-Christoph-Bartenstein"
+  },
+  {
+   "about": "Prussia",
+   "claim": "documented",
+   "note": "Frederick William I left an army of about 83,000 and a war chest of over 8 million taler.",
+   "url": "https://www.britannica.com/biography/Frederick-William-I"
+  },
+  {
+   "about": "Letters and counsel",
+   "claim": "invention",
+   "note": "The opening letters, your commission and your advisers' counsel are written in character for the game; the people, offices and circumstances behind them are as sourced above."
+  },
+  {
+   "about": "Who you play",
+   "claim": "inference",
+   "note": "The opening state names Khevenhüller as the candidate for your office; the game plays him. Where he was and what he held on 21 October 1740 is not established."
+  },
+  {
+   "about": "Your rival",
+   "claim": "invention",
+   "note": "Neipperg as your rival for the Silesian command is a design choice built on his documented release, his friendship with the Grand Duke and his 1741 appointment."
+  },
+  {
+   "about": "Offices",
+   "claim": "inference",
+   "note": "Wallis's command at Glogau rests on one source; the quartermaster, generals, envoys and steward are roles, not identified people. Francis Stephen was named co-regent only on 21 November 1740."
+  }
+ ]
+}
