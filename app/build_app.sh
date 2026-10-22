@@ -10,7 +10,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/web"
 swiftc -O -o "$APP/Contents/MacOS/CabinetOfWar" CabinetOfWar.swift
 cp CabinetOfWar.icns "$APP/Contents/Resources/CabinetOfWar.icns"
 cp "$SRC/cabinet-of-war.html" "$APP/Contents/Resources/web/"
-for d in tiles1740 realms1740 paint cities; do mkdir -p "$APP/Contents/Resources/web/$d"; rsync -a --exclude "*.jpg" "$SRC/$d/" "$APP/Contents/Resources/web/$d/"; done
+for d in tiles1740 realms1740 paint cities w3d; do mkdir -p "$APP/Contents/Resources/web/$d"; rsync -a --exclude "*.jpg" "$SRC/$d/" "$APP/Contents/Resources/web/$d/"; done
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

@@ -1,0 +1,36 @@
+{
+ "note": "Test reply: the player loses his office. Illustrative.",
+ "patch": {
+  "date": "1740-11-02",
+  "player": {
+   "name": "Commander with court access — office pending research",
+   "mode": "court",
+   "locationId": "vienna",
+   "dismissed": true
+  },
+  "mandate": {
+   "from_id": "maria_theresa",
+   "dated": "1740-11-01",
+   "title": "Your commission is withdrawn",
+   "text": "Her Majesty thanks you for your services and relieves you of your place on the War Council. You will hand your papers to Count Harrach.",
+   "claim": "demo"
+  },
+  "remarks": [
+   "The Conference has met twice without you."
+  ],
+  "reports": [
+   {
+    "id": "r30",
+    "place": "vienna",
+    "dated": "1740-11-01",
+    "category": "The court",
+    "title": "Relieved",
+    "text": "By Her Majesty’s command your commission is withdrawn.",
+    "claim": "demo",
+    "from_id": "harrach_joseph",
+    "via": "courier",
+    "source": "the Hofkriegsrat"
+   }
+  ]
+ }
+}

@@ -124,3 +124,7 @@ The relief is modern topography with synthetic colour/vegetation texture. It is 
 
 ## Revision 8 (2026-10-03) — 1740 style
 The satellite-based tiles (Sentinel-2 cloudless, CC BY-NC-SA) were **removed from the app and from `outputs/`** (moved to `work/archive_modern/`). Shipping tiles are now `tiles1740/` (hand-coloured style rendered from Terrain Tiles elevation, Natural Earth coast/lakes/rivers, OpenStreetMap forest cover, HydroRIVERS), `realms1740/` (Natural Earth Admin-1 grouped into approximate realms), `paint/` and `cities/` (OpenStreetMap/ODbL + Terrain Tiles). None contain Sentinel-2 data, so the NC-SA restriction no longer applies. Keep ODbL credit for OpenStreetMap-derived tiles.
+
+## 3D world
+
+three.js r170 (MIT) is vendored in `w3d/vendor/three`. Characters and animals are CC0 models by Quaternius. Scenery is procedural. Full list and licences: `w3d/ASSETS-ATTRIBUTION.md`.
