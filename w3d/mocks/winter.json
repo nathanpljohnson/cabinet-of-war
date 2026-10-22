@@ -1,0 +1,69 @@
+{
+ "note": "Test reply: December, snow, unpaid camp, heavy roads, refugees, a battle account he was not at. Illustrative.",
+ "patch": {
+  "date": "1740-12-18",
+  "world": {
+   "mourning": true,
+   "pay": "unpaid",
+   "roads": "heavy",
+   "refugees": [
+    "vienna",
+    "breslau"
+   ]
+  },
+  "forces": [
+   {
+    "id": "f1",
+    "name": "Regiments in camp near Vienna",
+    "locationId": "vienna",
+    "men": 7200,
+    "claim": "demo"
+   }
+  ],
+  "remarks": [
+   "The men in camp have not been paid since October; two have gone over the hill this week.",
+   "Count Starhemberg now speaks against you in the Conference."
+  ],
+  "hidden": {
+   "standing": {
+    "starhemberg": "hostile",
+    "bartenstein": "warm",
+    "sinzendorf": "cool"
+   }
+  },
+  "reports": [
+   {
+    "id": "r20",
+    "place": "breslau",
+    "dated": "1740-12-16",
+    "arrives": "1740-12-18",
+    "category": "Silesia",
+    "title": "An affair near Mollwitz",
+    "text": "The garrison troops met a Prussian column on the open ground by Mollwitz and fell back in order after an hour’s firing. The account of the ground is enclosed.",
+    "claim": "demo",
+    "from_id": "wallis",
+    "via": "courier",
+    "source": "the officer commanding",
+    "battle": true,
+    "sighting": {
+     "what": "Prussian column",
+     "lat": 50.845,
+     "lon": 17.385
+    }
+   },
+   {
+    "id": "r21",
+    "place": "vienna",
+    "dated": "1740-12-17",
+    "arrives": "1740-12-17",
+    "category": "The roads",
+    "title": "Families on the Silesian road",
+    "text": "Carts and families from the Silesian villages are on the road to Vienna; the gates are crowded.",
+    "claim": "demo",
+    "from_id": "steward",
+    "via": "audience",
+    "source": "what your steward saw at the gate"
+   }
+  ]
+ }
+}

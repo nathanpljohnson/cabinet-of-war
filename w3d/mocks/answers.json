@@ -1,0 +1,94 @@
+{
+ "note": "Test reply: letters over three days, sources, contradictory sightings, answers to T0-1 and T0-3. Illustrative.",
+ "patch": {
+  "date": "1740-10-24",
+  "world": {
+   "mourning": true,
+   "pay": "in arrears",
+   "roads": "good",
+   "refugees": []
+  },
+  "remarks": [
+   "Count Starhemberg was not pleased to learn of your inquiry into the chests from a clerk rather than from you.",
+   "The two reports of Prussian regiments cannot both be right; the merchant has been wrong before."
+  ],
+  "hidden": {
+   "standing": {
+    "starhemberg": "cool",
+    "bartenstein": "warm",
+    "sinzendorf": "cordial",
+    "harrach_joseph": "cordial"
+   }
+  },
+  "reports": [
+   {
+    "id": "r10",
+    "place": "vienna",
+    "dated": "1740-10-22",
+    "arrives": "1740-10-22",
+    "category": "The treasury",
+    "title": "Three accounts, not one",
+    "text": "The Hofkammer separates what is promised, what the estates have granted and what lies in the chests. The last is the smallest figure by far.",
+    "claim": "demo",
+    "from_id": "starhemberg",
+    "via": "courier",
+    "source": "the Hofkammer’s own ledgers",
+    "re": [
+     "T0-1"
+    ]
+   },
+   {
+    "id": "r11",
+    "place": "breslau",
+    "dated": "1740-10-20",
+    "arrives": "1740-10-23",
+    "category": "The frontier",
+    "title": "Regiments at Crossen",
+    "text": "A Breslau merchant swears he saw Prussian regiments in quarters about Crossen, more than he could count.",
+    "claim": "demo",
+    "from_id": "wallis",
+    "via": "courier",
+    "source": "a Breslau merchant",
+    "sighting": {
+     "what": "Prussian regiments in quarters",
+     "lat": 52.05,
+     "lon": 15.1
+    }
+   },
+   {
+    "id": "r12",
+    "place": "breslau",
+    "dated": "1740-10-21",
+    "arrives": "1740-10-24",
+    "category": "The frontier",
+    "title": "Nothing at Crossen",
+    "text": "Our hussar patrol rode to within sight of Crossen and found the usual garrison only. The regiments are said to be nearer Berlin.",
+    "claim": "demo",
+    "from_id": "wallis",
+    "via": "courier",
+    "source": "our hussar patrol",
+    "sighting": {
+     "what": "Prussian regiments, said to be near Berlin",
+     "lat": 52.4,
+     "lon": 13.1
+    }
+   },
+   {
+    "id": "r13",
+    "place": "linz",
+    "dated": "1740-10-23",
+    "arrives": "1740-10-24",
+    "category": "The Danube",
+    "title": "Boats at Linz",
+    "text": "Forty-one boats are counted at Linz and held; the boatmen ask who will pay their hire.",
+    "claim": "demo",
+    "from_id": "quartermaster",
+    "via": "courier",
+    "source": "the boatmasters’ roll",
+    "re": [
+     "T0-3"
+    ]
+   }
+  ]
+ }
+}
