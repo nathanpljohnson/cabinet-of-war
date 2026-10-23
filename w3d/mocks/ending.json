@@ -1,0 +1,36 @@
+{
+ "note": "Test reply: the campaign ends with an epilogue.",
+ "changes": {
+  "date": "1740-11-05",
+  "reports": [],
+  "ended": {
+   "how": "He asked to end his service.",
+   "date": "1740-11-05"
+  },
+  "epilogue": {
+   "title": "From a history of the Silesian wars (1790)",
+   "text": "Khevenhüller served the young Queen for a few weeks in the autumn of 1740 and then withdrew. Historians have judged his caution kindly.",
+   "verdict": "A careful servant who saw the danger early and could not make the court believe it."
+  },
+  "hidden": {
+   "chronicle": "Test chronicle: he ends his service.",
+   "decisions": [
+    {
+     "who": "Frederick II",
+     "knows": "The Emperor is dead; Vienna is in mourning and short of money.",
+     "wants": "Silesia before Vienna recovers.",
+     "decides": "Keeps his counsel and orders the regiments readied, quietly."
+    }
+   ],
+   "fortune_used": [
+    {
+     "roll": 50,
+     "for": "test",
+     "outcome": "test"
+    }
+   ]
+  },
+  "title": "The end of service",
+  "briefing": "He withdraws from the Queen’s service."
+ }
+}

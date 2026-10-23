@@ -3,7 +3,8 @@
    letters; the notebook holds matters in hand, your secretary's remarks, your staff's knowledge and the record. You give orders; you do not converse:
    every order, journey, inspection or answer to a letter is an entry in the day's dispatch, composed into the
    desk's own orders text (draft.case.text), so the packet for the adjudicator is unchanged in form. */
-import { travel, loc, roadKm, letterDays, travelDays } from './places.js';
+import { travel, loc, roadKm, letterDays, travelDays, placeOn } from './places.js';
+import { choose, choiceFor, trustOf, setTrust, book } from './campaign.js';
 import { personOf } from './people.js';
 const $ = id => document.getElementById(id);
 const ARCHIVE_KEY = 'cabinet-of-war:w3d-archive', CIPHER_KEY = 'cabinet-of-war:w3d-cipher', HEARD_KEY = 'cabinet-of-war:w3d-overheard', FAIR_KEY = 'cabinet-of-war:w3d-fair';
@@ -28,7 +29,7 @@ export function createShell({ act, onSeal, clock }) {
   <nav class="sh-bar" aria-label="What you carry">
     ${item('map', 'Map')}${item('reports', 'Letters', '<i class="cnt" id="sh-unread"></i>')}${item('orders', 'Dispatch', '<i class="cnt quiet" id="sh-ocount"></i>')}${item('notebook', 'Notebook', '<i class="cnt quiet" id="sh-matters"></i>')}${item('travel', 'Travel')}${item('field', 'Field')}${item('more', '')}
     <div class="sh-pop sh-go" id="sh-go" hidden></div>
-    <div class="sh-pop" id="sh-more" hidden><button data-a="record">The record · save &amp; load</button><button data-a="gfx">Graphics &amp; sound</button></div>
+    <div class="sh-pop" id="sh-more" hidden><button data-a="book">The book of the campaign</button><button data-a="record">The record · save &amp; load</button><button data-a="gfx">Graphics &amp; sound</button></div>
   </nav>
   <aside class="sh-panel" id="sh-panel" hidden aria-label="Papers"><div class="sh-ph"><div><div class="eyebrow" id="sh-panel-eyebrow"></div><h2 id="sh-panel-title"></h2></div><button class="sh-x" id="sh-panel-x" aria-label="Close">✕</button></div><div class="sh-pbody" id="sh-pbody"></div></aside>
   <section class="sh-paper sh-letters" id="sh-letters" hidden aria-label="Letters">
@@ -38,6 +39,10 @@ export function createShell({ act, onSeal, clock }) {
   <section class="sh-paper sh-notebook" id="sh-notebook" hidden aria-label="Notebook">
     <div class="sh-ph"><div><div class="eyebrow" id="sh-nb-eyebrow">Notebook</div><h2>Your notebook</h2></div><button class="sh-x" data-close="sh-notebook" aria-label="Close">✕</button></div>
     <div class="sh-nb" id="sh-nb"></div>
+  </section>
+  <section class="sh-paper sh-book" id="sh-book" hidden aria-label="The book of the campaign">
+    <div class="sh-ph"><div><div class="eyebrow" id="sh-bk-eyebrow">The book of the campaign</div><h2 id="sh-bk-title">The book of the campaign</h2></div><div class="sh-bk-tools"><button id="sh-bk-save">Save as a page</button><button class="sh-x" data-close="sh-book" aria-label="Close">✕</button></div></div>
+    <div class="sh-bk" id="sh-bk"></div>
   </section>
   <section class="sh-sheet" id="sh-sheet" aria-label="The day’s dispatch" hidden>
     <div class="sh-sh-hd"><div><div class="eyebrow" id="sh-sheet-eyebrow"></div><h2>The day’s dispatch</h2></div><button class="sh-x" id="sh-sheet-x" aria-label="Close the dispatch">✕</button></div>
@@ -73,7 +78,8 @@ export function createShell({ act, onSeal, clock }) {
   const short = d => new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   const days = (a, b) => { const A = loc(a), B = loc(b); return A && B && a !== b ? letterDays(roadKm(A, B)) : 0; };
   const RULERS = new Set(['maria_theresa', 'francis_stephen']);
-  function presentHere(c) { return c.place === travel.here() && !RULERS.has(c.id) && c.id !== 'own-forces'; }
+  const whereNow = c => placeOn(c, today());
+  function presentHere(c) { return whereNow(c) === travel.here() && !RULERS.has(c.id) && c.id !== 'own-forces' && !c.dead; }
 
   /* ---------- the desk's own content, moved in ---------- */
   const place = $('place'); if (place) $('sh-card-body').append(place);
@@ -90,7 +96,7 @@ export function createShell({ act, onSeal, clock }) {
   /* ---------- open papers: one at a time ---------- */
   const TITLES = { council: ['The council', 'Advice and audiences'], record: ['The record', 'Save, load and history'], staff: ['Your staff', 'What your staff knows'], army: ['The army', 'Forces, orders and courses'] };
   let openPanel = null;
-  const papers = ['sh-letters', 'sh-notebook', 'sh-sheet', 'sh-talk'];
+  const papers = ['sh-letters', 'sh-notebook', 'sh-sheet', 'sh-talk', 'sh-book'];
   function closeAll(except) { for (const id of papers) if (id !== except) $(id).hidden = true; if (except !== 'panel') { $('sh-panel').hidden = true; openPanel = null; } $('sh-go').hidden = $('sh-more').hidden = true; }
   function showPanel(k) {
     if (k === 'reports') return showLetters();
@@ -119,6 +125,7 @@ export function createShell({ act, onSeal, clock }) {
     if ((a === 'map' || a === 'field') && view === a) return act('room'); // the active view's item puts it away
     if (a === 'notebook') return showNotebook();
     if (a === 'record') return showNotebook('record');
+    if (a === 'book') return showBook();
     act(a);
   });
 
@@ -143,7 +150,7 @@ export function createShell({ act, onSeal, clock }) {
   function orderTo(to, text, ref) {
     const here = travel.here(), c = cast(to);
     if (to === 'staff' || !c) return setItem({ kind: 'order', to: 'staff', text, ref });
-    const inPerson = presentHere(c); return setItem({ kind: 'order', to, text, ref, inPerson, at: inPerson ? locName(here) : locName(c.place), days: inPerson ? 0 : Math.max(1, days(here, c.place)) });
+    const inPerson = presentHere(c); return setItem({ kind: 'order', to, text, ref, inPerson, at: inPerson ? locName(here) : locName(whereNow(c)), days: inPerson ? 0 : Math.max(1, days(here, whereNow(c))) });
   }
   // older lines written straight into the text (before the dispatch had entries)
   function appendOrder(line) { setItem({ kind: 'inspect', text: line }); }
@@ -173,9 +180,9 @@ export function createShell({ act, onSeal, clock }) {
     if (BS.log.length || draft.battleResult) li('Table battle: ' + (draft.battleResult ? draft.battleResult.outcome : BS.log.length + ' phase(s) fought'));
     if (!ul.children.length) li('Nothing else — standing orders apply.');
     const to = $('sh-to'), was = to.value; to.replaceChildren(new Option('My staff (here)', 'staff'));
-    const people = (S.cast || []).filter(c => c.id !== 'own-forces' && !RULERS.has(c.id));
+    const people = (S.cast || []).filter(c => c.id !== 'own-forces' && !RULERS.has(c.id) && !c.dead);
     for (const c of people.filter(presentHere)) to.append(new Option(c.name + ' — here, in person', c.id));
-    for (const c of people.filter(c => !presentHere(c))) to.append(new Option(c.name + ' — ' + locName(c.place) + ', by letter ~' + Math.max(1, days(here, c.place)) + ' d', c.id));
+    for (const c of people.filter(c => !presentHere(c))) to.append(new Option(c.name + ' — ' + locName(whereNow(c)) + ', by letter ~' + Math.max(1, days(here, whereNow(c))) + ' d', c.id));
     if (was) to.value = was;
     const wk = $('sh-wake'); if (!wk.options.length) for (const t of WAKE) wk.append(new Option(t, t)); wk.value = w.wake || WAKE[0];
     const far = ['vienna', 'breslau', 'prague'].filter(id => id !== here && hl && loc(id)).map(id => locName(id) + ' ' + days(here, id) + ' d');
@@ -192,7 +199,8 @@ export function createShell({ act, onSeal, clock }) {
   function today() { const p = store(POST_KEY, null); if (p && p.turn === state.turn) return p.upto; const d = postDays()[0] || state.date; keep(POST_KEY, { turn: state.turn, upto: d }); return d; }
   const onTheRoad = () => state.reports.filter(r => arrives(r) > today());
   const shownDate = () => onTheRoad().length ? today() : state.date;
-  function passDay() { const next = [...new Set(onTheRoad().map(arrives))].sort()[0]; if (!next) return 0; keep(POST_KEY, { turn: state.turn, upto: next }); return state.reports.filter(r => arrives(r) === next).length; }
+  function passDay() { for (const r of seen()) if (r.urgent && !choiceFor(r.id)) { const d = r.urgent.options.find(o => o.default) || r.urgent.options[r.urgent.options.length - 1]; choose(r, d.id, true); act('toast:The day passed without your answer to “' + r.title + '”; ' + d.label.replace(/^./, x => x.toLowerCase()) + '.'); }
+    const next = [...new Set(onTheRoad().map(arrives))].sort()[0]; if (!next) return 0; keep(POST_KEY, { turn: state.turn, upto: next }); return state.reports.filter(r => arrives(r) === next).length; }
   const seen = () => state.reports.filter(r => arrives(r) <= today());
   // your commission and your advisers' counsel come as letters as well
   function letters() {
@@ -268,7 +276,8 @@ export function createShell({ act, onSeal, clock }) {
       + '<h3>' + esc(ok ? r.title : 'A letter in cipher') + '</h3><p class="sh-lt-body' + (ok ? '' : ' sh-cipher') + '">' + esc(ok ? r.text : cipherText(r.text)) + '</p>'
       + '<p class="sh-lt-sig">' + esc(fromName(r)) + (c && c.office ? '<small>' + esc(c.office) + '</small>' : '') + '</p>'
       + (r.kind === 'advice' ? [['Their reasoning', r.o.reasoning], ['The risk', r.o.risks], ['What it needs', r.o.needs], ['What is not known', r.o.unknown], ['Who does the work', r.o.delegation]].filter(([, v]) => v).map(([k, v]) => '<p class="sh-lt-ps"><i>' + k + '.</i> ' + esc(v) + '</p>').join('') : '')
-      + (r.source ? '<p class="sh-lt-src">Their source: ' + esc(r.source) + '</p>' : '')
+      + (r.source ? '<p class="sh-lt-src">Their source: ' + esc(r.source) + (trustOf(r.source) ? ' <i>· you ' + trustOf(r.source) + ' this source</i>' : '') + '</p>' : '')
+      + (r.urgent && ok ? '<div class="sh-urgent"><b>' + esc(r.urgent.prompt || 'This needs your answer today.') + '</b>' + (choiceFor(r.id) ? '<p>' + (choiceFor(r.id).byDefault ? 'The day passed without your answer: ' : 'You answered: ') + esc(choiceFor(r.id).label) + '</p>' : '') + '</div>' : '')
       + '<p class="sh-lt-foot">' + via + (r.via !== 'audience' && d ? ' · from ' + esc(locName(r.place)) + ' a letter is about ' + d + ' day' + (d > 1 ? 's' : '') + ' on the road to ' + esc(locName(here)) : '') + '</p></div>'
       + (ok ? enclosures(r) : '');
     box.firstChild.classList.toggle('sh-lt-commission', r.kind === 'mandate');
@@ -283,6 +292,7 @@ export function createShell({ act, onSeal, clock }) {
       aside.onclick = () => { if (on) { draft.option = ''; saveDraft(); renderAll(); } setActed(r.id, 'aside'); showLetters(r.id); };
       acts.append(ad, aside); box.append(acts); return;
     }
+    if (r.urgent && !choiceFor(r.id)) { for (const o of r.urgent.options) { const b = el('button', 'sh-primary', o.label); b.onclick = () => { choose(r, o.id); setActed(r.id, 'ordered'); act('sound:seal'); act('toast:Your answer goes at once.'); showLetters(r.id); }; acts.append(b); } box.append(acts); trustRow(r, box); return; }
     if (a) acts.append(el('p', 'sh-done', a === 'filed' ? 'Filed without orders.' : 'You have given orders on this letter.'));
     const give = el('button', 'sh-primary', a === 'ordered' ? 'Give further orders on it' : 'Give orders on this');
     const file = el('button', null, a === 'filed' ? 'Back among matters in hand' : 'File it — no orders');
@@ -293,7 +303,14 @@ export function createShell({ act, onSeal, clock }) {
     acts.append(give, file, show);
     if (r.sighting) { const sg = el('button', null, 'Where they place it'); sg.onclick = () => { $('sh-letters').hidden = true; syncVeil(); act('sighting:' + r.id); }; acts.append(sg); }
     if (r.battle) { const bt = el('button', null, 'See the ground as described'); bt.onclick = () => { $('sh-letters').hidden = true; syncVeil(); act('account'); }; acts.append(bt); }
-    box.append(acts);
+    box.append(acts); trustRow(r, box);
+  }
+  // how far you believe whoever saw or heard it: your staff weigh their reports by it, and you can be wrong
+  function trustRow(r, box) {
+    if (!r.source) return; const m = trustOf(r.source), row = el('div', 'sh-trust');
+    row.append(el('span', null, 'Their source, ' + r.source + ':'));
+    for (const [k, lab] of [['trust', 'I trust it'], ['doubt', 'I doubt it']]) { const b = el('button', m === k ? 'on' : null, lab); b.onclick = () => { setTrust(r.source, m === k ? null : k); act('toast:' + (m === k ? 'Your staff will weigh this source as they see fit.' : k === 'trust' ? 'Your staff will treat this source as reliable.' : 'Your staff will treat this source with caution.')); showLetters(r.id); }; row.append(b); }
+    box.append(row);
   }
   // what came with the letter: a return of figures, a captured order, a sketch of the ground
   function enclosures(r) {
@@ -314,7 +331,7 @@ export function createShell({ act, onSeal, clock }) {
   }
   function composeOn(r, acts) { // orders on a letter: to its writer (in person or by letter), or to your own staff
     const f = el('form', 'sh-compose'), to = el('select'), t = el('textarea'); t.rows = 3; t.placeholder = 'Your orders on this letter…';
-    const c = cast(r.from_id); if (c && !RULERS.has(c.id)) to.append(new Option(presentHere(c) ? 'To ' + c.name + ', in person' : 'To ' + c.name + ' at ' + locName(c.place) + ', by letter ~' + Math.max(1, days(travel.here(), c.place)) + ' d', c.id));
+    const c = cast(r.from_id); if (c && !RULERS.has(c.id)) to.append(new Option(presentHere(c) ? 'To ' + c.name + ', in person' : 'To ' + c.name + ' at ' + locName(whereNow(c)) + ', by letter ~' + Math.max(1, days(travel.here(), whereNow(c))) + ' d', c.id));
     to.append(new Option('To my staff', 'staff'));
     const go = el('button', 'sh-primary', 'Add to the dispatch'); f.append(to, t, go); acts.replaceChildren(f); t.focus();
     f.onsubmit = e => { e.preventDefault(); if (!t.value.trim()) return; orderTo(to.value, t.value.trim(), r.id); setActed(r.id, 'ordered'); act('toast:Added to the day’s dispatch.'); showLetters(r.id); };
@@ -357,6 +374,7 @@ export function createShell({ act, onSeal, clock }) {
     }
     if (!m.length) ul.append(el('li', 'sh-empty', 'Nothing outstanding.'));
     if (state.mandate) { const sc = sec(state.player.dismissed ? 'Your commission — withdrawn' : 'Your commission'); sc.append(el('p', 'sh-nb-quote', state.mandate.text)); const b = el('button', 'sh-nb-link', 'Read the letter'); b.onclick = () => showLetters('mandate'); sc.append(b); }
+    if (state.epilogue) { const e = state.epilogue, se = sec(e.title || 'The verdict of history'); se.append(el('p', 'sh-nb-quote', e.text || '')); if (e.verdict) se.append(el('p', 'sh-nb-remark', e.verdict)); const b = el('button', 'sh-nb-link', 'Read the book of the campaign, with what was hidden'); b.onclick = () => showBook(); se.append(b); }
     if ((state.remarks || []).length) { const sr = sec('Your secretary’s remarks'); for (const t of state.remarks) sr.append(el('p', 'sh-nb-remark', t)); }
     const hh = state.household; if (hh) { const sh = sec('Your household'), sp = cast(hh.spouse), kids = (hh.children || []).map(k => k.name).join(' and ');
       if (sp) sh.append(el('p', null, sp.name + ', your wife' + (sp.place && sp.place !== travel.here() ? ', is at ' + locName(sp.place) : ', is here') + '.'));
@@ -367,6 +385,10 @@ export function createShell({ act, onSeal, clock }) {
       const sm = sec('Your memoirs', 'Out of office, you can still write — and how you tell it shapes how you are remembered. What you write here goes with the dispatch.');
       const t = el('textarea', 'sh-memoir'); t.rows = 5; t.value = W().memoir || ''; t.placeholder = 'This turn’s pages…'; t.oninput = () => { W().memoir = t.value; compose(); act('sound:quill'); }; sm.append(t);
       const hb = el('button', 'sh-nb-link', 'Begin anew as your heir'); hb.onclick = () => { if (hb.dataset.sure) return act('heir'); hb.dataset.sure = 1; hb.textContent = 'Click again: this campaign is kept in the record, and your heir inherits your memoirs, friends and enemies'; }; sm.append(hb); }
+    { const sb = sec('The book of the campaign', 'Every turn you have lived: your orders, the letters that reached you, the battles.'); const b = el('button', 'sh-nb-link', 'Open the book'); b.onclick = () => showBook(); sb.append(b); }
+    if (!state.ended) { const sv = sec('Your service'), w = W();
+      if (w.end) { sv.append(el('p', 'sh-nb-remark', 'You have asked to end your service. It goes with the dispatch, and the next courier brings the verdict.')); const b = el('button', 'sh-nb-link', 'Withdraw the request'); b.onclick = () => { w.end = false; dropItem('end'); showNotebook(); }; sv.append(b); }
+      else { const b = el('button', 'sh-nb-link', 'End your service here'); b.onclick = () => { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Click again: the next reply ends the campaign and writes its verdict'; return; } w.end = true; setItem({ id: 'end', kind: 'inspect', text: 'I end my service here. Let the story of it be told.' }); showNotebook(); }; sv.append(b); } }
     const s2 = sec('The situation'); s2.append(el('p', null, state.briefing || ''));
     if (state.player) s2.append(el('p', 'sh-hint', state.player.name + (state.player.note ? ' — ' + state.player.note : '')));
     const s3 = sec('What you would know'); for (const k of state.knowledge || []) s3.append(el('p', null, k.text));
@@ -380,6 +402,37 @@ export function createShell({ act, onSeal, clock }) {
       const n = paneNodes[k][0]; if (!n || (k === 'scene' && !state.scene)) continue; const d = el('details', 'sh-nb-more'); d.append(el('summary', null, title), n); n.hidden = false; d.open = open === k; nb.append(d); if (open === k) setTimeout(() => d.scrollIntoView({ block: 'start' }), 30); }
     $('sh-notebook').hidden = false; syncVeil();
   }
+
+  /* ---------- the book of the campaign: the turns you lived; when it is over, what was hidden as well ---------- */
+  function chapters() {
+    const past = book(), w = draft.w3d || { items: [] };
+    return [...past, { turn: state.turn, date: state.date, to: null, title: state.title, briefing: state.briefing, at: state.player.locationId, current: true,
+      letters: seen().map(r => ({ from: fromName(r), place: r.place, dated: r.dated, title: r.title, text: r.text, battle: !!r.battle, source: r.source || '' })), orders: w.items.map(itemLine), own: (w.own || '').trim() }];
+  }
+  function bookHtml(forFile) {
+    const over = !!state.ended, cs = chapters(), h = [], e = state.epilogue;
+    if (e) h.push('<section class="bk-epi"><h3>' + esc(e.title || 'The verdict of history') + '</h3><p>' + esc(e.text || '') + '</p>' + (e.verdict ? '<p class="bk-verdict">' + esc(e.verdict) + '</p>' : '') + '</section>');
+    cs.forEach((c, i) => {
+      h.push('<section class="bk-ch"><div class="bk-n">Chapter ' + (i + 1) + (c.current ? ' · this turn' : '') + '</div><h3>' + esc(c.title || '') + '</h3><p class="bk-when">' + esc(fmtDate(c.date)) + (c.to ? ' – ' + esc(fmtDate(c.to)) : '') + ' · at ' + esc(locName(c.at)) + '</p><p>' + esc(c.briefing || '') + '</p>');
+      const os = [...(c.orders || []), ...(c.own ? [c.own] : [])]; if (os.length) h.push('<h4>Your orders</h4><ol class="bk-orders">' + os.map(o => '<li>' + esc(o) + '</li>').join('') + '</ol>');
+      if ((c.choices || []).length) h.push('<h4>What you answered at once</h4><ul>' + c.choices.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>');
+      if ((c.letters || []).length) h.push('<h4>Letters</h4>' + c.letters.map(l => '<details' + (l.battle || forFile ? ' open' : '') + ' class="bk-letter' + (l.battle ? ' bk-battle' : '') + '"><summary><b>' + esc(l.title) + '</b> — ' + esc(l.from || 'unsigned') + ', ' + esc(locName(l.place)) + ', ' + esc(fmtDate(l.dated)) + '</summary><p>' + esc(l.text) + '</p>' + (l.source ? '<p class="bk-src">Their source: ' + esc(l.source) + '</p>' : '') + '</details>').join(''));
+      if (over && c.secret) { const s = c.secret; h.push('<div class="bk-secret"><h4>What was hidden from you</h4>' + (s.chronicle ? '<p>' + esc(s.chronicle) + '</p>' : '') + ((s.decisions || []).length ? '<ul>' + s.decisions.map(d => '<li><b>' + esc(d.who) + '</b> knew ' + esc(d.knows || '—') + '; wanted ' + esc(d.wants || '—') + '; decided ' + esc(d.decides || '—') + '</li>').join('') + '</ul>' : '') + ((s.fortune || []).length ? '<p class="bk-src">Fortune: ' + s.fortune.map(f => esc(f.for) + ' (' + esc(f.roll) + '): ' + esc(f.outcome)).join(' · ') + '</p>' : '') + '</div>'); }
+      h.push('</section>');
+    });
+    if (over) { const dv = (state.hidden || {}).divergences || []; if (dv.length) h.push('<section class="bk-ch"><h3>How this campaign departed from history</h3><ul>' + dv.map(d => '<li>' + esc(d.text) + '</li>').join('') + '</ul></section>'); }
+    return h.join('');
+  }
+  function showBook() {
+    closeAll('sh-book'); $('sh-bk-title').textContent = 'The book of ' + (state.player.name || 'the campaign');
+    $('sh-bk-eyebrow').textContent = state.ended ? 'The campaign is over · with what was hidden from you' : 'The book of the campaign · ' + (book().length + 1) + ' chapter' + (book().length ? 's' : '');
+    $('sh-bk').innerHTML = bookHtml(false); $('sh-book').hidden = false; syncVeil(); act('sound:seal');
+  }
+  $('sh-bk-save').onclick = () => {
+    const css = 'body{max-width:720px;margin:48px auto;padding:0 20px;background:#f3eee3;color:#25221d;font:18px/1.6 "Iowan Old Style",Palatino,Georgia,serif}h1,h3{font-family:Baskerville,Georgia,serif;font-weight:400}h1{font-size:40px;margin-bottom:4px}h3{font-size:28px;margin:6px 0}h4{font:15px Baskerville,Georgia,serif;font-variant-caps:all-small-caps;letter-spacing:.08em;color:#776f62;margin:22px 0 6px}.bk-n,.bk-when{color:#776f62;font-size:15px}.bk-ch{border-top:1px solid rgba(70,60,45,.2);padding:28px 0}summary{cursor:pointer}.bk-letter{margin:8px 0}.bk-battle summary b{color:#8a2f26}.bk-src{font-style:italic;color:#776f62;font-size:15px}.bk-secret{border-left:3px solid #8a2f26;padding:4px 16px;margin-top:18px;background:rgba(138,47,38,.05)}.bk-epi{padding:24px 0}.bk-verdict{font-style:italic}';
+    dl('the-book-of-the-campaign.html', '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>The book of ' + esc(state.player.name) + '</title><style>' + css + '</style><h1>The book of ' + esc(state.player.name) + '</h1><p class="bk-when">Cabinet of War · ' + esc(fmtDate(state.date)) + '</p>' + bookHtml(true) + '</html>', 'text/html');
+    act('toast:The book is saved to your downloads.');
+  };
 
   function overhear(o, whoNames) { const all = store(HEARD_KEY, []); if (!all.some(x => x.line === o.line)) { all.push({ line: o.line, who: whoNames, date: shownDate() }); keep(HEARD_KEY, all.slice(-40)); } }
 
@@ -470,7 +523,7 @@ export function createShell({ act, onSeal, clock }) {
     $('sh-matters').textContent = matters().length || '';
   }
   return {
-    showPanel, closePanel, toggleSheet, refresh, unread, passDay, letters, seen, get today() { return shownDate(); }, markRead, appendOrder, removeOrder, setItem, dropItem, showTravel, showTalk, showInspect, showLetters, showNotebook, showSingle, presentHere, overhear, archive, archivedCount: () => archived().length,
+    showPanel, closePanel, toggleSheet, refresh, showBook, unread, passDay, letters, seen, get today() { return shownDate(); }, markRead, appendOrder, removeOrder, setItem, dropItem, showTravel, showTalk, showInspect, showLetters, showNotebook, showSingle, presentHere, overhear, archive, archivedCount: () => archived().length,
     get talkOpen() { return !$('sh-talk').hidden; },
     get papersOpen() { return anyOpen(); },
     get sheetOpen() { return !$('sh-sheet').hidden; },

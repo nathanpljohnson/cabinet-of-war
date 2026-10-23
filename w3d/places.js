@@ -23,6 +23,13 @@ export const roadKm = (a, b) => Math.round(kmBetween(a, b) * 1.25);
 export const letterDays = km => Math.max(1, Math.round(km / 160));
 export const travelDays = km => Math.max(1, Math.round(km / 100));
 export const loc = id => state.locations.find(l => l.id === id);
+// where someone is on a given day: the latest "whereabouts" entry (from the reply) on or before it, else their cast place
+export function placeOn(c, day) {
+  let best = null; for (const w of state.whereabouts || []) if ((w.who || []).includes(c.id) && w.date <= day && (!best || w.date >= best.date)) best = w;
+  return best ? best.place : c.place;
+}
+// who is together at a place on a day, and what they are seen doing
+export const groupsOn = (place, day) => (state.whereabouts || []).filter(w => w.place === place && w.date === day && (w.who || []).length);
 
 /* ---------- travel: you go at once; the journey goes into the orders for the adjudicator ---------- */
 const TRAVEL_KEY = 'cabinet-of-war:w3d-travel';

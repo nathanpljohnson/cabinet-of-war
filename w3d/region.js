@@ -17,6 +17,8 @@ const CY = { x0: -193.5, x1: -159.5, z0: -26.5, z1: 6.5 };
 export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', name: 'Vienna' }, people = [], mode = 'court', cues = {} }) {
   // cues: what the state says the world looks like — season, mourning, pay, roads, refugees, men in camp, standing, dismissal
   const winter = cues.season === 'winter', SNOW = new THREE.Color(0xeef1f4);
+  // what someone walking through would notice (state.world.scene, chosen by the adjudicator from a fixed list)
+  const tags = new Set(cues.scene || []);
   // each campaign location gets its own country: same plan, different seed, name and stucco
   const seed = [...place.id].reduce((a, c) => a * 31 + c.charCodeAt(0) | 0, 7), N = makeNoise(place.id === 'vienna' ? 1740 : seed), rnd = rngFrom(place.id === 'vienna' ? 1021 : seed ^ 0x5bd1), group = new THREE.Group();
   const STUCCO = [0xdcb873, 0xe8d9b8, 0xd9b8a0, 0xe2cf96, 0xd8c8c0][Math.abs(seed) % 5];
@@ -229,7 +231,14 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
     const L = new THREE.PointLight(0xff9a40, 30, 16, 1.6); L.position.set(x, ch + 1.1, z); group.add(L); fireLights.push(L);
     for (let k = 0; k < 3; k++) { const f = new THREE.Mesh(new THREE.ConeGeometry(.28 - k * .06, .9 - k * .15, 5), flameMat); f.position.set(x + (k - 1) * .15, ch + .55, z + (k % 2) * .12); group.add(f); flames.push(f); }
   }
-  const smoke = makeSmoke(group, [...fires.map(([x, z]) => [x, ch + 1.2, z, 1]), [HQ.x - 2, hqH + 15.5, HQ.z - 16, .6], [HQ.x - 2, hqH + 15.5, HQ.z + 4, .6], ...chimneys.slice(0, 5)]);
+  // the public place: the market square in a town, the road before headquarters at Vienna
+  const PUB = town ? [-130, -8] : [-146, -8], pubY = (x, z) => town ? hqH : hAt(x, z), extraSmoke = [];
+  if (tags.has('celebration')) { const [x, z] = [PUB[0] + 9, PUB[1] - 1], y = pubY(x, z);
+    const L = new THREE.PointLight(0xff9a40, 30, 22, 1.6); L.position.set(x, y + 1.4, z); group.add(L); fireLights.push(L);
+    for (let k = 0; k < 4; k++) { const f = new THREE.Mesh(new THREE.ConeGeometry(.55 - k * .1, 1.8 - k * .3, 5), flameMat); f.position.set(x + (k - 1.5) * .25, y + 1, z + (k % 2) * .2); group.add(f); flames.push(f); }
+    colliders.push({ c: [x, z, 1.4] }); extraSmoke.push([x, y + 2, z, 1.6]); }
+  if (tags.has('smoke')) extraSmoke.push([-80, 30, -440, 7], [140, 30, -400, 5.5], [40, 30, -470, 6]);
+  const smoke = makeSmoke(group, [...extraSmoke, ...fires.map(([x, z]) => [x, ch + 1.2, z, 1]), [HQ.x - 2, hqH + 15.5, HQ.z - 16, .6], [HQ.x - 2, hqH + 15.5, HQ.z + 4, .6], ...chimneys.slice(0, 5)]);
 
   /* ---------- people and animals ---------- */
   const live = [];
@@ -254,14 +263,18 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   const reports = (typeof state !== 'undefined' && state.reports) || [], talk = [], present = {}, MIL = new Set(['neipperg', 'wallis', 'inf-general', 'cav-general', 'art-officer', 'quartermaster']);
   const COURT = [[-183, 2, 2.4], [-180.4, 3.6, -2.2], [-170, -20.5, 3.4], [-166.6, -17.6, -2.4], [-186, -3, 1.6], [-171, 3.6, 3.1], [-176.6, 4.4, 2.9], [-168, -24.6, .5], [-162.6, -21, -1.5], [-162.6, -24.4, -1.2], [-188.5, 3.6, 2.4], [-173.5, -15.8, 0]], CAMPS = [[192, 37, -1.8], [195.6, 39.4, -2.5], [150, 48, .8], [146, 44, 2.2]];
   let ci = 0, mi = 0;
+  const GSP = [[-183.4, 1.2], [-172.2, -22.4], [-166, 0]], OFF = [[-.8, 0], [.8, 0], [0, .9], [0, -.9]], groups = (cues.groups || []).slice(0, GSP.length), inGroup = {};
+  groups.forEach((g, gi) => g.who.filter(id => people.some(p => p.id === id)).forEach((id, k) => { if (k < OFF.length) inGroup[id] = { g, sp: [GSP[gi][0] + OFF[k][0], GSP[gi][1] + OFF[k][1], Math.atan2(-OFF[k][0], -OFF[k][1])] }; }));
   for (const c of people) {
-    const mil = MIL.has(c.id) && mode === 'field', sp = mil ? CAMPS[mi++] : COURT[ci++]; if (!sp) continue;
+    const grp = inGroup[c.id], mil = MIL.has(c.id) && mode === 'field' && !grp, sp = grp ? grp.sp : mil ? CAMPS[mi++] : COURT[ci++]; if (!sp) continue;
     const look = personOf(c.id).look, gen = MIL.has(c.id) ? (c.id === 'quartermaster' ? 'clerk' : 'general') : cues.mourning ? (ci % 2 ? 'mourner' : 'mournerHat') : (ci % 2 ? 'minister' : 'courtier');
     const kind = look ? (cues.mourning && (look.kind === 'minister' || look.kind === 'courtier') ? 'mourner' : look.kind) : gen;
     const st = (cues.standing || {})[c.id], away = st === 'cool' || st === 'hostile'; // how they stand towards you shows; it is never counted
     const y = mil ? ch : hqH, p = person(kind, sp[0], sp[1], sp[2] + (away ? Math.PI : 0), away ? 'Idle_Loop' : 'Idle_Talking_Loop', y, look); colliders.push({ c: [sp[0], sp[1], .5] }); p.hours = [8.5, 18]; p.cid = c.id;
     const manner = { warm: 'greets you warmly', cool: 'keeps a polite distance', hostile: 'turns away as you approach' }[st];
-    talk.push({ id: 'talk:' + c.id, pos: v3(sp[0], sp[1], y), r: 1.9, label: 'Give orders to ' + c.name, hint: manner || ((c.office || '') + (reports.some(r => r.from_id === c.id) ? ' · has written to you' : '')), act: 'talk:' + c.id, obj: p.obj, who: p });
+    const withWhom = grp ? grp.g.who.filter(id => id !== c.id).map(id => (people.find(x => x.id === id) || (cues.castNames || {})[id] && { name: cues.castNames[id] } || { name: id }).name.split(',')[0]).join(' and ') : '';
+    if (grp) p.play('Idle_Talking_Loop', 0);
+    talk.push({ id: 'talk:' + c.id, pos: v3(sp[0], sp[1], y), r: 1.9, label: 'Give orders to ' + c.name, hint: grp ? (withWhom ? 'with ' + withWhom : '') + (grp.g.doing ? (withWhom ? ' — ' : '') + grp.g.doing : '') : manner || ((c.office || '') + (reports.some(r => r.from_id === c.id) ? ' · has written to you' : '')), act: 'talk:' + c.id, obj: p.obj, who: p });
     present[c.id] = p;
   }
   // what you can only overhear in person: two of those present, standing together (lines come from the reply: state.overheard)
@@ -269,19 +282,27 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   for (const o of cues.overheard || []) { const [a, b] = (o.who || []).map(id => present[id]); if (!a || !b) continue;
     for (const [p, [x, z, r]] of [[a, PAIR[0]], [b, PAIR[1]]]) { p.obj.position.set(x, hqH, z); p.obj.rotation.y = r; p.play('Idle_Talking_Loop', 0); const it = talk.find(i => i.who === p); it.pos.set(x, hqH + 1, z); }
     heard.push({ o, at: [(PAIR[0][0] + PAIR[1][0]) / 2, (PAIR[0][1] + PAIR[1][1]) / 2], done: false }); break; }
-  if (place.id === 'vienna') { const p = person(cues.mourning ? 'mournerHat' : 'courtier', -189.4, -14.8, 1.4, 'Idle_Loop', hqH); colliders.push({ c: [-189.4, -14.8, .5] }); talk.push({ id: 'chamberlain', pos: v3(-189.4, -14.8, hqH), r: 1.8, label: 'Request an audience at the Hofburg', hint: 'The chamberlain carries it to the Archduchess or the Grand Duke', act: cues.dismissed ? 'toast:The chamberlain regrets that Her Majesty is not receiving you.' : 'chamberlain', obj: p.obj }); }
+  if (place.id === 'vienna') { const p = person(cues.mourning ? 'mournerHat' : 'courtier', -189.4, -14.8, 1.4, 'Idle_Loop', hqH); colliders.push({ c: [-189.4, -14.8, .5] }); talk.push({ id: 'chamberlain', pos: v3(-189.4, -14.8, hqH), r: 1.8, label: 'Request an audience at the Hofburg', hint: cues.rulerWith || 'The chamberlain carries it to the Archduchess or the Grand Duke', act: cues.dismissed ? 'toast:The chamberlain regrets that Her Majesty is not receiving you.' : 'chamberlain', obj: p.obj }); }
   { const p = person('clerk', -168.6, 4.4, 2.6, 'Idle_Loop', hqH); colliders.push({ c: [-168.6, 4.4, .5] }); talk.push({ id: 'steward', pos: v3(-168.6, 4.4, hqH), r: 1.8, label: 'Tell your steward where you are going', hint: 'Travel: you leave at once; the journey goes into your orders', act: 'travel', obj: p.obj }); }
   // townsfolk going about the square and the lanes; a few on the road out of Vienna
   const FOLK = ['burgher', 'woman', 'labourer', 'lady', 'woman', 'burgher', 'labourer', 'woman', 'burgher', 'lady'];
   const walks = town ? [[[-150, -36], [-110, -36]], [[-112, 18], [-152, 18]], [[-150, -14], [-112, -2]], [[-140, 10], [-140, -34]], [[-120, -36], [-120, 16]], [[-210, -40], [-165, -40]], [[-165, 29], [-210, 29]], [[-108, -30], [-108, 0]]] : [[[-140, -6], [-60, 12]], [[-20, 0], [-120, -2]]];
-  walks.forEach(([a, b], i) => { const p = person(FOLK[i % FOLK.length], a[0], a[1], 0, 'Walk_Loop', town ? hqH : undefined); p.patrol = { a, b, v: 1.1 + rnd() * .4, ground: !town }; });
-  if (town) for (const [x, z, r, k] of [[-145, -30.8, Math.PI, 'woman'], [-139, -31, Math.PI + .3, 'burgher'], [-117, -30.9, Math.PI, 'lady'], [-146, 12.9, 0, 'labourer'], [-120, 12.8, -.2, 'woman'], [-133, -21.5, 2.6, 'burgher'], [-131, -21, -2.4, 'labourer']]) { person(k, x, z, r, 'Idle_Talking_Loop', hqH); colliders.push({ c: [x, z, .45] }); }
+  (tags.has('empty_market') ? walks.slice(0, 2) : walks).forEach(([a, b], i) => { const p = person(FOLK[i % FOLK.length], a[0], a[1], 0, 'Walk_Loop', town ? hqH : undefined); p.patrol = { a, b, v: 1.1 + rnd() * .4, ground: !town }; });
+  if (town && !tags.has('empty_market')) for (const [x, z, r, k] of [[-145, -30.8, Math.PI, 'woman'], [-139, -31, Math.PI + .3, 'burgher'], [-117, -30.9, Math.PI, 'lady'], [-146, 12.9, 0, 'labourer'], [-120, 12.8, -.2, 'woman'], [-133, -21.5, 2.6, 'burgher'], [-131, -21, -2.4, 'labourer']]) { person(k, x, z, r, 'Idle_Talking_Loop', hqH); colliders.push({ c: [x, z, .45] }); }
 
   // people on the road: refugees heading for the town, deserters slipping out of an unpaid camp (they walk the road, then start again)
   const walkRoad = (kind, pts, v, k) => { const p = person(kind, pts[0][0], pts[0][1], 0, 'Walk_Loop'); p.follow = { pts, i: Math.floor(k * pts.length * .9), v }; const [x, z] = pts[p.follow.i]; p.obj.position.set(x, hAt(x, z), z); return p; };
   if (cues.refugees) { const back = [...PP].reverse().map(([x, z], i) => [x + Math.sin(i) * 1.1, z + Math.cos(i * 1.3) * 1.1]); for (let i = 0; i < 7; i++) walkRoad(['labourer', 'woman', 'labourer', 'woman', 'burgher', 'woman', 'labourer'][i], back, .8 + rnd() * .3, i / 7); }
   if (cues.pay === 'unpaid') { const out = [[176, 40], [196, 52], [222, 66], [252, 84]]; for (let i = 0; i < 2; i++) walkRoad('infantry', out, 1.0, i / 2); }
   const drilling = cues.pay !== 'unpaid' && cues.pay !== 'in arrears';
+  // the scene tags: what the adjudicator says has changed about this place
+  const at = (x, z, kind, ry, anim) => { const p = person(kind, x, z, ry, anim, pubY(x, z)); colliders.push({ c: [x, z, .45] }); return p; };
+  if (tags.has('alarm')) { for (const [x, z] of [[-157, -17.5], [-157, -2.5], [-154, -12], [-154, -8]]) at(x, z, 'infantry', Math.PI / 2, 'Idle_Loop'); const g = person('infantry', PUB[0], PUB[1] - 6, 0, 'Walk_Formal_Loop', pubY(PUB[0], PUB[1])); g.patrol = { a: [PUB[0] - 14, PUB[1] - 6], b: [PUB[0] + 14, PUB[1] - 6], v: 1.2, ground: !town }; }
+  if (tags.has('idle_soldiers')) [[-3, 5, 1], [-1.5, 6, 2.6], [0, 4.6, -2], [9, -3, .4], [10.5, -2, 3]].forEach(([dx, dz, r], i) => at(PUB[0] + dx, PUB[1] + dz, 'infantry', r, i % 2 ? 'Idle_Talking_Loop' : 'Idle_Loop'));
+  if (tags.has('bread_queue')) for (let i = 0; i < 9; i++) at(PUB[0] - 12 + i * .9, PUB[1] - 13 + (i % 2) * .25, ['woman', 'labourer', 'burgher', 'woman', 'lady', 'labourer', 'woman', 'burgher', 'woman'][i], -Math.PI / 2, i % 3 ? 'Idle_Loop' : 'Idle_Talking_Loop');
+  if (tags.has('recruiting')) { at(PUB[0] - 4, PUB[1] + 8, 'aide', -Math.PI / 2, 'Idle_Talking_Loop'); at(PUB[0] - 4, PUB[1] + 9.4, 'infantry', -Math.PI / 2, 'Idle_Loop'); for (let i = 0; i < 4; i++) at(PUB[0] - 6.5, PUB[1] + 6 + i * .9, 'labourer', Math.PI / 2, 'Idle_Loop'); }
+  if (tags.has('wounded')) { [[126, 50, .3], [128, 53, 2], [125, 55, -1], [130, 57, 1.2], [123, 48, 2.8], [131, 49, -2.4]].forEach(([x, z, r]) => { person('infantry', x, z, r, 'Sitting_Idle_Loop', ch + .38); colliders.push({ c: [x, z, .5] }); }); cadd(P.wagon(), 121, 55, 1.2); colliders.push({ c: [121, 55, 2] }); }
+  if (tags.has('prisoners')) { const road = [...PP].reverse().map(([x, z], i) => [x + Math.sin(i * .7) * .6, z]); for (let i = 0; i < 10; i++) walkRoad(i % 4 === 0 ? 'infantry' : 'gunner', road, .9, i / 40); }
   // your last dispatch, carried out where you can see it (cues.carried, the first day after a reply): a column marching out,
   // wagons leaving, a messenger riding off. A rider leaving at dawn is your rival's courier.
   const outRoad = [...PP, [PP[PP.length - 1][0] + 60, PP[PP.length - 1][1] + 30], [PP[PP.length - 1][0] + 200, PP[PP.length - 1][1] + 120]];
@@ -289,9 +310,11 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   const movers = [], mover = (obj, pts, v, at, hours) => { obj.position.set(pts[0][0], 0, pts[0][1]); group.add(obj); movers.push({ obj, pts, i: 0, v, at, hours }); obj.visible = false; };
   const c = cues.carried || {};
   if (c.march) for (let i = 0; i < 12; i++) { const p = person('infantry', CAMP.x, CAMP.z, 0, 'Walk_Formal_Loop'); p.road = { pts: [[CAMP.x - 10, CAMP.z - 14], ...outRoad.slice(-12)], i: 0, v: 1.25, delay: Math.floor(i / 3) * 2.2 + (i % 3) * .2, off: (i % 3 - 1) * .9 }; }
+  if (tags.has('wagons_in')) { const inRoad = [...outRoad].reverse(); for (let i = 0; i < 3; i++) { const w = new THREE.Mesh(P.wagon(), propsMat); w.castShadow = false; mover(w, inRoad, 1.6, i * 9); } }
   if (c.supply) for (let i = 0; i < 2; i++) { const w = new THREE.Mesh(P.wagon(), propsMat); w.castShadow = false; mover(w, [[140, 44], ...outRoad.slice(-14)], 1.6, i * 7); }
   const rider = () => { const h = makeHorse(actors.hb, { saddle: true }); h.play('Gallop', 0); const sb = new THREE.Box3().setFromObject(h.obj, true), m = new THREE.Mesh(riderGeo({ coat: 0x5a6a3a, facing: 0xa3302a, breeches: 0xd8cdb4, hat: 0x1a1612, trim: 0xf2eee4 }, false), propsMat); m.position.set((sb.min.x + sb.max.x) / 2, sb.min.y + (sb.max.y - sb.min.y) * .66 + .1, (sb.min.z + sb.max.z) / 2); h.obj.add(m); live.push(h); return h; };
   if (c.letters) { const h = rider(); mover(h.obj, fromGate, 8.5, 1); }
+  if (tags.has('celebration')) for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2, x = PUB[0] + 9 + Math.sin(a) * 4.2, z = PUB[1] - 1 + Math.cos(a) * 4.2; at(x, z, ['burgher', 'woman', 'labourer', 'lady', 'infantry'][i % 5], a + Math.PI, i % 2 ? 'Idle_Talking_Loop' : 'Idle_Loop'); }
   if (cues.rivalHere) { const h = rider(); mover(h.obj, fromGate, 8.5, 0, [5.5, 8.5]); }
   // court mourning: black cloth on the gate pillars and over the main door
   if (cues.mourning) { for (const z of [-14.15, -5.85]) add(box(1.45, 2.4, 1.45, 0x151313), CY.x1 + .3, z, 0, hqH + 1.3); add(box(.25, 4.2, 4.6, 0x151313), -191.2, -10, 0, hqH + 3.2); }
@@ -299,7 +322,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   const lanterns = []; for (const z of [-14.15, -5.85]) { const L = new THREE.PointLight(0xffb060, 0, 22, 1.6); L.position.set(CY.x1 - .6, hqH + 4.2, z); group.add(L); lanterns.push(L); const f = new THREE.Mesh(new THREE.ConeGeometry(.16, .5, 5), flameMat); f.position.set(CY.x1 - .6, hqH + 4.15, z); f.visible = false; group.add(f); lanterns.push(f); }
   const setNight = on => { for (const l of lanterns) { if (l.isLight) l.intensity = on ? 40 : 0; else l.visible = on; } };
   // falling snow near the camera
-  let snow = null; if (winter) { const n = 1800, g = new THREE.BufferGeometry(), pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) { pos[i * 3] = (rnd() - .5) * 80; pos[i * 3 + 1] = rnd() * 40; pos[i * 3 + 2] = (rnd() - .5) * 80; } g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); snow = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: .12, transparent: true, opacity: .85, depthWrite: false })); snow.frustumCulled = false; group.add(snow); }
+  let snow = null; if (winter && !cues.ownWeather) { const n = 1800, g = new THREE.BufferGeometry(), pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) { pos[i * 3] = (rnd() - .5) * 80; pos[i * 3 + 1] = rnd() * 40; pos[i * 3 + 2] = (rnd() - .5) * 80; } g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); snow = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: .12, transparent: true, opacity: .85, depthWrite: false })); snow.frustumCulled = false; group.add(snow); }
 
   // a company at drill and a rank paraded by the colours: instanced figures, cheap
   const drill = new FramePool(infantryFrames('A'), 64, stdMat({ roughness: .85 })); drill.setShadow(false); group.add(drill.group);

@@ -1,6 +1,6 @@
 {
  "note": "Test reply: December, snow, unpaid camp, heavy roads, refugees, a battle account he was not at. Illustrative.",
- "patch": {
+ "changes": {
   "date": "1740-12-18",
   "world": {
    "mourning": true,
@@ -29,7 +29,23 @@
     "starhemberg": "hostile",
     "bartenstein": "warm",
     "sinzendorf": "cool"
-   }
+   },
+   "chronicle": "Test chronicle: December; an affair near Mollwitz; refugees on the road.",
+   "decisions": [
+    {
+     "who": "Frederick II",
+     "knows": "The Emperor is dead; Vienna is in mourning and short of money.",
+     "wants": "Silesia before Vienna recovers.",
+     "decides": "Keeps his counsel and orders the regiments readied, quietly."
+    }
+   ],
+   "fortune_used": [
+    {
+     "roll": 50,
+     "for": "test",
+     "outcome": "test"
+    }
+   ]
   },
   "reports": [
    {
@@ -64,6 +80,8 @@
     "via": "audience",
     "source": "what your steward saw at the gate"
    }
-  ]
+  ],
+  "title": "Snow on the Silesian road",
+  "briefing": "December. The camp is unpaid, the roads are heavy and families are on the road from Silesia."
  }
 }

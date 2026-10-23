@@ -1,0 +1,186 @@
+{
+ "note": "Test reply for the living world: weather by day, scene tags, whereabouts, an invented person, an urgent letter with two branches, an enemy commander and thread updates. Illustrative.",
+ "changes": {
+  "date": "1740-10-26",
+  "title": "A crowded week",
+  "briefing": "Rain over Vienna. Recruiting parties in the streets; the court watches who is seen with whom.",
+  "world": {
+   "mourning": true,
+   "pay": "in arrears",
+   "roads": "heavy",
+   "refugees": [],
+   "weather": {
+    "1740-10-22": "rain",
+    "1740-10-24": "overcast",
+    "1740-10-26": "snow"
+   },
+   "scene": {
+    "vienna": [
+     "recruiting",
+     "bread_queue",
+     "alarm",
+     "wagons_in",
+     "idle_soldiers",
+     "celebration",
+     "smoke"
+    ]
+   }
+  },
+  "whereabouts": [
+   {
+    "date": "1740-10-22",
+    "place": "vienna",
+    "who": [
+     "starhemberg",
+     "sinzendorf"
+    ],
+    "doing": "deep in talk by the gate"
+   },
+   {
+    "date": "1740-10-22",
+    "place": "vienna",
+    "who": [
+     "maria_theresa",
+     "bartenstein"
+    ],
+    "doing": "closeted together all morning"
+   },
+   {
+    "date": "1740-10-24",
+    "place": "breslau",
+    "who": [
+     "bartenstein"
+    ],
+    "doing": "sent to Breslau"
+   }
+  ],
+  "cast": [
+   {
+    "id": "kessler",
+    "name": "Johann Kessler",
+    "office": "Clerk of the Hofkammer",
+    "place": "vienna",
+    "agenda": "Keep his post; be noticed.",
+    "voice": "Careful, deferential, exact about sums.",
+    "invented": true,
+    "claim": "invention"
+   }
+  ],
+  "reports": [
+   {
+    "id": "t1-1",
+    "from_id": "kessler",
+    "place": "vienna",
+    "dated": "1740-10-22",
+    "arrives": "1740-10-22",
+    "via": "courier",
+    "source": "the Hofkammer’s day book",
+    "category": "The treasury",
+    "title": "A sum that does not agree",
+    "text": "Your Excellency asked for the chests. The day book shows a remittance from Linz entered twice.",
+    "claim": "invention"
+   },
+   {
+    "id": "t1-2",
+    "from_id": "harrach_joseph",
+    "place": "vienna",
+    "dated": "1740-10-22",
+    "arrives": "1740-10-22",
+    "via": "audience",
+    "source": "the Hofkriegsrat",
+    "category": "The War Council",
+    "title": "The Breslau magazine",
+    "text": "Wallis asks whether to move the Breslau magazine to Neisse now, before the roads close. He needs an answer today.",
+    "claim": "invention",
+    "urgent": {
+     "prompt": "Harrach waits for your answer before he writes to Wallis.",
+     "options": [
+      {
+       "id": "move",
+       "label": "Move the magazine to Neisse at once",
+       "letters": [
+        {
+         "id": "t1-2a",
+         "from_id": "wallis",
+         "place": "breslau",
+         "dated": "1740-10-24",
+         "arrives": "1740-10-26",
+         "via": "courier",
+         "source": "the magazine officer",
+         "title": "The wagons are rolling",
+         "text": "The first wagons left for Neisse this morning.",
+         "claim": "invention"
+        }
+       ],
+       "changes": {
+        "remarks": [
+         "Wallis moves the Breslau magazine on your word."
+        ]
+       }
+      },
+      {
+       "id": "wait",
+       "label": "Let Wallis decide on the spot",
+       "default": true,
+       "changes": {
+        "remarks": [
+         "Wallis was left to decide about the magazine himself."
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "id": "t1-3",
+    "from_id": "wallis",
+    "place": "breslau",
+    "dated": "1740-10-23",
+    "arrives": "1740-10-25",
+    "via": "courier",
+    "source": "our hussar patrol",
+    "category": "The frontier",
+    "title": "Quiet at Glogau",
+    "text": "All quiet at Glogau. The roads are deep in mud.",
+    "claim": "invention"
+   }
+  ],
+  "battleDemo": {
+   "enemy": {
+    "commander": "Schwerin",
+    "temper": "bold",
+    "favours": "cavalry",
+    "habit": "flanks"
+   }
+  },
+  "hidden": {
+   "threads": [
+    {
+     "id": "pol_prussian_invasion",
+     "status": "building",
+     "next_check": "1740-11-10",
+     "note": "Regiments readied in the Mark."
+    }
+   ],
+   "canon": [
+    "A remittance from Linz was entered twice in the Hofkammer day book."
+   ],
+   "chronicle": "Test chronicle: a week of rain; Kessler finds a double entry; Wallis asks about the Breslau magazine.",
+   "decisions": [
+    {
+     "who": "Frederick II",
+     "knows": "The Emperor is dead; Vienna is in mourning and short of money.",
+     "wants": "Silesia before Vienna recovers.",
+     "decides": "Keeps his counsel and orders the regiments readied, quietly."
+    }
+   ],
+   "fortune_used": [
+    {
+     "roll": 50,
+     "for": "test",
+     "outcome": "test"
+    }
+   ]
+  }
+ }
+}

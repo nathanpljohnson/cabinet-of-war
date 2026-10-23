@@ -13,13 +13,13 @@ function addToOrders(line){const c=ensureCase();c.text=(c.text.trim()?c.text.rep
 function replyTo(id){const rc=castById(id);addToOrders('Regarding '+(rc?rc.name+'’s':'the')+' report: ')}
 function renderOrders(){renderCase()}
 function renderCase(){const c=ensureCase(),t=$('orders-text');if(t&&t.value!==c.text)t.value=c.text;$('case-badge').textContent=c.text.trim()?'●':''}
-async function resolve(){
+function packetOrders(){
   const c=ensureCase(),bd=state.battleDemo,field=state.player.mode==='field',dec=state.decision&&state.decision.options.find(x=>x.id===draft.option);
   const standing=(state.hidden&&state.hidden.standingOrders)||STANDING0;
   const army=Object.keys(armyOrders()).map(id=>{const u=unitById(id),o=armyOrders()[id];return '- '+u.name+' ('+u.id+'): '+JSON.stringify(o)}).join('\n');
   const places=[...referenced].map(id=>(state.locations.find(l=>l.id===id)||{name:id}).name).join(', ');
   const fought=BS.log.length||draft.battleResult;
-  const pk='# CABINET OF WAR — RESOLVE AND ADVANCE\n\nAct as a historian and impartial adjudicator. This packet is self-contained.\n\n## Adjudication contract\n'+rules.contract+'\n\n## Location rule\nPlayer mode: '+state.player.mode+' (location: '+state.player.locationId+'). '+(field?'Player may direct only assigned forces directly; political influence travels by letter.':'Player may not direct battles; armies act on written orders that arrive after the stated delay.')
+  return '## Location rule\nPlayer mode: '+state.player.mode+' (location: '+state.player.locationId+'). '+(field?'Player may direct only assigned forces directly; political influence travels by letter.':'Player may not direct battles; armies act on written orders that arrive after the stated delay.')
    +'\n\n## How orders work\nThe player gives one order of the day in plain words; he does not write letters. His secretary, staff and the proper offices turn it into whatever dispatches it needs, off-screen: choose recipients, channel, signature (where his office requires another’s authority) and timing. Each recipient reacts from their own priorities and knowledge when the dispatch arrives after a realistic delay. Do not show the player the dispatches or how they were worded or understood: record them in hidden.dispatches (to, via, sent, arrives, gist). He learns only results, through reports, events and what he can see. Open a scene (a conversation) only when his orders ask for an audience or events truly require him in person; keep scenes rare.'
    +'\n\n## Standing orders (kept by his staff; hidden from the player)\nCampaign invention: the character’s routine instructions. Keep them as a competent officer in his post would, adding, refining or dropping items as his knowledge and duties change, without asking the player. Apply them whenever time advances. The orders of the day override them.\n'+standing.map(s=>'- '+s).join('\n')
    +'\n\n## Orders of the day\n'+(c.text.trim()||'(none: continue under standing orders)')+(places?'\nPlaces he marked on the map for these orders: '+places:'')
@@ -28,7 +28,10 @@ async function resolve(){
    +'\n\n## Army orders drafted on the table ('+(field?'given directly':'sent to the commanders with his orders')+')\nPositions are metres east/north of '+bd.place+' centre; dest = destination, mode = hold/advance/retire, form = line/column.\n'+(army||'(none)')
    +'\n\n## Table battle (an input, not a verdict)\n'+(fought?(field?'':'The player is at court: this battle was fought by the field commander under his general orders, and the table result is how that commander’s battle went. ')+'Turn it into campaign consequences realistically. The player has not read this account.\n'+JSON.stringify({result:draft.battleResult||null,finished:!!draft.battleResult,phases:BS.log,enemy_adaptation_memory:battleMem(),seed:BS.rngSeed}):'(none fought)')
    +'\n\n## Scene consequences already recorded\n'+(state.scene?JSON.stringify({id:state.scene.id,status:state.scene.status,revision:state.scene.revision,commitments:state.scene.commitments,lines:state.scene.lines}):'(none)')
-   +'\n\n## Reply format\nReturn ONE JSON object: the complete next state with schemaVersion 2, campaignId "'+state.campaignId+'", turn '+(state.turn+1)+', parentTurn '+state.turn+', and every field of the current state updated (date, player incl. mode and locationId, briefing, locations, reports with dated, from_id, via and claim labels, knowledge, decision (2–4 adviser-backed options or null), scene (or null), cast, battleDemo unit positions, forces, ledger appended with causal reasoning, hidden incl. hidden.standingOrders (the updated list of strings) and hidden.dispatches). Player-facing text must contain only what the character could know. Keep stable ids.\n\n## Current state (JSON)\nNote: the hidden field is not secret from anyone who can read this packet.\n'+JSON.stringify(state)+'\n';
+;
+}
+async function resolve(){
+  const orders=packetOrders(),pk=window.__campaign?await window.__campaign.packet(orders):'# CABINET OF WAR\n\n'+rules.contract+'\n\n'+orders+'\n\n## Current state (JSON)\n'+JSON.stringify(state)+'\n';
   await copy(pk,'Orders copied. Paste them into Claude, then paste the reply back under Orders → Reply received.');
 }
 function initCase(){
