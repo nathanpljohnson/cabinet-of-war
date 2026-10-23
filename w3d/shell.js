@@ -3,7 +3,7 @@
    letters; the notebook holds matters in hand, your secretary's remarks, your staff's knowledge and the record. You give orders; you do not converse:
    every order, journey, inspection or answer to a letter is an entry in the day's dispatch, composed into the
    desk's own orders text (draft.case.text), so the packet for the adjudicator is unchanged in form. */
-import { travel, loc, roadKm, letterDays, travelDays, placeOn } from './places.js';
+import { travel, loc, roadKm, letterDays, travelDays, placeOn, playerOn, routeDays } from './places.js';
 import { choose, choiceFor, trustOf, setTrust, book } from './campaign.js';
 import { personOf } from './people.js';
 const $ = id => document.getElementById(id);
@@ -79,7 +79,8 @@ export function createShell({ act, onSeal, clock }) {
   const days = (a, b) => { const A = loc(a), B = loc(b); return A && B && a !== b ? letterDays(roadKm(A, B)) : 0; };
   const RULERS = new Set(['maria_theresa', 'francis_stephen']);
   const whereNow = c => placeOn(c, today());
-  function presentHere(c) { return whereNow(c) === travel.here() && !RULERS.has(c.id) && c.id !== 'own-forces' && !c.dead; }
+  // your steward travels with you; on the road no one else is about
+  function presentHere(c) { if (c.id === 'steward') return !c.dead; return !travel.onRoad() && whereNow(c) === travel.here() && !RULERS.has(c.id) && c.id !== 'own-forces' && !c.dead; }
 
   /* ---------- the desk's own content, moved in ---------- */
   const place = $('place'); if (place) $('sh-card-body').append(place);
@@ -159,7 +160,7 @@ export function createShell({ act, onSeal, clock }) {
 
   function renderSheet() {
     const S = state, w = W(), here = travel.here(), hl = loc(here);
-    $('sh-sheet-eyebrow').textContent = 'Written at ' + locName(here) + ' · ' + fmtDate(S.date) + ' · turn ' + S.turn + (travel.get() ? ' · journey not yet adjudicated' : '');
+    $('sh-sheet-eyebrow').textContent = 'Written at ' + locName(here) + ' · ' + fmtDate(shownDate()) + ' · turn ' + S.turn + (travel.get() ? ' · you set out for ' + locName(travel.get().to) + ' when it is sealed' : '');
     const ol = $('sh-items'); ol.replaceChildren();
     for (const it of w.items) {
       const li = el('li'), head = el('div', 'sh-it-h'), c = cast(it.to);
@@ -200,11 +201,18 @@ export function createShell({ act, onSeal, clock }) {
   const gazettes = () => (state.gazette || []).map(g => ({ id: g.id || 'gz-' + g.date, kind: 'gazette', from: 'Wiennerisches Diarium', place: 'vienna', dated: g.date, arrives: g.date, title: (g.items[0] || {}).head || 'The Diarium', text: '', items: g.items, via: 'post' }));
   const post = () => [...state.reports, ...gazettes()];
   const postDays = () => [...new Set(post().map(arrives))].sort();
-  function today() { const p = store(POST_KEY, null); if (p && p.turn === state.turn) return p.upto; const d = postDays()[0] || state.date; keep(POST_KEY, { turn: state.turn, upto: d }); return d; }
+  // the days worth living through: the post, your own setting out and arriving, anyone to be seen where you are, and the day you are woken
+  const turnFrom = () => (state.span && state.span.from) || null;
+  function eventDays() { const from = turnFrom(), seenThere = (state.whereabouts || []).filter(w => w && w.date && w.place === playerOn(w.date)).map(w => w.date);
+    return [...new Set([...postDays(), ...routeDays(), ...seenThere, state.date].filter(d => d && (!from || d >= from) && d <= state.date))].sort(); }
+  function today() { const p = store(POST_KEY, null); if (p && p.turn === state.turn) return p.upto; const d = turnFrom() || eventDays()[0] || state.date; keep(POST_KEY, { turn: state.turn, upto: d }); return d; }
   const onTheRoad = () => post().filter(r => arrives(r) > today());
-  const shownDate = () => onTheRoad().length ? today() : state.date;
+  const nextDay = () => eventDays().find(d => d > today()) || null;
+  const shownDate = () => today();
   function passDay() { for (const r of seen()) if (r.urgent && !choiceFor(r.id)) { const d = r.urgent.options.find(o => o.default) || r.urgent.options[r.urgent.options.length - 1]; choose(r, d.id, true); act('toast:The day passed without your answer to “' + r.title + '”; ' + d.label.replace(/^./, x => x.toLowerCase()) + '.'); }
-    const next = [...new Set(onTheRoad().map(arrives))].sort()[0]; if (!next) return 0; keep(POST_KEY, { turn: state.turn, upto: next }); return post().filter(r => arrives(r) === next).length; }
+    const was = playerOn(today()), next = nextDay(); if (!next) return 0; keep(POST_KEY, { turn: state.turn, upto: next });
+    const now = playerOn(next); if (now !== was) act('toast:' + (now === 'road' ? 'You set out on the road to ' + locName(state.player.locationId) + '.' : 'You arrive at ' + locName(now) + '.'));
+    return post().filter(r => arrives(r) === next).length; }
   const seen = () => post().filter(r => arrives(r) <= today());
   const seenLetters = () => seen().filter(r => r.kind !== 'gazette');
   // your commission and your advisers' counsel come as letters as well
@@ -264,21 +272,22 @@ export function createShell({ act, onSeal, clock }) {
     }
     if (!rs.length) ul.append(el('li', 'sh-empty', listMode === 'archive' ? 'Nothing kept from earlier turns yet.' : 'No letters have reached you.'));
     const L = rs.find(x => x.id === openLetter); if (L) { if (!readSet().has(rk(L))) act('sound:seal'); drawLetter(L); markRead(L.id); } else $('sh-letter').replaceChildren();
-    const road = onTheRoad().length, post = $('sh-post'); post.hidden = !road; post.replaceChildren();
-    if (road) { post.append(el('p', null, 'More letters are on the road.')); const b = el('button', null, 'Let the day pass'); b.onclick = () => { const n = passDay(); act('post:' + n); showLetters(); }; post.append(b); }
+    const road = !!nextDay(), post = $('sh-post'); post.hidden = !road; post.replaceChildren();
+    if (road) { post.append(el('p', null, onTheRoad().length ? 'More letters are on the road.' : 'The days pass until you are woken.')); const b = el('button', null, 'Let the day pass'); b.onclick = () => { const n = passDay(); act('post:' + n); showLetters(); }; post.append(b); }
     $('sh-letters').hidden = false; syncVeil(); refresh();
   }
   function drawLetter(r) {
     if (r.kind === 'gazette') return drawGazette(r);
     const box = $('sh-letter'), here = travel.here(), c = cast(r.from_id), d = days(r.place, here), a = acted()[r.id];
     const via = { courier: 'by courier', post: 'by the post', audience: 'given you in person' }[r.via] || 'received';
-    const answers = answeredBy(r).map(({ id, sure }) => ({ ...(sentOrders().find(o => o.ref === id) || { ref: id, line: '' }), sure }));
+    // only what the letter itself says it answers; the notebook may guess, the letter does not
+    const answers = answeredBy(r).filter(x => x.sure).map(({ id }) => sentOrders().find(o => o.ref === id) || { ref: id });
     const hand = personOf(r.from_id).hand, fair = !!store(FAIR_KEY, false), ok = readable(r), ic = r.intercepted;
     box.innerHTML = '<div class="sh-lt-sheet' + (hand && !fair ? ' sh-hand' : '') + (ic ? ' sh-lt-intercepted' : '') + '"' + (hand ? ' style="--hand:' + esc(hand) + '"' : '') + '>'
       + (ic ? '<div class="sh-lt-ic">Intercepted — from ' + esc(ic.from || 'unknown') + ' to ' + esc(ic.to || 'unknown') + '</div>' : '')
       + '<div class="sh-lt-head">' + esc(locName(r.place)) + ', ' + esc(fmtDate(r.dated)) + '</div>'
-      + answers.map(o => '<div class="sh-lt-re">' + (o.sure ? 'In answer to your order ' : 'Probably in answer to your order ') + esc(o.ref) + (o.date ? ' of ' + esc(fmtDate(o.date)) : '') + (o.line ? ': “' + esc(o.line.length > 140 ? o.line.slice(0, 140) + '…' : o.line) + '”' : '') + '</div>').join('')
-      + (r.category ? '<div class="sh-lt-cat">Concerning ' + esc(r.category.toLowerCase()) + '</div>' : '')
+      + answers.map(o => { const said = o.text || ''; return '<div class="sh-lt-re">In answer to your order' + (o.date ? ' of ' + esc(fmtDate(o.date)) : '') + (o.to && o.to !== 'staff' && cast(o.to) ? ' to ' + esc(cast(o.to).name) : '') + (said ? ': “' + esc(said.length > 120 ? said.slice(0, 120) + '…' : said) + '”' : '') + '</div>'; }).join('')
+      + (r.category ? '<div class="sh-lt-cat">Concerning ' + esc(r.category.replace(/^(The|A|An|Your|His|Her|Our|Home|Money|News)\b/, w => w.toLowerCase())) + '</div>' : '')
       + '<h3>' + esc(ok ? r.title : 'A letter in cipher') + '</h3><p class="sh-lt-body' + (ok ? '' : ' sh-cipher') + '">' + esc(ok ? r.text : cipherText(r.text)) + '</p>'
       + '<p class="sh-lt-sig">' + esc(fromName(r)) + (c && c.office ? '<small>' + esc(c.office) + '</small>' : '') + '</p>'
       + (r.kind === 'advice' ? [['Their reasoning', r.o.reasoning], ['The risk', r.o.risks], ['What it needs', r.o.needs], ['What is not known', r.o.unknown], ['Who does the work', r.o.delegation]].filter(([, v]) => v).map(([k, v]) => '<p class="sh-lt-ps"><i>' + k + '.</i> ' + esc(v) + '</p>').join('') : '')
@@ -357,7 +366,7 @@ export function createShell({ act, onSeal, clock }) {
     const a = acted(), out = [];
     for (const r of seenLetters()) if (!a[r.id]) out.push({ k: 'letter', r });
     if (state.decision && !draft.option && !letters().some(x => x.kind === 'advice' && a[x.id])) out.push({ k: 'council' });
-    if (onTheRoad().length) out.push({ k: 'post' });
+    if (nextDay()) out.push({ k: 'post' });
     for (const s of store(SENT_KEY, [])) { if (s.settled) continue; const os = s.orders.map(o => typeof o === 'string' ? { ref: null, line: o } : o); if (os.length && os.every(o => o.ref && answersTo(o.ref).length)) continue; out.push({ k: 'sent', s, os }); }
     if (travel.get()) out.push({ k: 'journey' });
     for (const p of state.pending || []) out.push({ k: 'pending', p });
@@ -375,14 +384,14 @@ export function createShell({ act, onSeal, clock }) {
         const done = x.os.filter(o => o.ref && answersTo(o.ref).length).length;
         li.innerHTML = '<b>Your dispatch of ' + short(x.s.date) + '</b> from ' + esc(x.s.at) + (state.turn > x.s.turn ? ' — ' + done + ' of ' + x.os.length + ' orders answered' : ' — on the road');
         const sub = el('div', 'sh-orders');
-        for (const o of x.os) { const ans = o.ref ? answersTo(o.ref) : [], row = el('div', ans.length ? 'sh-o-ok' : 'sh-o-wait'); row.append(el('span', 'sh-o-ref', o.ref || '·'), el('span', 'sh-o-t', o.line.length > 110 ? o.line.slice(0, 110) + '…' : o.line));
+        for (const o of x.os) { const ans = o.ref ? answersTo(o.ref) : [], row = el('div', ans.length ? 'sh-o-ok' : 'sh-o-wait'); row.append(el('span', 'sh-o-ref', o.ref ? o.ref.split('-').pop() : '·'), el('span', 'sh-o-t', o.line.length > 110 ? o.line.slice(0, 110) + '…' : o.line));
           for (const { r, sure } of ans) { const lb = el('button', 'sh-o-lnk' + (sure ? '' : ' sh-o-maybe'), (sure ? 'Answered by ' : 'Probably answered by ') + fromName(r) + ' →'); lb.onclick = () => showLetters(r.id); row.append(lb); }
           if (!ans.length) row.append(el('span', 'sh-o-st', state.turn > x.s.turn ? 'no answer yet' : 'on the road')); sub.append(row); }
         if (!x.os.length) sub.append(el('div', 'sh-o-wait', x.s.own || 'standing orders'));
         li.append(sub); const b = el('button', null, 'Settled'); b.onclick = () => { const all = store(SENT_KEY, []); const t = all.find(s => s.turn === x.s.turn); if (t) t.settled = true; keep(SENT_KEY, all); showNotebook(); refresh(); }; li.append(b); }
       if (x.k === 'council') { li.innerHTML = '<b>Your advisers await your decision</b> · ' + esc(state.decision.title); const b = el('button', null, 'Read their counsel'); b.onclick = () => showPanel('council'); li.append(b); }
-      if (x.k === 'post') { li.innerHTML = '<b>More letters are on the road</b>'; const b = el('button', null, 'Let the day pass'); b.onclick = () => { const n = passDay(); act('post:' + n); showNotebook(); }; li.append(b); }
-      if (x.k === 'journey') li.innerHTML = '<b>Your journey</b> to ' + esc(locName(travel.here())) + ' — not yet adjudicated';
+      if (x.k === 'post') { li.innerHTML = '<b>' + (onTheRoad().length ? 'More letters are on the road' : 'The days pass until you are woken') + '</b>'; const b = el('button', null, 'Let the day pass'); b.onclick = () => { const n = passDay(); act('post:' + n); showNotebook(); }; li.append(b); }
+      if (x.k === 'journey') li.innerHTML = '<b>Your journey</b> to ' + esc(locName(travel.get().to)) + ' — you set out when the dispatch is sealed';
       if (x.k === 'pending') li.textContent = typeof x.p === 'string' ? x.p : (x.p.title || x.p.text || JSON.stringify(x.p));
       ul.append(li);
     }
@@ -530,7 +539,7 @@ export function createShell({ act, onSeal, clock }) {
   /* ---------- state shown on the bar and the place line ---------- */
   function refresh(v, zone, sub) {
     const S = state, j = travel.get();
-    $('sh-date').textContent = fmtDate(shownDate()) + (clock ? ' · ' + clock.word : '') + ' · ' + (travel.mode() === 'field' ? 'with the army' : 'at ' + locName(travel.here())) + (j ? ' · journey not yet adjudicated' : '');
+    $('sh-date').textContent = fmtDate(shownDate()) + (clock ? ' · ' + clock.word : '') + ' · ' + (travel.onRoad() ? 'on the road to ' + locName(state.player.locationId) : travel.mode() === 'field' ? 'with the army' : 'at ' + locName(travel.here())) + (j ? ' · bound for ' + locName(j.to) : '');
     if (zone) $('sh-zone').textContent = zone; if (sub != null) $('sh-sub').textContent = sub;
     if (v) view = v;
     $('sh-b-field').hidden = travel.mode() !== 'field' && view !== 'field';

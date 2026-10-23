@@ -37,4 +37,14 @@ out.record = { origin: sealOf(opening), stable: sealOf(opening) === sealOf(JSON.
   packetSeal: buildPacket({ state: s9, contract, orders: '', almanac, fortune: [] }).includes(sealOf(s9)), packetVolume: buildPacket({ state: s9, contract, orders: '', almanac, fortune: [] }).includes('A volume closes'), recordKept: mergeTurn(s10, { turn: 11, parentTurn: 10, changes: { record: { chain: [] } } }).next.record.chain.length };
 const bad = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], world: { tempo: 'siesta' }, gazette: [{ date: '1740-10-22' }, { date: '1740-09-01', items: [{ head: 'h', text: 't' }] }], battleDemo: { aftermath: { fallen: { A1: 'some' } } }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } });
 const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world: bad.changes.world, gazette: bad.changes.gazette, fallen: bad.changes.battleDemo.aftermath.fallen };
+// the packet after a turn: last turn's output goes back only as an index; threads and plots follow their own next_check
+{ const r1 = reply(opening, JSON.parse(read('w3d/mocks/living.json')).changes), { next: n1 } = mergeTurn(opening, r1);
+  n1.hidden.threads = n1.hidden.threads.map(t => t.id === 'rel-papal-neutrality-1741' ? { ...t, status: 'dormant', next_check: '1741-06-01' } : t);
+  const ls = liveState(n1), pk = buildPacket({ state: n1, contract, orders: '## Orders of the day\nTest.', almanac, fortune: [] });
+  out.after = { span: n1.span, live: Object.keys(ls), reportKeys: [...new Set((ls.reports || []).flatMap(r => Object.keys(r)))], hiddenKeys: Object.keys(ls.hidden), bytes: pk.length,
+    active: activePlots(almanac, n1.hidden.threads, n1.date).map(p => p.id), battleUnits: !!(ls.battleDemo || {}).units, openingUnits: !!(liveState(opening).battleDemo || {}).units, openingBytes: packet.length };
+  const rt = reply(opening, { date: '1740-10-30', title: 't', briefing: 'b', reports: [], player: { locationId: 'breslau', route: [{ date: '1740-10-22', place: 'road' }, { date: '1740-10-27', place: 'breslau' }, { date: '1741-01-01', place: 'breslau' }, { date: '1740-10-25', place: 'atlantis' }] }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } });
+  const rc = checkReply(opening, rt, {}); out.route = { fixes: rc.fixes, route: rt.changes.player.route };
+  out.salt = [rollFortune('c', 1, 8, 'aa'), rollFortune('c', 1, 8, 'aa'), rollFortune('c', 1, 8, 'bb'), rollFortune('c', 1)];
+  out.opening = { briefing: opening.briefing, scene: opening.scene, movements: opening.movements.length, wallis: opening.cast.find(c => c.id === 'wallis').place, early: opening.hidden.threads.filter(t => t.next_check && t.next_check < opening.date).length, demoCast: opening.cast.filter(c => c.claim === 'demo').length }; }
 console.log(JSON.stringify(out));

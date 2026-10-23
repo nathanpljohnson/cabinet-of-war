@@ -122,7 +122,7 @@ function advanceClock(hours) {
   if (Math.abs(clockH - before) >= .25 || Math.floor(clockH * 4) !== Math.floor(before * 4)) applyAtmosphere();
 }
 function onHour(h) { world && world.region.setHour(clockH); if (mode === 'room' && h >= 6 && h <= 21) sound.cue('bell', h > 12 ? h - 12 : h); if (h === 20) toast('Evening. The Conference sits; the courtyard empties.'); if (h === 22) toast(shell.passDay ? 'Night. Let the day pass when you are ready for the morning post.' : 'Night.'); }
-async function newDay() { clockH = 8.5; saveClock(); if (world && builtCues !== JSON.stringify(worldCues())) { showLoading('The next morning…'); await sleep(40); await buildWorld(); hideLoading(); } world && world.region.setHour(clockH); applyAtmosphere(); }
+async function newDay() { clockH = 8.5; saveClock(); if (world && (builtFor !== travel.here() || builtCues !== JSON.stringify(worldCues()))) { showLoading('The next morning…'); await sleep(40); await buildWorld(); hideLoading(); } world && world.region.setHour(clockH); applyAtmosphere(); }
 const today = () => shell ? shell.today : state.date;
 // the day's weather where you are: the adjudicator's (state.world.weather, by date); without it, a fair guess from the date
 function weatherToday() {
@@ -131,16 +131,18 @@ function weatherToday() {
 }
 // those closeted with the ruler today are in the Hofburg, not in the courtyard (the chamberlain says so)
 const withRuler = day => new Set(groupsOn('vienna', day).filter(g => g.who.some(id => id === 'maria_theresa' || id === 'francis_stephen')).flatMap(g => g.who));
-const presentToday = here => { const away = withRuler(today()); return (state.cast || []).filter(c => placeOn(c, today()) === here && !c.dead && !away.has(c.id) && !['maria_theresa', 'francis_stephen', 'own-forces', 'steward'].includes(c.id)); };
+const presentToday = here => { if (travel.onRoad()) return []; const away = withRuler(today()); return (state.cast || []).filter(c => placeOn(c, today()) === here && !c.dead && !away.has(c.id) && !['maria_theresa', 'francis_stephen', 'own-forces', 'steward'].includes(c.id)); };
 function worldCues() {
-  const W = state.world || {}, m = new Date(state.date + 'T12:00:00').getMonth(), here = travel.here(), d = today();
-  const snowed = W.weather && Object.entries(W.weather).some(([k, v]) => k <= d && v === 'snow'), names = Object.fromEntries((state.cast || []).map(c => [c.id, c.name]));
+  const W = state.world || {}, here = travel.here(), d = today(), m = new Date(d + 'T12:00:00').getMonth(), road = travel.onRoad();
+  // snow lies in midwinter; in autumn and spring only for a few days after it falls
+  const since = new Date(new Date(d + 'T12:00:00').getTime() - 3 * 864e5).toISOString().slice(0, 10);
+  const snowed = W.weather && Object.entries(W.weather).some(([k, v]) => k <= d && k >= since && v === 'snow'), names = Object.fromEntries((state.cast || []).map(c => [c.id, c.name]));
   const ruler = here === 'vienna' && groupsOn('vienna', d).find(g => g.who.includes('maria_theresa') && g.who.length > 1);
   const men = (state.forces || []).filter(f => f.locationId === here).reduce((s, f) => s + (+f.men || 0), 0);
   return { season: m === 11 || m <= 1 || snowed ? 'winter' : 'open', mourning: W.mourning ?? (state.date >= '1740-10-20' && state.date < '1741-10-20'), pay: W.pay || 'paid', roads: W.roads || 'good',
     refugees: (W.refugees || []).includes(here), men: men || null, standing: (state.hidden || {}).standing || {}, dismissed: !!state.player.dismissed,
-    overheard: (state.overheard || []).filter(o => !o.place || o.place === here), carried: carriedOrders(), rivalHere: rivalHere(here),
-    tempo: W.tempo || null, scene: ((W.scene || {})[here]) || [], ownWeather: !!W.weather, snowed: !!snowed, present: presentToday(here).map(c => c.id), groups: groupsOn(here, d), castNames: names,
+    overheard: road ? [] : (state.overheard || []).filter(o => !o.place || o.place === here), carried: carriedOrders(), rivalHere: !road && rivalHere(here),
+    tempo: W.tempo || null, scene: road ? [] : ((W.scene || {})[here]) || [], ownWeather: !!W.weather, snowed: !!snowed, present: presentToday(here).map(c => c.id), groups: road ? [] : groupsOn(here, d), castNames: names, road,
     rulerWith: ruler ? 'Her Majesty is with ' + ruler.who.filter(id => id !== 'maria_theresa').map(id => (names[id] || id).split(',')[0]).join(' and ') + (ruler.doing ? ' — ' + ruler.doing : '') : null };
 }
 // the rival's courier leaves at dawn wherever the rival is lodged (state.hidden.rival, kept by the adjudicator)
@@ -183,7 +185,7 @@ function stepPlayer(dt) {
     if (keys.has('KeyW') || keys.has('ArrowUp')) iz -= 1; if (keys.has('KeyS') || keys.has('ArrowDown')) iz += 1;
     if (keys.has('KeyA') || keys.has('ArrowLeft')) ix -= 1; if (keys.has('KeyD') || keys.has('ArrowRight')) ix += 1;
   }
-  const tired = ['tired', 'ill', 'gravely ill'].includes(state.player.health || (state.household || {}).health) || (travel.get() && travelDays(roadKm(loc(state.player.locationId) || loc('vienna'), loc(travel.here()) || loc('vienna'))) >= 5);
+  const tired = ['tired', 'ill', 'gravely ill'].includes(state.player.health || (state.household || {}).health) || travel.onRoad();
   const run = keys.has('ShiftLeft') || keys.has('ShiftRight'), want = (ix || iz) ? (run ? (tired ? 3.6 : 5.6) : (tired ? 1.6 : 2.1)) : 0;
   pl.v += (want - pl.v) * Math.min(1, dt * 8);
   if (ix || iz) {
@@ -274,10 +276,12 @@ async function mapToRoom() {
   await lift; setView('room');
 }
 const battleCentreIn = m => m.getBounds().contains(lo(state.battleDemo.center, 0, 0));
+// the ground is painted for the season: of the battle itself when you read an account of it, else of today
+const fieldSeason = () => { const bd = state.battleDemo || {}; const bdd = bd.date || (bd.aftermath || {}).date; if ((account || aftermath) && bdd) { const m = new Date(bdd + 'T12:00:00').getMonth(); return m === 11 || m <= 1 ? 'winter' : 'open'; } return worldCues().season; };
 async function ensureBattle() {
-  if (battle && battle.season !== worldCues().season) battle = null; // the ground is painted for the season
+  if (battle && battle.season !== fieldSeason()) battle = null;
   if (battle) return battle; showLoading('Laying out the field…');
-  const mod = await import('./battle3d.js'); battle = await mod.createBattle({ renderer, actors, quality: Q(), makeSky, makeLights, toast, onRise: (x, z) => fieldToMap(x, z), winter: worldCues().season === 'winter' }); battle.season = worldCues().season;
+  const season = fieldSeason(), mod = await import('./battle3d.js'); battle = await mod.createBattle({ renderer, actors, quality: Q(), makeSky, makeLights, toast, onRise: (x, z) => fieldToMap(x, z), winter: season === 'winter' }); battle.season = season;
   hideLoading(); return battle;
 }
 async function mapToField() {
@@ -308,23 +312,22 @@ async function goView(v) {
   if (v === 'field' && travel.mode() !== 'field' && !account) { toast('You are not with the army. Battles reach you as accounts in your letters.'); return; }
   if (v === 'field') { if (mode === 'room') return roomToField(); if (mode === 'map') { if (!battleCentreIn(desk.map)) document.querySelector('[data-book=battle]')?.click(), await sleep(1100); return mapToField(); } if (mode === 'hall') { await leaveHall(); return roomToField(); } }
 }
-/* ---------- going somewhere in person: at once, with the journey in the orders for the adjudicator ---------- */
+/* ---------- going somewhere in person: the journey goes into the dispatch; you set out when it is sealed ---------- */
 async function journey(to, pmode) {
   if (mode === 'loading' || mode === 'trans') return;
   if (mode !== 'room') await goView('room');
-  const j = travel.get(), from = state.player.locationId, A = loc(from), B = loc(to); if (j) { shell.removeOrder(j.line); shell.dropItem('journey'); }
+  const j = travel.get(), from = travel.here(), A = loc(from), B = loc(to); if (j) { shell.removeOrder(j.line); shell.dropItem('journey'); }
   let line = null;
-  if (to === from && pmode === state.player.mode) travel.set(null);
+  if (to === from && pmode === state.player.mode) { travel.set(null); shell.dropItem('journey'); }
   else {
     const km = to !== from ? roadKm(A, B) : 0;
-    line = to !== from ? 'Journey: I leave ' + A.name + ' for ' + B.name + ' at once, riding post with a small household — about ' + km + ' km by road, some ' + travelDays(km) + ' day' + (travelDays(km) > 1 ? 's' : '') + '.' + (pmode === 'field' ? ' There I join the army in camp.' : '') + ' Letters are to follow me on the road.'
-      : pmode === 'field' ? 'I leave court and join the army in camp near ' + A.name + ' at once.' : 'I leave the army and return to court at ' + A.name + ' at once.';
+    line = to !== from ? 'Journey: I leave ' + A.name + ' for ' + B.name + ' as soon as this dispatch is sealed, riding post with a small household — about ' + km + ' km by road, some ' + travelDays(km) + ' day' + (travelDays(km) > 1 ? 's' : '') + '.' + (pmode === 'field' ? ' There I join the army in camp.' : '') + ' Letters are to follow me on the road.'
+      : pmode === 'field' ? 'I leave court and join the army in camp near ' + A.name + ' as soon as this dispatch is sealed.' : 'I leave the army and return to court at ' + A.name + ' as soon as this dispatch is sealed.';
     shell.setItem({ id: 'journey', kind: 'journey', text: line }); travel.set({ turn: state.turn, to, mode: pmode, line });
   }
-  const km = B && travel.here() !== builtFor ? roadKm(loc(builtFor), B) : 0;
-  showLoading(km ? 'Riding post to ' + B.name + ' — some ' + travelDays(km) + ' days on the road…' : pmode === 'field' ? 'Riding out to the army’s camp…' : 'Returning to headquarters…');
-  await sleep(900); await buildWorld(); hideLoading(); applyAtmosphere(); refreshHud(); shell.refresh();
-  toast(line ? 'You are at ' + locName(travel.here()) + (travel.mode() === 'field' ? ', with the army' : '') + '. The journey is in the day’s dispatch.' : 'You stay where your papers place you; the journey is struck from the dispatch.');
+  refreshHud(); shell.refresh();
+  const days = B && to !== from ? travelDays(roadKm(A, B)) : 0;
+  toast(line ? (days ? 'You will set out for ' + B.name + ' when the dispatch is sealed — some ' + days + ' day' + (days > 1 ? 's' : '') + ' on the road. Until then you are at ' + A.name + '.' : 'You will ' + (pmode === 'field' ? 'join the army' : 'return to court') + ' when the dispatch is sealed.') : 'The journey is struck from the dispatch; you stay at ' + locName(from) + '.');
 }
 function act(a) {
   if (a.startsWith('go:')) { const id = a.slice(3); return id === 'cancel' ? journey(state.player.locationId, state.player.mode) : journey(id, travel.mode()); }
@@ -366,9 +369,11 @@ function syncCourierOnBoot() {
 }
 let pendingArrival = false, lastTurn = null;
 async function onNewTurn() {
+  void shell.today; // the day walk starts on the turn's first day, before anything is built
   loadClock(); applyAtmosphere();
   if (builtFor !== travel.here() || builtMode !== travel.mode() || builtCues !== JSON.stringify(worldCues())) { showLoading(builtFor !== travel.here() ? 'Riding to ' + locName(travel.here()) + '…' : travel.mode() === 'field' ? 'Joining the army in camp…' : 'Returning to headquarters…'); await sleep(40); await buildWorld(); hideLoading(); }
   if (courierSaved()?.away) pendingArrival = true;
+  if (shell.sheetOpen) shell.toggleSheet(true); // a new turn, a fresh dispatch
   shell.refresh(); world.region.setLetters(shell.unread().length);
 }
 function stepCourierArrival() {
@@ -388,7 +393,7 @@ function drawSightings() {
   for (const r of shell.seen()) { const g = r.sighting; if (!g || typeof g.lat !== 'number') continue;
     const who = (state.cast.find(c => c.id === r.from_id) || {}).name || 'a letter';
     L.circleMarker([g.lat, g.lon], { radius: 8, color: '#8a2f26', weight: 2, fillColor: '#b8453a', fillOpacity: .45 }).bindTooltip(g.what + ' — so ' + who + ' reports' + (r.source ? ' (from ' + r.source + ')' : ''), { direction: 'top' }).addTo(sightLayer).w3d = r.id; }
-  const j = travel.get(), h = j && loc(travel.here()); if (h) L.circleMarker([h.lat, h.lon], { radius: 10, color: '#ece6da', weight: 2, fillColor: '#16181b', fillOpacity: .8 }).bindTooltip('You are here', { permanent: true, direction: 'right' }).addTo(sightLayer);
+  const b = travel.bound(), h = b && loc(b); if (h) L.circleMarker([h.lat, h.lon], { radius: 10, color: '#ece6da', weight: 2, fillColor: '#16181b', fillOpacity: .8 }).bindTooltip(travel.onRoad() ? 'On the road to here' : 'Bound for here', { permanent: true, direction: 'right' }).addTo(sightLayer);
 }
 async function showSighting(id) {
   const r = state.reports.find(x => x.id === id); if (!r || !r.sighting) return;
@@ -515,7 +520,7 @@ function refreshHud() {
   if (mode === 'field') shell.refresh('field', (aftermath ? 'The field after the battle · ' : 'The field · ') + (S.battleDemo.place || '').split('—')[0].trim(), aftermath ? 'What lies on the ground · Esc to ride back' : account ? 'An account of a battle you were not at · Esc to put it down' : travel.mode() === 'field' ? 'Your orders are the fight itself · scroll far out to rise onto the map' : 'At court this is a rehearsal on the table; the adjudicator decides · scroll far out to rise onto the map');
   else if (mode === 'map') shell.refresh('map', 'The map table', (battleCentreIn(desk.map) && desk.map.getZoom() >= 10 ? 'Zoom in on the battle ground to go down into the field · ' : '') + 'Right-click a place to add it to your orders · scroll out or Esc to stand up');
   else if (mode === 'hall') shell.refresh('room', 'The Conference chamber', 'The council in session · Esc to step back outside');
-  else shell.refresh(view, world ? world.region.zoneName(pl.x, pl.z) : 'Headquarters', ({ 'winter quarters': 'Winter quarters · ', campaigning: 'The armies are in the field · ', truce: 'A truce · ' }[(state.world || {}).tempo] || '') + (worldCues().season === 'winter' ? 'Snow on the ground · ' : '') + ({ clear: 'fair weather', haze: 'a hazy day', overcast: 'grey skies', mist: 'mist on the fields', rain: 'rain', snow: 'snow falling', storm: 'a storm blowing' }[atmos] || 'fair weather').replace(/^./, c => worldCues().season === 'winter' ? c : c.toUpperCase()));
+  else shell.refresh(view, travel.onRoad() ? 'A post-house on the road to ' + locName(state.player.locationId) : world ? world.region.zoneName(pl.x, pl.z) : 'Headquarters', ({ 'winter quarters': 'Winter quarters · ', campaigning: 'The armies are in the field · ', truce: 'A truce · ' }[(state.world || {}).tempo] || '') + (worldCues().season === 'winter' ? 'Snow on the ground · ' : '') + ({ clear: 'fair weather', haze: 'a hazy day', overcast: 'grey skies', mist: 'mist on the fields', rain: 'rain', snow: 'snow falling', storm: 'a storm blowing' }[atmos] || 'fair weather').replace(/^./, c => worldCues().season === 'winter' ? c : c.toUpperCase()));
   $3('w3d-help').innerHTML = mode === 'field' && aftermath ? 'Drag to look · <kbd>WASD</kbd> or right-drag to ride over the ground · wheel to rise · <kbd>Esc</kbd> ride back'
     : mode === 'field' && account ? 'Drag to turn · right-drag or <kbd>WASD</kbd> to pan · wheel to zoom · click a formation to read what is known of it · <kbd>Esc</kbd> put the account down'
     : mode === 'field'
@@ -556,7 +561,7 @@ function tick(dt) {
       if (k !== shadowKey || ++shadowTick % 240 === 0) { shadowKey = k; lights.follow(tmp2.set(sx, p.y, sz)); renderer.shadowMap.needsUpdate = true; } }
     skyMesh.position.copy(camera.position); cloudG.rotation.y += dt * .002; stepPrecip(dt, uTime.value);
     if (portableUp && mode === 'room' && activeTable && Math.hypot(activeTable.x - pl.x, activeTable.z - pl.z) > 7) { world.region.packTable(); portableUp = false; activeTable = null; shadowsDirty(); } // the aide packs the folding table when you move on
-    if (mode === 'room') { const z = world.region.zoneName(pl.x, pl.z); if ($3('sh-zone').textContent !== z) $3('sh-zone').textContent = z; }
+    if (mode === 'room') { const z = travel.onRoad() ? 'A post-house on the road to ' + locName(state.player.locationId) : world.region.zoneName(pl.x, pl.z); if ($3('sh-zone').textContent !== z) $3('sh-zone').textContent = z; }
     if (!shell.papersOpen || mode !== 'room' || ++paperTick % 8 === 0) renderer.render(scene, camera); // behind open papers the dimmed world needs few frames
     const R = world.region; sound.update(dt, uTime.value, Math.min(...R.fires.map(([x, z]) => Math.hypot(x - pl.x, z - pl.z))), Math.hypot(R.camp.x - pl.x, R.camp.z - pl.z), shell.papersOpen, { night: clockH < 6.5 || clockH > 19.5 || introOn });
   } else if (body.classList.contains('w3d-field')) { battle.frame(dt, uTime.value); sound.update(dt, uTime.value, 1e9, 120, shell.papersOpen); }

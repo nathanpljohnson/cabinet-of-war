@@ -53,11 +53,22 @@ for k in ['household','mandate','reports','decision','knowledge','forces','force
 st['player']['name']='Ludwig Andreas, Count Khevenhüller'
 st['world']={'mourning':True,'pay':'in arrears','roads':'good','refugees':[]}
 st['hidden'].update(OP['hidden_add'])
+# the opening is a campaign, not an interface demonstration: no demo briefing, scene or movements reach the adjudicator
+st['briefing']=OP['briefing']
+st['scene']=None
+st['movements']=[mv for mv in st.get('movements',[]) if 'DEMO' not in mv.get('source','') and mv.get('claim')!='demo']
+for c in st['cast']:
+    if c.get('claim')=='demo': c['claim']='invention'
 # the almanac (systems, plots, stakes, calendar, verification) is reference: it lives in w3d/almanac.json, not in the
 # state Claude returns each turn; the state keeps one thread per plot for the adjudicator to update
 W=st['hidden'].pop('world')
+# Botta d'Adorno reached Berlin only in December 1740; until then Vienna's eyes there were the Resident, Demeradt
+for pl in W['plots']:
+    for sg in pl.get('signals',[]):
+        if sg.get('via','').startswith('Botta in Berlin'): sg['via']='Demeradt, the Resident in Berlin, 5-8 days'
 (O/'w3d'/'almanac.json').write_text(json.dumps(W,ensure_ascii=False,indent=1))
-st['hidden']['threads']=[{'id':p['id'],'title':p['title'],'status':'dormant','next_check':(p['window'][0]+('-01' if len(p['window'][0])==7 else '')) if p.get('window') else None} for p in W['plots']]
+START=st['date']  # no thread is due for a check before the campaign begins
+st['hidden']['threads']=[{'id':p['id'],'title':p['title'],'status':'dormant','next_check':max(START,p['window'][0]+('-01' if len(p['window'][0])==7 else '')) if p.get('window') else None} for p in W['plots']]
 payload=json.dumps(st,ensure_ascii=False,separators=(',',':')).replace('<','\\u003c')
 t=t[:m.start(2)]+payload+t[m.end(2):]
 # the opposing commander's temperament (state.battleDemo.enemy, set by the adjudicator) weighs the enemy's plan (w3d/campaign.js)

@@ -5,7 +5,7 @@ export const REPLY_SCHEMA = 3;
 // reference the adjudicator does not need to see or return every turn (kept in the page and the campaign file)
 export const STATIC_KEYS = ['labels', 'routes', 'routesNote', 'sources', 'sourcesAppendix', 'regionLabels', 'movementsNote', 'annotations', 'openingVersion'];
 // the player's own: a reply cannot change them
-export const PLAYER_KEYS = ['trust', 'legacy', 'campaignId', 'record'];
+export const PLAYER_KEYS = ['trust', 'legacy', 'campaignId', 'record', 'span'];
 // lists merged by id: give only new or changed items (with only the changed fields); {"id": x, "_remove": true} removes one
 export const BY_ID = ['cast', 'locations', 'forces', 'fortresses', 'movements', 'hidden.threads', 'battleDemo.units', 'battleDemo.options'];
 // lists that only grow: give only the new entries
@@ -75,6 +75,7 @@ export function mergeTurn(prev, reply) {
   for (const k of PER_TURN_HIDDEN) if (!(isObj(ch.hidden) && k in ch.hidden)) next.hidden[k] = [];
   if (next.world) for (const k of ['weather', 'scene']) if (!(isObj(ch.world) && k in ch.world)) delete next.world[k];
   if (next.battleDemo) delete next.battleDemo._sim;
+  next.span = { from: prev.date, at: (prev.player || {}).locationId || null };
   next.turn = reply.turn; next.parentTurn = reply.parentTurn; next.schemaVersion = prev.schemaVersion || 2;
   return { next, notes };
 }
@@ -135,6 +136,10 @@ export function checkReply(prev, reply, ctx = {}) {
     const old = ((prev.hidden || {}).threads || []).find(x => x.id === (t && t.id));
     if (old && ['resolved', 'abandoned'].includes(old.status) && t.status && ['dormant', 'building'].includes(t.status) && !t.note) warns.push('Thread "' + (old.title || old.id) + '" was ' + old.status + ' and is open again without a note why.');
   }
+  if (ch.reports.some(r => r && r.battle) && !isObj(ch.battleDemo)) warns.push('A letter is marked as a battle account, but battleDemo was not set for that battle; the ground he sees will be the old one.');
+  const route = ch.player && ch.player.route;
+  if (Array.isArray(route)) ch.player.route = route.filter((s, i) => { const ok = isObj(s) && typeof s.date === 'string' && s.date >= prev.date && s.date <= date && (s.place === 'road' || locIds.has(s.place));
+    if (!ok) fixes.push('Stage ' + (i + 1) + ' of his route was left out (it needs a date within the turn and a location id or "road").'); return ok; });
   const en = ch.battleDemo && ch.battleDemo.enemy; if (en && en.temper && !TEMPERS.includes(en.temper)) { fixes.push('Unknown enemy temper "' + en.temper + '" read as steady.'); en.temper = 'steady'; }
   for (const k of PLAYER_KEYS) if (k in ch && k !== 'campaignId') fixes.push('A change to ' + k + ' was ignored: it is yours to set.');
   if (ch.ended && !ch.epilogue) warns.push('The campaign ends but the reply has no epilogue.');
@@ -163,30 +168,45 @@ function checkUrgent(r, from, to, refs, castIds, warns, fixes) {
 }
 
 /* ---------- fortune: the page rolls; the same turn always rolls the same, so sealing again changes nothing ---------- */
-export function rollFortune(campaignId, turn, n = 8) {
-  let s = [...(campaignId + ':' + turn)].reduce((a, c) => Math.imul(a ^ c.charCodeAt(0), 2654435761) | 0, 0x9e3779b9);
+export function rollFortune(campaignId, turn, n = 8, salt = '') {
+  let s = [...(campaignId + (salt ? ':' + salt : '') + ':' + turn)].reduce((a, c) => Math.imul(a ^ c.charCodeAt(0), 2654435761) | 0, 0x9e3779b9);
   const r = () => { s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
   return Array.from({ length: n }, () => 1 + Math.floor(r() * 100));
 }
 
 /* ---------- what of the almanac goes with this turn ---------- */
-export function seedThreads(almanac) { return (almanac.plots || []).map(p => ({ id: p.id, title: p.title, status: 'dormant', next_check: (p.window && p.window[0] ? p.window[0] + (p.window[0].length === 7 ? '-01' : '') : null) })); }
+export function seedThreads(almanac, from = '') { return (almanac.plots || []).map(p => { const w = p.window && p.window[0] ? p.window[0] + (p.window[0].length === 7 ? '-01' : '') : null; return { id: p.id, title: p.title, status: 'dormant', next_check: w && from > w ? from : w }; }); }
+export const liveThread = t => t && ['building', 'triggered'].includes(t.status);
+export const dueThread = (t, date) => t && t.status === 'dormant' && !!t.next_check && t.next_check <= addDays(date, 30);
 export function activePlots(almanac, threads, date) {
-  const soon = addDays(date, 45), byId = new Map((threads || []).map(t => [t.id, t]));
+  const soon = addDays(date, 30), byId = new Map((threads || []).map(t => [t.id, t]));
   return (almanac.plots || []).filter(p => {
-    const t = byId.get(p.id); if (t && ['resolved', 'abandoned'].includes(t.status)) return false;
-    if (t && ['building', 'triggered'].includes(t.status)) return true;
-    if (t && t.next_check && t.next_check <= soon) return true;
+    const t = byId.get(p.id); if (t) return liveThread(t) || dueThread(t, date);
     const [a, b] = p.window || []; return a && (a <= soon.slice(0, a.length)) && (!b || b >= date.slice(0, b.length));
   });
 }
-const compactPlot = p => { const o = {}; for (const k of ['id', 'title', 'window', 'actors', 'preconditions', 'historical', 'levers', 'signals', 'failure_modes']) if (p[k] != null) o[k] = p[k]; return o; };
+// a live thread gets its whole model; one only due for a check gets what tells whether it has begun
+const compactPlot = (p, live) => { const o = {}; for (const k of live ? ['id', 'title', 'window', 'actors', 'preconditions', 'historical', 'levers', 'signals', 'failure_modes'] : ['id', 'title', 'window', 'preconditions', 'signals']) if (p[k] != null) o[k] = p[k]; return o; };
+export const KEEP = { ledgerTurns: 3, canon: 40, dispatches: 12, memory: 5 };
 export function liveState(state) {
   const s = clone(state); for (const k of STATIC_KEYS) delete s[k];
   if (s.hidden) { delete s.hidden.world; delete s.hidden.threads; } // threads go as the index above the state
-  delete s.record; // the seal goes above the state
+  delete s.record; delete s.span; // the seal goes above the state; the span is the page's
+  // last turn's own output: the adjudicator wrote it and the merge clears it; only an index of the letters goes back
+  s.reports = (s.reports || []).map(r => ({ id: r.id, from_id: r.from_id, dated: r.dated, title: r.title, ...(r.re ? { re: r.re } : {}) }));
+  for (const k of ['gazette', 'whereabouts', 'overheard']) delete s[k];
+  if (s.decision) s.decision = { id: s.decision.id, title: s.decision.title };
+  if (s.scene && s.scene.status === 'closed') delete s.scene;
+  const h = s.hidden || {}; delete h.decisions; delete h.fortune_used;
+  const t = state.turn || 0, older = (n, all) => all > n ? ' (' + (all - n) + ' earlier entries are kept by the page)' : '';
+  if (Array.isArray(s.ledger)) { const all = s.ledger.length; s.ledger = s.ledger.filter(e => !(e && e.turn) || e.turn > t - KEEP.ledgerTurns); if (s.ledger.length < all) s.ledgerNote = 'Recent entries only' + older(s.ledger.length, all) + '.'; }
+  if (Array.isArray(h.canon) && h.canon.length > KEEP.canon) { h.canonNote = 'The latest ' + KEEP.canon + ' settled facts' + older(KEEP.canon, h.canon.length) + '; the page checks every reply against all of them.'; h.canon = h.canon.slice(-KEEP.canon); }
+  if (Array.isArray(h.dispatches) && h.dispatches.length > KEEP.dispatches) h.dispatches = h.dispatches.slice(-KEEP.dispatches);
+  if (isObj(h.memory)) for (const k of Object.keys(h.memory)) if (Array.isArray(h.memory[k])) h.memory[k] = h.memory[k].slice(-KEEP.memory);
   const bd = s.battleDemo; // the table battle's ground, compactly: change units by id ({"id", "e", "n", "facing"}) when a battle moves them
-  if (bd) s.battleDemo = { id: bd.id, title: bd.title, place: bd.place, center: bd.center, enemy: bd.enemy, aftermath: bd.aftermath, unitsAs: 'id, side, type, e, n, facing', units: (bd.units || []).map(u => [u.id, u.side, u.type, u.e, u.n, u.facing]) };
+  const battleNear = bd && (bd.enemy || bd.aftermath || (state.world || {}).tempo === 'campaigning' || state.player.mode === 'field');
+  if (bd && !battleNear) s.battleDemo = { id: bd.id, title: bd.title, place: bd.place, center: bd.center, date: bd.date, note: 'Units and positions are sent when a battle may come (campaigning, an enemy commander named, or the player with the army).' };
+  else if (bd) s.battleDemo = { id: bd.id, date: bd.date, title: bd.title, place: bd.place, center: bd.center, enemy: bd.enemy, aftermath: bd.aftermath, unitsAs: 'id, side, type, e, n, facing', units: (bd.units || []).map(u => [u.id, u.side, u.type, u.e, u.n, u.facing]) };
   return s;
 }
 
@@ -206,6 +226,9 @@ Return ONE JSON object and nothing else:
 - Cleared unless you give them again: reports, gazette, overheard, whereabouts, decision, scene, world.weather, world.scene, hidden.decisions, hidden.fortune_used.
 - Never change: ${PLAYER_KEYS.join(', ')}.
 - Player-facing text holds only what the character could know. Keep ids stable.
+- Optional, give only when they apply: gazette (the Diarium issues of this turn), weather (only the days it changes; each day keeps the last weather given), overheard, whereabouts, decision (only a real fork), scene (an audience he asked for: {"id","title","setting","participants":[{"id","name"}],"lines":[{"who","text"}],"commitments":["…"],"status":"closed"}).
+- A journey: give player.locationId where he ends the turn, and player.route [{"date","place"}] (place a location id or "road") if he stops anywhere or arrives on a day other than the distance implies. Without a route he is on the road from the first day of the turn and arrives after the usual days for the distance.
+- A battle account (a report with "battle": true) needs battleDemo for that battle: title, place, center [lat, lon], date, and its units moved or removed by id. For a battle outside this campaign, write an ordinary letter instead.
 
 Skeleton (fill it from the story; leave out what did not change):
 {"kind":"turn","schemaVersion":3,"campaignId":"${state.campaignId}","turn":${n},"parentTurn":${state.turn},"seal":"${sealOf(state)}","changes":{
@@ -224,8 +247,10 @@ Skeleton (fill it from the story; leave out what did not change):
 }}`;
 }
 export function buildPacket({ state, contract, orders, almanac, fortune, wake, trust, choices, endRequested, purse }) {
-  const th = (state.hidden || {}).threads || [], date = state.date, act = activePlots(almanac || {}, th, date);
-  const index = th.map(t => '- ' + t.id + ' · ' + (t.title || '') + ' · ' + (t.status || 'dormant') + (t.next_check ? ' · check ' + t.next_check : '')).join('\n');
+  const th = (state.hidden || {}).threads || [], date = state.date, act = activePlots(almanac || {}, th, date), byId = new Map(th.map(t => [t.id, t]));
+  const shown = th.filter(t => !['resolved', 'abandoned'].includes(t.status) && (liveThread(t) || dueThread(t, date))), rest = th.length - shown.length;
+  const index = shown.map(t => '- ' + t.id + ' · ' + (t.title || '') + ' · ' + (t.status || 'dormant') + (t.next_check ? ' · check ' + t.next_check : '') + (t.note ? ' · ' + t.note : '')).join('\n')
+    + (rest ? (shown.length ? '\n' : '') + '(' + rest + ' other threads are dormant and not due for a check within 30 days, or closed; the page keeps them. Wake one by giving its id with a new status.)' : '');
   const soon = addDays(date, 120), cal = ((almanac || {}).calendar || []).filter(c => c.d >= date && c.d <= soon).map(c => '- ' + c.d + ': ' + c.e + ' (' + c.c + ')').join('\n');
   const tr = Object.entries(trust || {}), trusts = tr.filter(([, v]) => v === 'trust').map(([k]) => k), doubts = tr.filter(([, v]) => v === 'doubt').map(([k]) => k);
   return '# CABINET OF WAR — turn ' + state.turn + ' → ' + (state.turn + 1) + '\n\nAct as a historian and impartial adjudicator. This packet is self-contained: the current state, his orders, this turn\'s fortune and the parts of the almanac now in play.\n\n'
@@ -238,11 +263,11 @@ export function buildPacket({ state, contract, orders, almanac, fortune, wake, t
     + '\n\n## His own purse\n' + (purse && purse.length ? 'Orders he pays for himself: ' + purse.join(' | ') : '(nothing from his own purse this turn)')
     + (volumeDue(state) ? '\n\n## A volume closes\nThis is turn ' + (state.turn + 1) + '. Add one entry to hidden.volumes: {"n": ' + ((state.turn + 1) / 10) + ', "turns": "' + (state.turn - 8) + '–' + (state.turn + 1) + '", "title", "text"} — these ten turns in at most 200 words. Then begin hidden.chronicle again from the end of this volume.' : '')
     + '\n\n## The seal\nThis packet\'s seal is ' + sealOf(state) + '. Copy it into the reply as "seal".' + ((state.record || {}).ironman ? ' The record is sealed (ironman): this turn cannot be replayed.' : '')
-    + '\n\n## Fortune for this turn\n' + (fortune || []).join(', ') + '\nUse in order; low is bad for him and his side, high is good. Record each in hidden.fortune_used.'
+    + '\n\n## Fortune for this turn\n' + (fortune || []).join(', ') + '\nUse in order for genuinely uncertain outcomes; low is bad for him and his side, high is good. Record each one you use in hidden.fortune_used; rolls left over are simply unused.'
     + '\n\n## Almanac: systems and stakes\n' + ((almanac || {}).systems || []).map(s => '- ' + s.name + ': ' + s.summary).join('\n') + '\n' + ((almanac || {}).stakes || []).map(s => '- If ' + s.what.toLowerCase() + ': ' + s.consequence).join('\n')
     + (cal ? '\n\n## Almanac: calendar anchors in the next four months (reference, not script)\n' + cal : '')
     + '\n\n## Threads (hidden.threads)\n' + (index || '(none)')
-    + '\n\n## Almanac entries for threads now in play\nProvisional causal models, not facts or schedules (sources and verification notes are in the almanac file).\n' + (act.length ? JSON.stringify(act.map(compactPlot)) : '(none)')
+    + '\n\n## Almanac entries for threads now in play\nProvisional causal models, not facts or schedules (sources and verification notes are in the almanac file).\n' + (act.length ? JSON.stringify(act.map(p => compactPlot(p, !byId.has(p.id) || liveThread(byId.get(p.id))))) : '(none)')
     + '\n\n' + replyFormat(state)
     + '\n\n## Current state (JSON)\nNote: the hidden field is not secret from anyone who can read this packet.\n' + JSON.stringify(liveState(state)) + '\n';
 }

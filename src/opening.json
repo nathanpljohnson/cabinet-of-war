@@ -9,6 +9,15 @@
    "kind": "city",
    "report": "Moravia. The Spielberg fortress above the town holds state prisoners.",
    "lab": "w"
+  },
+  {
+   "id": "glogau",
+   "name": "Glogau",
+   "lat": 51.6633,
+   "lon": 16.0849,
+   "kind": "city",
+   "report": "Silesia. The Oder fortress nearest Brandenburg; Wallis’s headquarters.",
+   "lab": "w"
   }
  ],
  "cast_update": {
@@ -39,7 +48,8 @@
   "wallis": {
    "agenda": "Money and orders for the Silesian garrisons before the winter.",
    "voice": "A soldier's report: plain figures, few compliments.",
-   "office": "Commanding general in Silesia, at Glogau"
+   "office": "Commanding general in Silesia, at Glogau",
+   "place": "glogau"
   },
   "francis_stephen": {
    "office": "Grand Duke of Tuscany; Her Majesty's husband"
@@ -113,7 +123,7 @@
  "reports": [
   {
    "id": "r1",
-   "place": "breslau",
+   "place": "glogau",
    "dated": "1740-10-16",
    "arrives": "1740-10-21",
    "category": "The province of Silesia",
@@ -372,5 +382,6 @@
    "claim": "inference",
    "note": "Wallis's command at Glogau rests on one source; the quartermaster, generals, envoys and steward are roles, not identified people. Francis Stephen was named co-regent only on 21 November 1740."
   }
- ]
+ ],
+ "briefing": "Charles VI died at the Favorita in the night of 19–20 October 1740. Maria Theresa takes up the government of the hereditary lands; the first Conference of the reign meets today. Silesia is thinly held, the chest nearly empty, and every court that signed the Pragmatic Sanction is about to be asked to honour it."
 }

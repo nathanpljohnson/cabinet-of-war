@@ -97,7 +97,7 @@ def test_fixes_on_arrival(run):
 def test_packet(run):
     p = run["packet"]
     assert p["hasContract"] and p["hasTrust"]
-    assert p["bytes"] < 75_000
+    assert p["bytes"] < 60_000
     for k in p["staticKeys"]:
         assert k not in p["live"]
     assert p["active"], "some plots are in play at the opening"
@@ -148,3 +148,34 @@ def test_build_split_the_almanac():
     assert len(json.loads((ROOT / "w3d" / "almanac.json").read_text())["plots"]) == 47
     assert "window.__temper" in html
     assert "w3d/main.js" in html
+
+
+def test_packet_after_a_turn_is_lean(run):
+    a = run["after"]
+    assert a["span"] == {"from": "1740-10-21", "at": "vienna"}
+    for k in ["gazette", "whereabouts", "overheard", "span", "record"]:
+        assert k not in a["live"]
+    assert set(a["reportKeys"]) <= {"id", "from_id", "dated", "title", "re"}
+    assert "decisions" not in a["hiddenKeys"] and "fortune_used" not in a["hiddenKeys"]
+    assert "rel-papal-neutrality-1741" not in a["active"]  # its thread says not before June 1741
+    assert a["battleUnits"] and not a["openingUnits"]  # units go only once an enemy commander is named
+    assert a["bytes"] < 60_000
+
+
+def test_route_is_checked(run):
+    r = run["route"]
+    assert [s["date"] for s in r["route"]] == ["1740-10-22", "1740-10-27"]
+    assert len([f for f in r["fixes"] if "route" in f]) == 2
+
+
+def test_fortune_is_salted_per_campaign(run):
+    a, b, c, d = run["salt"]
+    assert a == b and a != c and a != d
+
+
+def test_opening_is_not_a_demo(run):
+    o = run["opening"]
+    assert "demonstration" not in o["briefing"]
+    assert o["scene"] is None and o["movements"] == 0 and o["demoCast"] == 0
+    assert o["wallis"] == "glogau"
+    assert o["early"] == 0
