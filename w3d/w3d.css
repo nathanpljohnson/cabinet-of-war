@@ -380,3 +380,13 @@ body.w3d-on dialog h2{font:400 26px var(--display)!important}
 .cw-record .row{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
 .cw-auto{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--bone-2)}
 @media (max-width:640px){.sh-bk{padding:4px 18px 24px}}
+
+/* ---------- the Wiennerisches Diarium ---------- */
+.sh-gazette{font-family:var(--display)}
+.sh-gazette .gz-mast{text-align:center;font:400 34px/1 "Old English Text MT","UnifrakturMaguntia",var(--display);letter-spacing:.01em;border-bottom:3px double var(--paper-ink);padding-bottom:10px}
+.sh-gazette .gz-date{text-align:center;font:13px var(--display);font-variant-caps:all-small-caps;letter-spacing:.12em;color:var(--paper-mute);margin:8px 0 18px;border-bottom:1px solid var(--paper-line);padding-bottom:8px}
+.sh-gazette h4{font:400 19px/1.25 var(--display);margin:16px 0 4px}
+.sh-gazette p{font:16px/1.55 var(--read);margin:0;text-align:justify;hyphens:auto}
+.sh-bk .bk-gz{padding-left:20px}.sh-bk .bk-gz li{margin:4px 0}
+.sh-purse{display:flex;align-items:center;gap:8px;font:14px var(--read);color:var(--bone-2);margin:6px 0}
+.cw-record code{font:12px ui-monospace,Menlo,monospace;color:var(--bone-2)}

@@ -105,6 +105,35 @@ def test_packet(run):
     assert a == b and a != c and all(1 <= x <= 100 for x in a)
 
 
+def test_new_fields_merge(run):
+    n = run["mocks"]["living"]["next"]
+    assert n["world"]["tempo"] == "winter quarters"
+    assert len(n["gazette"]) == 2 and n["gazette"][0]["id"] == "gz-1740-10-22"
+    assert "banker" in n["household"]["purse"] and n["purse"]["debts"]
+    a = run["mocks"]["winter"]["next"]["aftermath"]
+    assert a["held_by"] == "B" and a["fallen"]["A3"] == "destroyed"
+
+
+def test_sealed_record(run):
+    r = run["record"]
+    assert r["stable"] and len(r["origin"]) == 16
+    assert any("different packet" in e for e in r["wrong"])
+    assert any("seal" in w for w in r["missing"])
+    assert r["volumeDue"] == [True, False, False]
+    assert any("volume" in w for w in r["volumeWarn"])
+    assert r["nextSeal"] == r["link1"]["h"] and r["nextSeal"] != r["origin"]
+    assert r["fp"][0] == r["fp"][1] != r["fp"][2]
+    assert r["packetSeal"] and r["packetVolume"]
+    assert r["recordKept"] == 1  # a reply cannot rewrite the record
+
+
+def test_bad_new_fields_are_fixed(run):
+    b = run["badFixes"]
+    assert "tempo" not in b["world"]
+    assert [g["date"] for g in b["gazette"]] == ["1740-10-21"]
+    assert b["fallen"]["A1"] == "heavy"
+
+
 def test_branch_is_limited(run):
     b = run["branch"]
     assert b["remarks"] == ["r"] and b["date"] == "1740-10-21"

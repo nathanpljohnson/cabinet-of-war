@@ -202,3 +202,11 @@ User decision: most play is one order of the day; no letter writing; conversatio
 - **Reply review**: one dialog for errors, fixes on arrival, warnings and continuity, with copy-a-correction and copy-a-resend (cut-off pastes).
 - **Book of the campaign** (bar → ⋯, or the notebook): chapters per turn; after the end, what was hidden; save as a page.
 - Tests: `python3 -m pytest -q tests` (node harness over the mocks).
+
+### Revision 15 (2026-10-23): the sealed record, the Diarium, the purse, the seasons, the field afterwards (Claude Code)
+- **Sealed record**: `state.record.chain` links each accepted turn to the last (fingerprint of the previous seal + the reply's changes). The packet carries the seal; a reply must copy it, and a reply for another packet is refused. Campaign files carry a fingerprint. **Ironman** (Notebook → The record, one-way): altered files, older files and whole saved states are refused.
+- **Chronicle volumes**: every tenth turn the packet asks for `hidden.volumes` (≤200 words, append-only); the chronicle restarts after each. Shown in the book once the campaign ends.
+- **Wiennerisches Diarium**: `gazette` issues arrive with the post as a printed paper; the public version, late and managed. Headlines go into the book.
+- **His own purse**: `hidden.purse` (Claude's notes), `household.purse` (the steward's sentence, in the notebook); orders can be marked "From my own purse" and are listed for Claude.
+- **Winter quarters / campaigning / truce**: `world.tempo`; the place looks the part (drill, tents, idle soldiers, convoys) unless Claude described the place itself.
+- **The field afterwards**: `battleDemo.aftermath` (from Claude's account, or worked out from a table battle's losses). "Ride over the field afterwards" on battle letters, "Ride over the field" after a table battle: the dead of both sides, dead horses, lost guns, burial parties, a low camera.
