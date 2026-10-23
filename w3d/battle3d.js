@@ -164,6 +164,30 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     }
   }
 
+  /* ---------- the day after: what lies on the ground (state.battleDemo.aftermath, from the account or the table battle) ---------- */
+  const lay = g => g.clone().rotateX(-Math.PI / 2).translate(0, .16, 0);
+  const deadHorse = merge([box(.55, .5, 1.7, 0x5a3a22, 0, .25, 0), box(.3, .3, .6, 0x5a3a22, 0, .2, 1.05), box(.14, .14, .8, 0x2a1e14, .3, .1, .3, .3), box(.14, .14, .8, 0x2a1e14, .3, .1, -.4, -.3)]).rotateZ(Math.PI / 2).translate(0, .3, 0);
+  const tipped = P.cannon().clone().rotateZ(.45).translate(0, -.15, 0);
+  const after = new FramePool([lay(infantryFrames('A', true)[0]), lay(infantryFrames('B', true)[0]), deadHorse, tipped, infantryFrames('A', true)[0], P.wagon()], 6000, figMat);
+  after.setShadow(true); after.group.visible = false; scene.add(after.group);
+  let aftermathOn = false, afterKey = '', afterCentre = [0, 0];
+  const AF_N = { light: 18, heavy: 55, destroyed: 120 };
+  function buildAftermath() {
+    const af = state.battleDemo.aftermath || {}, R = rngFrom(977); after.begin(); let best = 0; afterCentre = [0, 0];
+    for (const u of state.battleDemo.units) {
+      const w = (af.fallen || {})[u.id]; if (!w) continue;
+      const d = dims(u), f = (u.facing || 0) * Math.PI / 180, fx = Math.sin(f), fz = -Math.cos(f), rx = Math.cos(f), rz = Math.sin(f), x0 = u.e, z0 = -u.n, cav = u.type === 'cav';
+      const n = Math.round(AF_N[w] * (cav ? .6 : u.type === 'art' ? .3 : 1)); if (n > best) { best = n; afterCentre = [x0 + fx * 30, z0 + fz * 30]; } // the ride starts where the dead lie thickest
+      for (let i = 0; i < n; i++) { const lx = (R() - .5) * d.w * 1.2, lz = (R() - .3) * (d.d + 40) * (w === 'destroyed' ? 1.8 : 1), x = x0 + rx * lx + fx * lz, z = z0 + rz * lx + fz * lz, a = R() * Math.PI * 2;
+        after.put(cav && i % 3 === 0 ? 2 : u.side === 'A' ? 0 : 1, x, hAt(x, z), z, Math.cos(a), Math.sin(a), 1); }
+      if (u.type === 'art' && (af.guns_taken || []).includes(u.id)) for (let g = 0; g < 4; g++) { const x = x0 + rx * (g - 1.5) * 9, z = z0 + rz * (g - 1.5) * 9, a = f + (R() - .5); after.put(3, x, hAt(x, z), z, Math.cos(a), Math.sin(a), 1); }
+      // a burial party and its cart where the dead lie thickest
+      if (w !== 'light') { const bx = x0 + fx * 12, bz = z0 + fz * 12; after.put(5, bx + 6, hAt(bx + 6, bz), bz, 1, 0, 1); for (let k = 0; k < 6; k++) { const x = bx + (k % 3) * 1.6, z = bz + Math.floor(k / 3) * 1.8, a = R() * 6; after.put(4, x, hAt(x, z), z, Math.cos(a), Math.sin(a), 1); }
+        if (R() < .7) puff(bx, hAt(bx, bz) + 3, bz, 18, 20); }
+    }
+    after.end();
+  }
+
   /* ---------- camera ---------- */
   const cam = { tx: -250, tz: 720, yaw: .12, pitch: .62, dist: 1500 };
   const tmpM = new THREE.Matrix4(), tq = new THREE.Quaternion(), tv = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1), up = new THREE.Vector3(0, 1, 0);
@@ -184,7 +208,8 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     const bd = state.battleDemo, us = bd.units, k = 1 - Math.exp(-dt * 5), figScale = 1; // true scale at every distance, so men, guns and houses keep their proportions
     for (const s of 'AB') for (const k in pools[s]) pools[s][k].begin(); guns.begin();
     const shown = new Set();
-    for (const u of us) {
+    if (aftermathOn) { const k = JSON.stringify(bd.aftermath || {}); if (k !== afterKey) { afterKey = k; buildAftermath(); } }
+    for (const u of aftermathOn ? [] : us) {
       const v = visFor(u), A = u.side === 'A', live = alive(u) && u.st !== 'gone';
       const seenNow = A || u.vis;
       v.plate.visible = live && seenNow; v.ghost.visible = false; if (v.flag) v.flag.visible = false;
@@ -246,7 +271,7 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
       v.lab.className = 'w3d-ulabel ' + u.side + (sel ? ' sel' : '') + (ghost ? ' ghost' : '');
       v.lab.style.display = ''; v.lab.style.left = (tv.x * W2 + W2) + 'px'; v.lab.style.top = (-tv.y * H2 + H2) + 'px';
     }
-    for (const id in vis) if (!shown.has(id)) vis[id].lab.style.display = 'none';
+    for (const id in vis) if (!shown.has(id)) { vis[id].lab.style.display = 'none'; if (aftermathOn) { vis[id].plate.visible = false; vis[id].ghost.visible = false; if (vis[id].flag) vis[id].flag.visible = false; } }
     const ak = JSON.stringify(armyOrders()) + Math.round(figScale * 4) + (BS.running ? Math.floor(t * 2) : '');
     if (ak !== arrowKey) { arrowKey = ak; buildArrows(figScale); }
     renderCard();
@@ -257,6 +282,7 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     const bd = state.battleDemo, id = inspected || [...selUnits][0], u = id && unitById(id), mA = armyMorale('A'), mB = armyMorale('B'), seen = bd.units.some(x => x.side === 'B' && x.vis);
     const k = [id, u && Math.round(u.men), u && u.st, u && u.form, u && Math.round(u.mor), selUnits.size, BS.phase, BS.running, BS.result, JSON.stringify(u && armyOrders()[u.id] || ''), seen, Math.round(mA * 100), Math.round(mB * 20)].join('|');
     if (k + readOnly === lastCardKey) return; lastCardKey = k + readOnly; card.hidden = false;
+    if (aftermathOn) { const af = bd.aftermath || {}; card.innerHTML = '<h3>The field, afterwards</h3><div class="m">' + (af.held_by === 'B' ? 'The enemy holds the ground; your officers ride over it under a flag of truce.' : 'Your army holds the ground.') + (af.date ? ' ' + new Date(af.date + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) + '.' : '') + '</div>' + (af.note ? '<div class="m">' + af.note.replace(/[<>&]/g, '') + '</div>' : '') + '<div class="m">WASD or right-drag to ride over it · drag to look · wheel to rise.</div><div class="row"><button data-b="leave">Ride back</button></div>'; return; }
     if (readOnly) { card.innerHTML = '<h3>The ground, as your staff describe it</h3><div class="m">You were not there. The positions are those given in the account; click a formation to read what is known of it.</div>' + (u ? '<h3>' + shortName(u) + '</h3><div class="m">' + ({ inf: 'Infantry', cav: 'Cavalry', art: 'Artillery' }[u.type]) + ' · ' + (u.form || 'line') + ' · about ' + Math.round(u.men / 50) * 50 + ' men · ' + moraleWord(u) + '</div>' : '') + '<div class="row"><button data-b="leave">Put the account down</button></div>'; return; }
     const h = []; const pct = x => Math.round(x * 100);
     h.push('<div class="m">Phase ' + BS.phase + ' of ' + BS.max + ' · ' + BS.phase * 15 + ' min' + (BS.running ? ' · <b>running…</b>' : '') + '</div>');
@@ -271,10 +297,10 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     } else h.push('<div class="m" style="margin-top:6px">Click one of your formations to select it (Shift-click to add). The bar at the bottom gives orders; they are carried out when you run the next 15 minutes.</div>');
     if (BS.result) { const [tt, dd] = OUTCOME[BS.result] || [BS.result, '']; h.push('<div class="res"><h3>' + tt + '</h3><div class="m">' + dd + ' You lost ' + BS.summary.lossesA + '%, the enemy about ' + BS.summary.lossesB + '%. The adjudicator decides what it means for the campaign.</div></div>'); }
     const last = BS.log[BS.log.length - 1]; if (last && !BS.running) h.push('<div class="res"><div class="m"><b>Last phase:</b> you lost ' + last.lostA + ', they lost about ' + last.lostB + '. ' + last.enemyMoved + '</div>' + last.events.slice(0, 3).map(e => '<div class="m">· ' + e + '</div>').join('') + '</div>');
-    h.push('<div class="row">' + (BS.result ? '<button data-b="again">Fight it again</button>' : '<button data-b="run">Run 15 minutes ▶</button><button data-b="withdraw">Withdraw</button>') + '<button data-b="sheet">Order sheet</button><button data-b="army">Courses</button></div>');
+    h.push('<div class="row">' + (BS.result ? '<button data-b="after">Ride over the field</button><button data-b="again">Fight it again</button>' : '<button data-b="run">Run 15 minutes ▶</button><button data-b="withdraw">Withdraw</button>') + '<button data-b="sheet">Order sheet</button><button data-b="army">Courses</button></div>');
     card.innerHTML = h.join('');
   }
-  card.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const a = b.dataset.b; if (a === 'run') runPhase(1); else if (a === 'withdraw') withdrawBattle(); else if (a === 'again') newBattle(); else if (a === 'army') window.__w3d.act('notebook'); else if (a === 'sheet') window.__w3d.act('orders'); else if (a === 'leave') window.__w3d.act('room'); });
+  card.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const a = b.dataset.b; if (a === 'run') runPhase(1); else if (a === 'withdraw') withdrawBattle(); else if (a === 'again') newBattle(); else if (a === 'army') window.__w3d.act('notebook'); else if (a === 'sheet') window.__w3d.act('orders'); else if (a === 'leave') window.__w3d.act('room'); else if (a === 'after') window.__w3d.act('aftermathTable'); });
 
   /* ---------- input ---------- */
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
@@ -297,6 +323,8 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     leave() { card.hidden = true; labels.hidden = true; if (armyTool) setArmyTool(armyTool); if (!prevBattleOn) showBattle(false); },
     refresh() { lastCardKey = ''; arrowKey = ''; },
     setReadOnly(b) { readOnly = b; inspected = null; lastCardKey = ''; if (b) selectUnits([]); },
+    // ride over the ground the day after: the dead, the guns, the burial parties; the camera low, among them
+    setAftermath(b) { aftermathOn = b; after.group.visible = b; arrowG.visible = !b; labels.hidden = b; afterKey = ''; lastCardKey = ''; if (b) { buildAftermath(); cam.tw = null; cam.tx = afterCentre[0]; cam.tz = afterCentre[1]; cam.dist = 70; cam.pitch = .26; } },
     // arrive from the map: start high over (x,z) and settle down onto the field
     descend(x, z) { cam.tx = Math.max(-W / 2, Math.min(W / 2, x)); cam.tz = Math.max(-H / 2, Math.min(H / 2, z)); cam.dist = 5800; cam.pitch = 1.2; cam.tw = { t: 0, d0: 5800, d1: 1300, p0: 1.2, p1: .66 }; },
     frame(dt, t) {

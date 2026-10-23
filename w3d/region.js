@@ -18,7 +18,8 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   // cues: what the state says the world looks like — season, mourning, pay, roads, refugees, men in camp, standing, dismissal
   const winter = cues.season === 'winter', SNOW = new THREE.Color(0xeef1f4);
   // what someone walking through would notice (state.world.scene, chosen by the adjudicator from a fixed list)
-  const tags = new Set(cues.scene || []);
+  // winter quarters and campaigning look the part unless the adjudicator described this place itself
+  const tags = new Set(cues.scene && cues.scene.length ? cues.scene : cues.tempo === 'winter quarters' ? ['idle_soldiers'] : cues.tempo === 'campaigning' ? ['wagons_in'] : []);
   // each campaign location gets its own country: same plan, different seed, name and stucco
   const seed = [...place.id].reduce((a, c) => a * 31 + c.charCodeAt(0) | 0, 7), N = makeNoise(place.id === 'vienna' ? 1740 : seed), rnd = rngFrom(place.id === 'vienna' ? 1021 : seed ^ 0x5bd1), group = new THREE.Group();
   const STUCCO = [0xdcb873, 0xe8d9b8, 0xd9b8a0, 0xe2cf96, 0xd8c8c0][Math.abs(seed) % 5];
@@ -210,7 +211,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   const camp = new THREE.Group(); group.add(camp);
   const ch = campH, cadd = (geo, x, z, ry = 0) => { const m = new THREE.Mesh(geo, propsMat); m.position.set(x, ch, z); m.rotation.y = ry; m.castShadow = m.receiveShadow = true; camp.add(m); return m; };
   const tentG = [P.tent(rngFrom(1)), P.tent(rngFrom(2))];
-  const ROWS = cues.men ? Math.max(1, Math.min(6, Math.round(cues.men / 1200))) : 4;
+  const ROWS = cues.men ? Math.max(1, Math.min(6, Math.round(cues.men / 1200))) : cues.tempo === 'winter quarters' ? 2 : cues.tempo === 'campaigning' ? 6 : 4;
   for (let row = 0; row < ROWS; row++) for (let i = 0; i < 6; i++) { const x = 160 + i * 6.4, z = 36 + row * 8.5; cadd(tentG[(i + row) % 2], x, z, Math.PI / 2); colliders.push({ b: [x - 1.3, x + 1.3, z - 1.45, z + 1.45] }); if (i % 2 === 0) cadd(P.muskets(), x, z + 3.2); }
   cadd(P.marquee(), 204, 24, -Math.PI / 2); colliders.push({ b: [201.6, 206.4, 20.8, 27.2] });
   const fieldTable = cadd(P.mapTable(), 199, 24, Math.PI / 2); colliders.push({ b: [197.9, 200.1, 22.4, 25.6] });
@@ -294,7 +295,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   const walkRoad = (kind, pts, v, k) => { const p = person(kind, pts[0][0], pts[0][1], 0, 'Walk_Loop'); p.follow = { pts, i: Math.floor(k * pts.length * .9), v }; const [x, z] = pts[p.follow.i]; p.obj.position.set(x, hAt(x, z), z); return p; };
   if (cues.refugees) { const back = [...PP].reverse().map(([x, z], i) => [x + Math.sin(i) * 1.1, z + Math.cos(i * 1.3) * 1.1]); for (let i = 0; i < 7; i++) walkRoad(['labourer', 'woman', 'labourer', 'woman', 'burgher', 'woman', 'labourer'][i], back, .8 + rnd() * .3, i / 7); }
   if (cues.pay === 'unpaid') { const out = [[176, 40], [196, 52], [222, 66], [252, 84]]; for (let i = 0; i < 2; i++) walkRoad('infantry', out, 1.0, i / 2); }
-  const drilling = cues.pay !== 'unpaid' && cues.pay !== 'in arrears';
+  const drilling = cues.pay !== 'unpaid' && cues.pay !== 'in arrears' && cues.tempo !== 'winter quarters';
   // the scene tags: what the adjudicator says has changed about this place
   const at = (x, z, kind, ry, anim) => { const p = person(kind, x, z, ry, anim, pubY(x, z)); colliders.push({ c: [x, z, .45] }); return p; };
   if (tags.has('alarm')) { for (const [x, z] of [[-157, -17.5], [-157, -2.5], [-154, -12], [-154, -8]]) at(x, z, 'infantry', Math.PI / 2, 'Idle_Loop'); const g = person('infantry', PUB[0], PUB[1] - 6, 0, 'Walk_Formal_Loop', pubY(PUB[0], PUB[1])); g.patrol = { a: [PUB[0] - 14, PUB[1] - 6], b: [PUB[0] + 14, PUB[1] - 6], v: 1.2, ground: !town }; }

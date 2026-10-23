@@ -5,18 +5,32 @@ export const REPLY_SCHEMA = 3;
 // reference the adjudicator does not need to see or return every turn (kept in the page and the campaign file)
 export const STATIC_KEYS = ['labels', 'routes', 'routesNote', 'sources', 'sourcesAppendix', 'regionLabels', 'movementsNote', 'annotations', 'openingVersion'];
 // the player's own: a reply cannot change them
-export const PLAYER_KEYS = ['trust', 'legacy', 'campaignId'];
+export const PLAYER_KEYS = ['trust', 'legacy', 'campaignId', 'record'];
 // lists merged by id: give only new or changed items (with only the changed fields); {"id": x, "_remove": true} removes one
 export const BY_ID = ['cast', 'locations', 'forces', 'fortresses', 'movements', 'hidden.threads', 'battleDemo.units', 'battleDemo.options'];
 // lists that only grow: give only the new entries
-export const APPEND = ['ledger', 'hidden.canon', 'hidden.dispatches'];
+export const APPEND = ['ledger', 'hidden.canon', 'hidden.dispatches', 'hidden.volumes'];
 const appendPath = p => APPEND.includes(p) || p.startsWith('hidden.memory.');
 // per-turn things: when a reply leaves them out, they are cleared rather than carried into the next turn
-const PER_TURN_LISTS = ['reports', 'overheard', 'whereabouts'], PER_TURN_HIDDEN = ['decisions', 'fortune_used'], PER_TURN_NULL = ['decision', 'scene'];
+const PER_TURN_LISTS = ['reports', 'overheard', 'whereabouts', 'gazette'], PER_TURN_HIDDEN = ['decisions', 'fortune_used'], PER_TURN_NULL = ['decision', 'scene'];
 export const WEATHER = ['clear', 'haze', 'overcast', 'mist', 'rain', 'snow', 'storm'];
 export const SCENE_TAGS = ['alarm', 'idle_soldiers', 'bread_queue', 'empty_market', 'recruiting', 'wagons_in', 'wounded', 'prisoners', 'celebration', 'smoke'];
 export const THREAD_STATUS = ['dormant', 'building', 'triggered', 'resolved', 'abandoned'];
 export const TEMPERS = ['rash', 'bold', 'steady', 'cautious', 'timid'];
+export const TEMPO = ['winter quarters', 'campaigning', 'truce'];
+export const LOSSES = ['light', 'heavy', 'destroyed'];
+// a fingerprint for the sealed record (not cryptographic: it shows tampering and stale replies, it does not stop a determined editor)
+export function fingerprint(s) {
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
+}
+export const sealOf = state => { const c = ((state.record || {}).chain || []); return c.length ? c[c.length - 1].h : fingerprint('origin:' + state.campaignId); };
+// the next link: the head of the chain and what this reply changed
+export const nextLink = (state, payload, turn, date) => ({ turn, date, h: fingerprint(sealOf(state) + ':' + fingerprint(JSON.stringify(payload))) });
+export const volumeDue = state => state.turn > 0 && (state.turn + 1) % 10 === 0;
 
 const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
 const clone = v => JSON.parse(JSON.stringify(v));
@@ -124,6 +138,11 @@ export function checkReply(prev, reply, ctx = {}) {
   const en = ch.battleDemo && ch.battleDemo.enemy; if (en && en.temper && !TEMPERS.includes(en.temper)) { fixes.push('Unknown enemy temper "' + en.temper + '" read as steady.'); en.temper = 'steady'; }
   for (const k of PLAYER_KEYS) if (k in ch && k !== 'campaignId') fixes.push('A change to ' + k + ' was ignored: it is yours to set.');
   if (ch.ended && !ch.epilogue) warns.push('The campaign ends but the reply has no epilogue.');
+  if (ctx.seal) { if (reply.seal && reply.seal !== ctx.seal) errors.push('This reply was written for a different packet (its seal ' + reply.seal + ' is not this turn’s ' + ctx.seal + '). Paste the reply to the latest packet.'); else if (!reply.seal) warns.push('The reply does not carry this turn’s seal.'); }
+  if (ctx.volumeDue && !(Array.isArray(h.volumes) && h.volumes.length)) warns.push('A volume of the chronicle was due this turn (hidden.volumes).');
+  if (w && w.tempo && !TEMPO.includes(w.tempo)) { fixes.push('Unknown tempo "' + w.tempo + '" was left out.'); delete w.tempo; }
+  if (Array.isArray(ch.gazette)) ch.gazette = ch.gazette.filter((g, i) => { if (!isObj(g) || !g.date || !Array.isArray(g.items) || !g.items.length) { fixes.push('Gazette issue ' + (i + 1) + ' had no date or items and was left out.'); return false; } g.id = g.id || 'gz-' + g.date; if (g.date < prev.date) g.date = prev.date; if (g.date > ch.date) g.date = ch.date; return true; });
+  const af = ch.battleDemo && ch.battleDemo.aftermath; if (af && isObj(af.fallen)) for (const [id, v] of Object.entries(af.fallen)) if (!LOSSES.includes(v)) { fixes.push('Unknown losses "' + v + '" for ' + id + ' read as heavy.'); af.fallen[id] = 'heavy'; }
   return { errors, warns, fixes };
 }
 function checkLetter(r, from, to, refs, castIds, warns, fixes) {
@@ -165,8 +184,9 @@ const compactPlot = p => { const o = {}; for (const k of ['id', 'title', 'window
 export function liveState(state) {
   const s = clone(state); for (const k of STATIC_KEYS) delete s[k];
   if (s.hidden) { delete s.hidden.world; delete s.hidden.threads; } // threads go as the index above the state
+  delete s.record; // the seal goes above the state
   const bd = s.battleDemo; // the table battle's ground, compactly: change units by id ({"id", "e", "n", "facing"}) when a battle moves them
-  if (bd) s.battleDemo = { id: bd.id, title: bd.title, place: bd.place, center: bd.center, enemy: bd.enemy, unitsAs: 'id, side, type, e, n, facing', units: (bd.units || []).map(u => [u.id, u.side, u.type, u.e, u.n, u.facing]) };
+  if (bd) s.battleDemo = { id: bd.id, title: bd.title, place: bd.place, center: bd.center, enemy: bd.enemy, aftermath: bd.aftermath, unitsAs: 'id, side, type, e, n, facing', units: (bd.units || []).map(u => [u.id, u.side, u.type, u.e, u.n, u.facing]) };
   return s;
 }
 
@@ -175,7 +195,7 @@ export function replyFormat(state) {
   const n = state.turn + 1;
   return `## Reply format
 Return ONE JSON object and nothing else:
-{"kind": "turn", "schemaVersion": 3, "campaignId": "${state.campaignId}", "turn": ${n}, "parentTurn": ${state.turn}, "changes": { … }}
+{"kind": "turn", "schemaVersion": 3, "campaignId": "${state.campaignId}", "turn": ${n}, "parentTurn": ${state.turn}, "seal": "${sealOf(state)}", "changes": { … }}
 
 "changes" holds only what changed this turn, in the same shape as the current state below. The page merges it:
 - Always give: date, title, briefing, reports (this turn's letters; [] if none), hidden.chronicle, hidden.decisions, hidden.fortune_used, and hidden.canon / ledger entries for what was settled.
@@ -183,17 +203,19 @@ Return ONE JSON object and nothing else:
 - These lists merge by id — give only new or changed items, each with its id and only the fields that changed; {"id": "…", "_remove": true} removes one: ${BY_ID.join(', ')}.
 - These lists only grow — give only the new entries: ${APPEND.join(', ')}, and each list in hidden.memory.
 - Every other list you give replaces the old one whole (reports, knowledge, remarks, hidden.standingOrders, refugees, decision.options …).
-- Cleared unless you give them again: reports, overheard, whereabouts, decision, scene, world.weather, world.scene, hidden.decisions, hidden.fortune_used.
+- Cleared unless you give them again: reports, gazette, overheard, whereabouts, decision, scene, world.weather, world.scene, hidden.decisions, hidden.fortune_used.
 - Never change: ${PLAYER_KEYS.join(', ')}.
 - Player-facing text holds only what the character could know. Keep ids stable.
 
 Skeleton (fill it from the story; leave out what did not change):
-{"kind":"turn","schemaVersion":3,"campaignId":"${state.campaignId}","turn":${n},"parentTurn":${state.turn},"changes":{
+{"kind":"turn","schemaVersion":3,"campaignId":"${state.campaignId}","turn":${n},"parentTurn":${state.turn},"seal":"${sealOf(state)}","changes":{
  "date":"YYYY-MM-DD","title":"…","briefing":"…",
  "player":{"locationId":"…","mode":"court","health":"well"},
  "reports":[{"id":"t${n}-1","from_id":"…","place":"…","dated":"…","arrives":"…","via":"courier","source":"…","category":"…","title":"…","text":"…","claim":"invention","re":["T${state.turn}-1"]}],
  "decision":{"id":"…","title":"…","options":[{"id":"…","by":"…","title":"…","objective":"…","reasoning":"…","risks":"…"}]},
- "world":{"weather":{"YYYY-MM-DD":"overcast"},"scene":{"vienna":["recruiting"]}},
+ "world":{"tempo":"winter quarters","weather":{"YYYY-MM-DD":"overcast"},"scene":{"vienna":["recruiting"]}},
+ "gazette":[{"date":"YYYY-MM-DD","items":[{"head":"…","text":"…"}]}],
+ "household":{"purse":"what his steward would say of his money, in a sentence"},
  "whereabouts":[{"date":"…","place":"vienna","who":["…","…"],"doing":"…"}],
  "cast":[{"id":"…","place":"…"}],
  "remarks":["…"],
@@ -201,7 +223,7 @@ Skeleton (fill it from the story; leave out what did not change):
  "hidden":{"chronicle":"…","decisions":[{"who":"…","knows":"…","wants":"…","decides":"…"}],"fortune_used":[{"roll":0,"for":"…","outcome":"…"}],"canon":["…"],"dispatches":[{"to":"…","via":"…","sent":"…","arrives":"…","gist":"…"}],"threads":[{"id":"…","status":"building","next_check":"…","note":"…"}],"standing":{"…":"cool"},"memory":{"…":["…"]}}
 }}`;
 }
-export function buildPacket({ state, contract, orders, almanac, fortune, wake, trust, choices, endRequested }) {
+export function buildPacket({ state, contract, orders, almanac, fortune, wake, trust, choices, endRequested, purse }) {
   const th = (state.hidden || {}).threads || [], date = state.date, act = activePlots(almanac || {}, th, date);
   const index = th.map(t => '- ' + t.id + ' · ' + (t.title || '') + ' · ' + (t.status || 'dormant') + (t.next_check ? ' · check ' + t.next_check : '')).join('\n');
   const soon = addDays(date, 120), cal = ((almanac || {}).calendar || []).filter(c => c.d >= date && c.d <= soon).map(c => '- ' + c.d + ': ' + c.e + ' (' + c.c + ')').join('\n');
@@ -213,6 +235,9 @@ export function buildPacket({ state, contract, orders, almanac, fortune, wake, t
     + '\n\n' + orders.trim()
     + '\n\n## His judgement of sources\nTrusts: ' + (trusts.join('; ') || '(none marked)') + '\nDoubts: ' + (doubts.join('; ') || '(none marked)')
     + '\n\n## Urgent letters he answered this turn\n' + ((choices || []).map(c => '- On “' + c.title + '” (' + c.id + '): he chose “' + c.label + '”' + (c.byDefault ? ' (the day passed without his answer; the default applied)' : '') + '.').join('\n') || '(none)')
+    + '\n\n## His own purse\n' + (purse && purse.length ? 'Orders he pays for himself: ' + purse.join(' | ') : '(nothing from his own purse this turn)')
+    + (volumeDue(state) ? '\n\n## A volume closes\nThis is turn ' + (state.turn + 1) + '. Add one entry to hidden.volumes: {"n": ' + ((state.turn + 1) / 10) + ', "turns": "' + (state.turn - 8) + '–' + (state.turn + 1) + '", "title", "text"} — these ten turns in at most 200 words. Then begin hidden.chronicle again from the end of this volume.' : '')
+    + '\n\n## The seal\nThis packet\'s seal is ' + sealOf(state) + '. Copy it into the reply as "seal".' + ((state.record || {}).ironman ? ' The record is sealed (ironman): this turn cannot be replayed.' : '')
     + '\n\n## Fortune for this turn\n' + (fortune || []).join(', ') + '\nUse in order; low is bad for him and his side, high is good. Record each in hidden.fortune_used.'
     + '\n\n## Almanac: systems and stakes\n' + ((almanac || {}).systems || []).map(s => '- ' + s.name + ': ' + s.summary).join('\n') + '\n' + ((almanac || {}).stakes || []).map(s => '- If ' + s.what.toLowerCase() + ': ' + s.consequence).join('\n')
     + (cal ? '\n\n## Almanac: calendar anchors in the next four months (reference, not script)\n' + cal : '')

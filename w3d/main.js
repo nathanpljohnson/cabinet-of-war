@@ -106,7 +106,7 @@ const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, .3, 600
 const sunDir = new THREE.Vector3(.74, .36, .28).normalize();
 const uTime = { value: 0 };
 let world = null, actors = null, player, aide, steed, followTrail = [], lights, skyMesh, cloudG;
-let mode = 'loading', mapFrom = 'room', battle = null, hall = null, builtFor = null, builtMode = null, builtCues = null, account = false, introOn = false;
+let mode = 'loading', mapFrom = 'room', battle = null, hall = null, builtFor = null, builtMode = null, builtCues = null, account = false, aftermath = false, introOn = false;
 // what the state says the world looks like where you are (the reply contract keeps state.world; defaults follow the date)
 /* ---------- the hour: a turn is days you live through. Time passes as you walk (an hour every 40 s), and what you
    do takes time; letting the day pass brings the next morning's post. Light, people and the Conference follow it. ---------- */
@@ -140,7 +140,7 @@ function worldCues() {
   return { season: m === 11 || m <= 1 || snowed ? 'winter' : 'open', mourning: W.mourning ?? (state.date >= '1740-10-20' && state.date < '1741-10-20'), pay: W.pay || 'paid', roads: W.roads || 'good',
     refugees: (W.refugees || []).includes(here), men: men || null, standing: (state.hidden || {}).standing || {}, dismissed: !!state.player.dismissed,
     overheard: (state.overheard || []).filter(o => !o.place || o.place === here), carried: carriedOrders(), rivalHere: rivalHere(here),
-    scene: ((W.scene || {})[here]) || [], ownWeather: !!W.weather, snowed: !!snowed, present: presentToday(here).map(c => c.id), groups: groupsOn(here, d), castNames: names,
+    tempo: W.tempo || null, scene: ((W.scene || {})[here]) || [], ownWeather: !!W.weather, snowed: !!snowed, present: presentToday(here).map(c => c.id), groups: groupsOn(here, d), castNames: names,
     rulerWith: ruler ? 'Her Majesty is with ' + ruler.who.filter(id => id !== 'maria_theresa').map(id => (names[id] || id).split(',')[0]).join(' and ') + (ruler.doing ? ' — ' + ruler.doing : '') : null };
 }
 // the rival's courier leaves at dawn wherever the rival is lodged (state.hidden.rival, kept by the adjudicator)
@@ -291,8 +291,8 @@ async function fieldToMap(x, z) {
   const m = desk.map; m.invalidateSize(); m.setView(lo(state.battleDemo.center, x, -z), 13, { animate: false });
   setView('map');
 }
-async function roomToField() { if (mode !== 'room') return; mode = 'trans'; await fadeCanvas(false, 300); const b = await ensureBattle(); b.setReadOnly(account); body.classList.toggle('w3d-account', account); b.enter(); setView('field'); tick(0); await fadeCanvas(true, 400); }
-async function fieldToRoom() { if (mode !== 'field') return; mode = 'trans'; await fadeCanvas(false, 300); battle.leave(); account = false; battle.setReadOnly(false); body.classList.remove('w3d-account'); setView('room'); tick(0); await fadeCanvas(true, 400); }
+async function roomToField() { if (mode !== 'room') return; mode = 'trans'; await fadeCanvas(false, 300); const b = await ensureBattle(); b.setReadOnly(account); b.setAftermath(aftermath); body.classList.toggle('w3d-account', account); b.enter(); setView('field'); tick(0); await fadeCanvas(true, 400); }
+async function fieldToRoom() { if (mode !== 'field') return; mode = 'trans'; await fadeCanvas(false, 300); battle.leave(); account = false; aftermath = false; battle.setReadOnly(false); battle.setAftermath(false); body.classList.remove('w3d-account'); setView('room'); tick(0); await fadeCanvas(true, 400); }
 async function enterHall() {
   if (mode !== 'room') return; nearest = null; $3('w3d-prompt').hidden = true; mode = 'trans'; await fadeCanvas(false, 350);
   if (!hall) { const m = await import('./interior.js'); hall = m.createInterior({ renderer }); }
@@ -337,6 +337,8 @@ function act(a) {
   if (a === 'gfx') { const p = $3('w3d-gfx'); p.hidden = !p.hidden; return; }
   if (a === 'room' || a === 'map' || a === 'field') return goView(a);
   if (a === 'battle') return goView(mode === 'field' ? 'room' : 'field');
+  if (a === 'aftermathTable') { if (mode !== 'field' || !battle) return; state.battleDemo.aftermath = window.__campaign.aftermathOfTable(); persistState(); aftermath = true; battle.setAftermath(true); refreshHud(); return; }
+  if (a === 'aftermath') { if (!(state.battleDemo || {}).aftermath) return toast('Nothing is known yet of the ground after the battle.'); account = true; aftermath = true; return mode === 'room' ? roomToField() : goView('room').then(() => roomToField()); }
   if (a === 'account') { account = travel.mode() !== 'field'; return mode === 'room' ? roomToField() : goView('room').then(() => roomToField()); }
   if (a.startsWith('hours:')) return advanceClock(+a.slice(6));
   if (a.startsWith('sound:')) return sound.cue(a.slice(6));
@@ -510,11 +512,12 @@ new MutationObserver(() => { const s = $3('status').textContent; if (s && mode !
 function refreshHud() {
   if (!shell) return; const S = state;
   const view = mode === 'map' ? 'map' : mode === 'field' ? 'field' : mode === 'trans' ? null : 'room';
-  if (mode === 'field') shell.refresh('field', 'The field · ' + (S.battleDemo.place || '').split('—')[0].trim(), account ? 'An account of a battle you were not at · Esc to put it down' : travel.mode() === 'field' ? 'Your orders are the fight itself · scroll far out to rise onto the map' : 'At court this is a rehearsal on the table; the adjudicator decides · scroll far out to rise onto the map');
+  if (mode === 'field') shell.refresh('field', (aftermath ? 'The field after the battle · ' : 'The field · ') + (S.battleDemo.place || '').split('—')[0].trim(), aftermath ? 'What lies on the ground · Esc to ride back' : account ? 'An account of a battle you were not at · Esc to put it down' : travel.mode() === 'field' ? 'Your orders are the fight itself · scroll far out to rise onto the map' : 'At court this is a rehearsal on the table; the adjudicator decides · scroll far out to rise onto the map');
   else if (mode === 'map') shell.refresh('map', 'The map table', (battleCentreIn(desk.map) && desk.map.getZoom() >= 10 ? 'Zoom in on the battle ground to go down into the field · ' : '') + 'Right-click a place to add it to your orders · scroll out or Esc to stand up');
   else if (mode === 'hall') shell.refresh('room', 'The Conference chamber', 'The council in session · Esc to step back outside');
-  else shell.refresh(view, world ? world.region.zoneName(pl.x, pl.z) : 'Headquarters', (worldCues().season === 'winter' ? 'Snow on the ground · ' : '') + ({ clear: 'fair weather', haze: 'a hazy day', overcast: 'grey skies', mist: 'mist on the fields', rain: 'rain', snow: 'snow falling', storm: 'a storm blowing' }[atmos] || 'fair weather').replace(/^./, c => worldCues().season === 'winter' ? c : c.toUpperCase()));
-  $3('w3d-help').innerHTML = mode === 'field' && account ? 'Drag to turn · right-drag or <kbd>WASD</kbd> to pan · wheel to zoom · click a formation to read what is known of it · <kbd>Esc</kbd> put the account down'
+  else shell.refresh(view, world ? world.region.zoneName(pl.x, pl.z) : 'Headquarters', ({ 'winter quarters': 'Winter quarters · ', campaigning: 'The armies are in the field · ', truce: 'A truce · ' }[(state.world || {}).tempo] || '') + (worldCues().season === 'winter' ? 'Snow on the ground · ' : '') + ({ clear: 'fair weather', haze: 'a hazy day', overcast: 'grey skies', mist: 'mist on the fields', rain: 'rain', snow: 'snow falling', storm: 'a storm blowing' }[atmos] || 'fair weather').replace(/^./, c => worldCues().season === 'winter' ? c : c.toUpperCase()));
+  $3('w3d-help').innerHTML = mode === 'field' && aftermath ? 'Drag to look · <kbd>WASD</kbd> or right-drag to ride over the ground · wheel to rise · <kbd>Esc</kbd> ride back'
+    : mode === 'field' && account ? 'Drag to turn · right-drag or <kbd>WASD</kbd> to pan · wheel to zoom · click a formation to read what is known of it · <kbd>Esc</kbd> put the account down'
     : mode === 'field'
     ? 'Click a formation · Shift-click to add · drag to rotate · right-drag or WASD to pan · wheel to zoom · <kbd>M</kbd>ove <kbd>F</kbd>ace <kbd>H</kbd>old then click the ground · <kbd>Enter</kbd> run 15 minutes · <kbd>Tab</kbd> map'
     : '<kbd>WASD</kbd> walk · drag to look · <kbd>E</kbd> act on what is in front of you · <kbd>M</kbd> map · <kbd>R</kbd> letters · <kbd>O</kbd> dispatch · <kbd>N</kbd> notebook · <kbd>T</kbd> travel';
@@ -585,7 +588,7 @@ async function morning() {
 }
 async function mockReply(name, { accept = true } = {}) { // test replies in w3d/mocks: the "changes" of a turn reply, sent as turn n+1
   const m = await (await fetch('w3d/mocks/' + name + '.json', { cache: 'no-store' })).json();
-  reviewWorld(JSON.stringify({ kind: 'turn', schemaVersion: 3, campaignId: state.campaignId, turn: state.turn + 1, parentTurn: state.turn, changes: m.changes }));
+  reviewWorld(JSON.stringify({ kind: 'turn', schemaVersion: 3, campaignId: state.campaignId, turn: state.turn + 1, parentTurn: state.turn, seal: window.__campaign.seal(), changes: m.changes }));
   await sleep(150); if (accept && !document.getElementById('accept').hidden) document.getElementById('accept').click(); await sleep(300); return state.turn;
 }
 

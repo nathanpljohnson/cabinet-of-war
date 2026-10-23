@@ -1,5 +1,5 @@
 {
- "note": "Test reply for the living world: weather by day, scene tags, whereabouts, an invented person, an urgent letter with two branches, an enemy commander and thread updates. Illustrative.",
+ "note": "Test reply for the living world: weather by day, scene tags, whereabouts, an invented person, an urgent letter with two branches, an enemy commander and thread updates. Illustrative. Also: the Diarium, winter quarters and the steward on money.",
  "changes": {
   "date": "1740-10-26",
   "title": "A crowded week",
@@ -24,7 +24,8 @@
      "celebration",
      "smoke"
     ]
-   }
+   },
+   "tempo": "winter quarters"
   },
   "whereabouts": [
    {
@@ -180,7 +181,42 @@
      "for": "test",
      "outcome": "test"
     }
-   ]
+   ],
+   "purse": {
+    "income": "rents from the Carinthian estates, late",
+    "debts": "a note to a Vienna banker, due at Christmas",
+    "creditors": [
+     "a Vienna banker"
+    ],
+    "pledged": "nothing yet"
+   }
+  },
+  "gazette": [
+   {
+    "date": "1740-10-22",
+    "items": [
+     {
+      "head": "From the Hofburg",
+      "text": "Her Majesty received the homage of the court in deep mourning. The ministers of the late Emperor are confirmed in their offices."
+     },
+     {
+      "head": "From Berlin, the 8th",
+      "text": "The King has reviewed several regiments at Potsdam and is said to be in excellent health."
+     }
+    ]
+   },
+   {
+    "date": "1740-10-26",
+    "items": [
+     {
+      "head": "Prices",
+      "text": "Wheat at the Hof market stands higher than last week."
+     }
+    ]
+   }
+  ],
+  "household": {
+   "purse": "The Carinthian rents are late, and the banker asks politely when his note will be met."
   }
  }
 }

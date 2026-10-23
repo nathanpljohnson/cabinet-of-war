@@ -1,5 +1,5 @@
 {
- "note": "Test reply: December, snow, unpaid camp, heavy roads, refugees, a battle account he was not at. Illustrative.",
+ "note": "Test reply: December, snow, unpaid camp, heavy roads, refugees, a battle account he was not at. Illustrative. The ground after the battle can be ridden over.",
  "changes": {
   "date": "1740-12-18",
   "world": {
@@ -9,7 +9,8 @@
    "refugees": [
     "vienna",
     "breslau"
-   ]
+   ],
+   "tempo": "campaigning"
   },
   "forces": [
    {
@@ -82,6 +83,21 @@
    }
   ],
   "title": "Snow on the Silesian road",
-  "briefing": "December. The camp is unpaid, the roads are heavy and families are on the road from Silesia."
+  "briefing": "December. The camp is unpaid, the roads are heavy and families are on the road from Silesia.",
+  "battleDemo": {
+   "aftermath": {
+    "date": "1740-12-16",
+    "held_by": "B",
+    "fallen": {
+     "A1": "heavy",
+     "A2": "light",
+     "A3": "destroyed",
+     "B1": "light",
+     "B2": "heavy"
+    },
+    "guns_taken": [],
+    "note": "The garrison troops lie where the column caught them by the Mollwitz road."
+   }
+  }
  }
 }

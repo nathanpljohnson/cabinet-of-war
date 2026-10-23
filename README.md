@@ -16,7 +16,7 @@ The page is the record of the campaign. It does not depend on any chat rememberi
 
 Keys: `WASD` walk · drag to look · `E` act on what is in front of you · `M` map · `R` letters · `O` dispatch · `N` notebook · `T` travel · `Esc` put things down. With the army, `B` takes you onto the field, where you command the battle (click a formation, `M`ove, `F`ace, `H`old, `Enter` runs 15 minutes).
 
-The game saves in the browser and downloads a **campaign file** after every turn (Notebook → The record): load it on any browser to carry on. **The book of the campaign** (the `⋯` menu or the notebook) holds every turn you have lived; when the campaign ends it shows what was hidden from you.
+The game saves in the browser and downloads a **campaign file** after every turn (Notebook → The record): load it on any browser to carry on. **The book of the campaign** (the `⋯` menu or the notebook) holds every turn you have lived; when the campaign ends it shows what was hidden from you. For a campaign with no going back, seal the record (ironman) in the same place.
 
 ### Run it locally
 

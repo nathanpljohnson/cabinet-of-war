@@ -28,3 +28,12 @@
 - [x] Tests pass
 - [x] Full loop in browser with mock replies
 - [x] lightCheck passes with new weather
+
+# game-v11: the record, the Diarium, the purse, the seasons, the field afterwards
+- [x] 2 Sealed record (seal chain, file fingerprint, ironman)
+- [x] 4 Chronicle volumes every ten turns
+- [x] 6 Wiennerisches Diarium
+- [x] 10 His own purse
+- [x] 11 Winter quarters / campaigning / truce
+- [x] 13 Ride over the field afterwards
+- [x] Tests (21) and browser check

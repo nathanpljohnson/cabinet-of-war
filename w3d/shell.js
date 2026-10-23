@@ -55,7 +55,7 @@ export function createShell({ act, onSeal, clock }) {
       </div>
       <div class="sh-sh-side">
         <div class="eyebrow">Give an order</div>
-        <div class="sh-give"><select id="sh-to"></select><textarea id="sh-give-t" rows="3" placeholder="What is to be done…"></textarea><button id="sh-give-go">Add to the dispatch</button></div>
+        <div class="sh-give"><select id="sh-to"></select><textarea id="sh-give-t" rows="3" placeholder="What is to be done…"></textarea><label class="sh-purse"><input type="checkbox" id="sh-purse"> From my own purse</label><button id="sh-give-go">Add to the dispatch</button></div>
         <div class="eyebrow">Wake me</div>
         <select id="sh-wake" class="sh-wake"></select>
         <div class="eyebrow">Carried with it</div><ul class="sh-carried" id="sh-carried"></ul>
@@ -135,9 +135,10 @@ export function createShell({ act, onSeal, clock }) {
   function itemLine(it) {
     if (it.kind === 'journey' || it.kind === 'inspect') return it.text;
     const r = it.ref && state.reports.find(x => x.id === it.ref), re = r ? 'On ' + fromName(r) + '’s letter of ' + fmtDate(r.dated) + ' (“' + r.title + '”) — ' : '';
-    if (it.to === 'staff') return re + 'To my staff: ' + it.text;
+    const own = it.purse ? 'At my own expense — ' : '';
+    if (it.to === 'staff') return re + own + 'To my staff: ' + it.text;
     const c = cast(it.to), name = c ? c.name : it.to;
-    return re + (it.inPerson ? 'To ' + name + ', given in person at ' + it.at + ': ' : 'To ' + name + ' at ' + it.at + ', by letter (about ' + it.days + ' day' + (it.days > 1 ? 's' : '') + ' on the road): ') + it.text;
+    return re + own + (it.inPerson ? 'To ' + name + ', given in person at ' + it.at + ': ' : 'To ' + name + ' at ' + it.at + ', by letter (about ' + it.days + ' day' + (it.days > 1 ? 's' : '') + ' on the road): ') + it.text;
   }
   function compose() {
     const w = W(), lines = w.items.map((it, i) => '[' + ref(i) + '] ' + itemLine(it));
@@ -147,10 +148,10 @@ export function createShell({ act, onSeal, clock }) {
   function setItem(it) { const w = W(); it.id = it.id || 'i' + Date.now().toString(36) + Math.floor(Math.random() * 1e3); const k = w.items.findIndex(x => x.id === it.id); if (k >= 0) w.items[k] = it; else w.items.push(it); compose(); return it.id; }
   function dropItem(id) { const w = W(); w.items = w.items.filter(x => x.id !== id); compose(); }
   // an order to someone: in person if they are here, otherwise by letter with its days on the road
-  function orderTo(to, text, ref) {
+  function orderTo(to, text, ref, purse) {
     const here = travel.here(), c = cast(to);
-    if (to === 'staff' || !c) return setItem({ kind: 'order', to: 'staff', text, ref });
-    const inPerson = presentHere(c); return setItem({ kind: 'order', to, text, ref, inPerson, at: inPerson ? locName(here) : locName(whereNow(c)), days: inPerson ? 0 : Math.max(1, days(here, whereNow(c))) });
+    if (to === 'staff' || !c) return setItem({ kind: 'order', to: 'staff', text, ref, purse });
+    const inPerson = presentHere(c); return setItem({ kind: 'order', to, text, ref, purse, inPerson, at: inPerson ? locName(here) : locName(whereNow(c)), days: inPerson ? 0 : Math.max(1, days(here, whereNow(c))) });
   }
   // older lines written straight into the text (before the dispatch had entries)
   function appendOrder(line) { setItem({ kind: 'inspect', text: line }); }
@@ -162,7 +163,7 @@ export function createShell({ act, onSeal, clock }) {
     const ol = $('sh-items'); ol.replaceChildren();
     for (const it of w.items) {
       const li = el('li'), head = el('div', 'sh-it-h'), c = cast(it.to);
-      head.textContent = it.kind === 'journey' ? 'Journey' : it.kind === 'inspect' ? 'In person' : it.to === 'staff' ? 'To my staff' : 'To ' + (c ? c.name : it.to) + (it.inPerson ? ' · in person' : ' · by letter, ~' + it.days + ' d');
+      head.textContent = (it.purse ? 'At your own expense · ' : '') + (it.kind === 'journey' ? 'Journey' : it.kind === 'inspect' ? 'In person' : it.to === 'staff' ? 'To my staff' : 'To ' + (c ? c.name : it.to) + (it.inPerson ? ' · in person' : ' · by letter, ~' + it.days + ' d'));
       const r = it.ref && S.reports.find(x => x.id === it.ref); if (r) head.append(el('span', 'sh-it-re', ' · on their letter “' + r.title + '”'));
       const x = el('button', 'sh-it-x', 'strike'); x.title = 'Strike this from the dispatch'; x.onclick = () => { if (it.id === 'journey') act('go:cancel'); else dropItem(it.id); };
       li.append(head, el('p', null, it.kind === 'order' ? it.text : itemLine(it)), x); ol.append(li);
@@ -191,17 +192,21 @@ export function createShell({ act, onSeal, clock }) {
   $('sh-own').oninput = e => { W().own = e.target.value; compose(); };
   const WAKE = ['When there is news I must decide on.', 'When the first answers to these orders arrive.', 'In three days, whatever happens.', 'In a week, unless something urgent comes.', 'Not before a fortnight, unless something urgent comes.'];
   $('sh-wake').onchange = e => { W().wake = e.target.value; saveDraft(); };
-  $('sh-give-go').onclick = () => { const t = $('sh-give-t').value.trim(); if (!t) return; orderTo($('sh-to').value, t); $('sh-give-t').value = ''; };
+  $('sh-give-go').onclick = () => { const t = $('sh-give-t').value.trim(); if (!t) return; orderTo($('sh-to').value, t, null, $('sh-purse').checked); $('sh-give-t').value = ''; $('sh-purse').checked = false; };
 
   /* ---------- the post: letters reach you day by day through the turn ---------- */
   const arrives = r => r.arrives || r.dated;
-  const postDays = () => [...new Set(state.reports.map(arrives))].sort();
+  // the Wiennerisches Diarium's issues come with the post like letters (state.gazette, from the reply)
+  const gazettes = () => (state.gazette || []).map(g => ({ id: g.id || 'gz-' + g.date, kind: 'gazette', from: 'Wiennerisches Diarium', place: 'vienna', dated: g.date, arrives: g.date, title: (g.items[0] || {}).head || 'The Diarium', text: '', items: g.items, via: 'post' }));
+  const post = () => [...state.reports, ...gazettes()];
+  const postDays = () => [...new Set(post().map(arrives))].sort();
   function today() { const p = store(POST_KEY, null); if (p && p.turn === state.turn) return p.upto; const d = postDays()[0] || state.date; keep(POST_KEY, { turn: state.turn, upto: d }); return d; }
-  const onTheRoad = () => state.reports.filter(r => arrives(r) > today());
+  const onTheRoad = () => post().filter(r => arrives(r) > today());
   const shownDate = () => onTheRoad().length ? today() : state.date;
   function passDay() { for (const r of seen()) if (r.urgent && !choiceFor(r.id)) { const d = r.urgent.options.find(o => o.default) || r.urgent.options[r.urgent.options.length - 1]; choose(r, d.id, true); act('toast:The day passed without your answer to “' + r.title + '”; ' + d.label.replace(/^./, x => x.toLowerCase()) + '.'); }
-    const next = [...new Set(onTheRoad().map(arrives))].sort()[0]; if (!next) return 0; keep(POST_KEY, { turn: state.turn, upto: next }); return state.reports.filter(r => arrives(r) === next).length; }
-  const seen = () => state.reports.filter(r => arrives(r) <= today());
+    const next = [...new Set(onTheRoad().map(arrives))].sort()[0]; if (!next) return 0; keep(POST_KEY, { turn: state.turn, upto: next }); return post().filter(r => arrives(r) === next).length; }
+  const seen = () => post().filter(r => arrives(r) <= today());
+  const seenLetters = () => seen().filter(r => r.kind !== 'gazette');
   // your commission and your advisers' counsel come as letters as well
   function letters() {
     const out = [], m = state.mandate, d = state.decision;
@@ -224,11 +229,11 @@ export function createShell({ act, onSeal, clock }) {
   const STOP = new Set('about after again their there these those which while where would could should shall other every under order orders letter state staff report write writing person given today'.split(' '));
   const words = t => new Set((t || '').toLowerCase().match(/[a-zà-ž]{5,}/g)?.filter(w => !STOP.has(w)) || []);
   function links() {
-    const out = new Map(), orders = sentOrders().filter(o => o.ref && o.turn < state.turn), tagged = new Set(seen().flatMap(r => r.re || []));
+    const out = new Map(), orders = sentOrders().filter(o => o.ref && o.turn < state.turn), tagged = new Set(seenLetters().flatMap(r => r.re || []));
     const add = (ref, r, sure) => { if (!out.has(ref)) out.set(ref, []); if (!out.get(ref).some(x => x.r === r)) out.get(ref).push({ r, sure }); };
-    for (const r of seen()) for (const id of r.re || []) add(id, r, true);
+    for (const r of seenLetters()) for (const id of r.re || []) add(id, r, true);
     for (const o of orders) { if (tagged.has(o.ref)) continue; const ow = words(o.text || o.line);
-      for (const r of seen()) { if ((r.re || []).length) continue; const body = r.title + ' ' + r.text;
+      for (const r of seenLetters()) { if ((r.re || []).length) continue; const body = r.title + ' ' + r.text;
         if (body.includes(o.ref)) { add(o.ref, r, true); continue; }
         const rw = words(body); let k = 0; for (const w of ow) if (rw.has(w)) k++;
         if ((o.to && o.to !== 'staff' && r.from_id === o.to) || k >= 2) add(o.ref, r, false); } }
@@ -247,14 +252,14 @@ export function createShell({ act, onSeal, clock }) {
     if (mode) listMode = mode; if (id && !letters().some(x => x.id === id)) listMode = 'archive'; else if (id) listMode = 'now';
     closeAll('sh-letters'); $('sh-letters').classList.remove('sh-single'); $('sh-l-title').textContent = 'Your correspondence'; const here = travel.here();
     $('sh-l-eyebrow').textContent = 'Letters · ' + locName(here) + ' · ' + fmtDate(shownDate());
-    const all = letters(), arch = archived(), rs = listMode === 'archive' ? arch : [...all.filter(x => x.kind), ...all.filter(x => !x.kind).reverse()], r = readSet(), a = acted();
+    const all = letters(), arch = archived(), rs = listMode === 'archive' ? arch : [...all.filter(x => x.kind && x.kind !== 'gazette'), ...all.filter(x => !x.kind || x.kind === 'gazette').reverse()], r = readSet(), a = acted();
     openLetter = id || openLetter && rs.find(x => x.id === openLetter)?.id || (unread()[0] || rs[0] || {}).id;
     const ul = $('sh-l-list'); ul.replaceChildren();
     const tabs = el('li', 'sh-l-tabs'); for (const [m, lab] of [['now', 'This turn'], ['archive', 'Your archive' + (arch.length ? ' (' + arch.length + ')' : '')]]) { const b = el('button', listMode === m ? 'on' : null, lab); b.onclick = () => { openLetter = null; showLetters(null, m); }; tabs.append(b); } ul.append(tabs);
     for (const x of rs) {
       const li = el('li', (x.id === openLetter ? 'sh-l-on ' : '') + (r.has(rk(x)) ? 'sh-l-read' : 'sh-l-sealed')); li.tabIndex = 0;
       const sl = (personOf(x.from_id).seal || ['#8a2f26', '#f3ead8', (fromName(x)[0] || '·')]);
-      li.innerHTML = '<i class="sh-seal" style="--seal-c:' + sl[0] + ';--seal-t:' + sl[1] + '">' + esc(sl[2]) + '</i><b>' + esc(fromName(x)) + '</b><small>' + (x.kind === 'mandate' ? 'your commission' : x.kind === 'advice' ? 'counsel' : esc(locName(x.place)) + ' · ' + short(x.dated)) + (a[x.id] ? ' · ' + ({ filed: 'filed', adopted: 'adopted', aside: 'set aside' }[a[x.id]] || 'answered') : '') + '</small><span>' + esc(x.title) + '</span>';
+      li.innerHTML = '<i class="sh-seal" style="--seal-c:' + sl[0] + ';--seal-t:' + sl[1] + '">' + esc(sl[2]) + '</i><b>' + esc(fromName(x)) + '</b><small>' + (x.kind === 'mandate' ? 'your commission' : x.kind === 'advice' ? 'counsel' : x.kind === 'gazette' ? 'the gazette · ' + short(x.dated) : esc(locName(x.place)) + ' · ' + short(x.dated)) + (a[x.id] ? ' · ' + ({ filed: 'filed', adopted: 'adopted', aside: 'set aside' }[a[x.id]] || 'answered') : '') + '</small><span>' + esc(x.title) + '</span>';
       li.onclick = li.onkeydown = ev => { if (ev.type === 'keydown' && ev.key !== 'Enter') return; showLetters(x.id); }; ul.append(li);
     }
     if (!rs.length) ul.append(el('li', 'sh-empty', listMode === 'archive' ? 'Nothing kept from earlier turns yet.' : 'No letters have reached you.'));
@@ -264,6 +269,7 @@ export function createShell({ act, onSeal, clock }) {
     $('sh-letters').hidden = false; syncVeil(); refresh();
   }
   function drawLetter(r) {
+    if (r.kind === 'gazette') return drawGazette(r);
     const box = $('sh-letter'), here = travel.here(), c = cast(r.from_id), d = days(r.place, here), a = acted()[r.id];
     const via = { courier: 'by courier', post: 'by the post', audience: 'given you in person' }[r.via] || 'received';
     const answers = answeredBy(r).map(({ id, sure }) => ({ ...(sentOrders().find(o => o.ref === id) || { ref: id, line: '' }), sure }));
@@ -303,6 +309,7 @@ export function createShell({ act, onSeal, clock }) {
     acts.append(give, file, show);
     if (r.sighting) { const sg = el('button', null, 'Where they place it'); sg.onclick = () => { $('sh-letters').hidden = true; syncVeil(); act('sighting:' + r.id); }; acts.append(sg); }
     if (r.battle) { const bt = el('button', null, 'See the ground as described'); bt.onclick = () => { $('sh-letters').hidden = true; syncVeil(); act('account'); }; acts.append(bt); }
+    if (r.battle && (state.battleDemo || {}).aftermath) { const af = el('button', null, 'Ride over the field afterwards'); af.onclick = () => { $('sh-letters').hidden = true; syncVeil(); act('aftermath'); }; acts.append(af); }
     box.append(acts); trustRow(r, box);
   }
   // how far you believe whoever saw or heard it: your staff weigh their reports by it, and you can be wrong
@@ -311,6 +318,13 @@ export function createShell({ act, onSeal, clock }) {
     row.append(el('span', null, 'Their source, ' + r.source + ':'));
     for (const [k, lab] of [['trust', 'I trust it'], ['doubt', 'I doubt it']]) { const b = el('button', m === k ? 'on' : null, lab); b.onclick = () => { setTrust(r.source, m === k ? null : k); act('toast:' + (m === k ? 'Your staff will weigh this source as they see fit.' : k === 'trust' ? 'Your staff will treat this source as reliable.' : 'Your staff will treat this source with caution.')); showLetters(r.id); }; row.append(b); }
     box.append(row);
+  }
+  // the public version: printed, late, deferential, sometimes wrong
+  function drawGazette(r) {
+    const box = $('sh-letter');
+    box.innerHTML = '<div class="sh-lt-sheet sh-gazette"><div class="gz-mast">Wiennerisches Diarium</div><div class="gz-date">' + esc(fmtDate(r.dated)) + ' · printed by authority</div>'
+      + r.items.map(i => '<h4>' + esc(i.head || '') + '</h4><p>' + esc(i.text || '') + '</p>').join('') + '</div>';
+    const acts = el('div', 'sh-lt-acts'), file = el('button', null, 'Put the paper down'); file.onclick = () => { setActed(r.id, 'filed'); showLetters(); }; acts.append(file); box.append(acts);
   }
   // what came with the letter: a return of figures, a captured order, a sketch of the ground
   function enclosures(r) {
@@ -341,7 +355,7 @@ export function createShell({ act, onSeal, clock }) {
   function recordSent() { const w = W(), sent = store(SENT_KEY, []).filter(s => s.turn !== state.turn); sent.push({ turn: state.turn, date: state.date, at: locName(travel.here()), orders: w.items.map((it, i) => ({ ref: ref(i), line: itemLine(it), to: it.to || null, text: it.text })), own: w.own.trim().slice(0, 160) }); keep(SENT_KEY, sent.slice(-8)); }
   function matters() {
     const a = acted(), out = [];
-    for (const r of seen()) if (!a[r.id]) out.push({ k: 'letter', r });
+    for (const r of seenLetters()) if (!a[r.id]) out.push({ k: 'letter', r });
     if (state.decision && !draft.option && !letters().some(x => x.kind === 'advice' && a[x.id])) out.push({ k: 'council' });
     if (onTheRoad().length) out.push({ k: 'post' });
     for (const s of store(SENT_KEY, [])) { if (s.settled) continue; const os = s.orders.map(o => typeof o === 'string' ? { ref: null, line: o } : o); if (os.length && os.every(o => o.ref && answersTo(o.ref).length)) continue; out.push({ k: 'sent', s, os }); }
@@ -379,6 +393,7 @@ export function createShell({ act, onSeal, clock }) {
     const hh = state.household; if (hh) { const sh = sec('Your household'), sp = cast(hh.spouse), kids = (hh.children || []).map(k => k.name).join(' and ');
       if (sp) sh.append(el('p', null, sp.name + ', your wife' + (sp.place && sp.place !== travel.here() ? ', is at ' + locName(sp.place) : ', is here') + '.'));
       if (kids) sh.append(el('p', null, 'Your daughters: ' + kids + '.')); if (hh.estate) sh.append(el('p', null, hh.estate));
+      if (hh.purse) sh.append(el('p', 'sh-nb-remark', 'Your steward: “' + hh.purse + '”'));
       const h = state.player.health || hh.health; if (h && h !== 'well') sh.append(el('p', 'sh-nb-remark', { tired: 'You are tired; the journeys have told on you.', ill: 'You are unwell. Your secretary would have you rest.', 'gravely ill': 'You are gravely ill.' }[h] || h)); }
     const ov = store(HEARD_KEY, []); if (ov.length) { const so = sec('Overheard', 'What you caught in passing, in person.'); for (const o of ov.slice(-8).reverse()) so.append(el('p', 'sh-nb-remark', '“' + o.line + '” — ' + o.who + ', ' + short(o.date))); }
     if (state.player.dismissed || state.player.dead || state.ended) {
@@ -407,7 +422,8 @@ export function createShell({ act, onSeal, clock }) {
   function chapters() {
     const past = book(), w = draft.w3d || { items: [] };
     return [...past, { turn: state.turn, date: state.date, to: null, title: state.title, briefing: state.briefing, at: state.player.locationId, current: true,
-      letters: seen().map(r => ({ from: fromName(r), place: r.place, dated: r.dated, title: r.title, text: r.text, battle: !!r.battle, source: r.source || '' })), orders: w.items.map(itemLine), own: (w.own || '').trim() }];
+      gazette: seen().filter(r => r.kind === 'gazette').flatMap(g => g.items.map(i => ({ head: i.head, text: i.text }))),
+      letters: seenLetters().map(r => ({ from: fromName(r), place: r.place, dated: r.dated, title: r.title, text: r.text, battle: !!r.battle, source: r.source || '' })), orders: w.items.map(itemLine), own: (w.own || '').trim() }];
   }
   function bookHtml(forFile) {
     const over = !!state.ended, cs = chapters(), h = [], e = state.epilogue;
@@ -416,8 +432,9 @@ export function createShell({ act, onSeal, clock }) {
       h.push('<section class="bk-ch"><div class="bk-n">Chapter ' + (i + 1) + (c.current ? ' · this turn' : '') + '</div><h3>' + esc(c.title || '') + '</h3><p class="bk-when">' + esc(fmtDate(c.date)) + (c.to ? ' – ' + esc(fmtDate(c.to)) : '') + ' · at ' + esc(locName(c.at)) + '</p><p>' + esc(c.briefing || '') + '</p>');
       const os = [...(c.orders || []), ...(c.own ? [c.own] : [])]; if (os.length) h.push('<h4>Your orders</h4><ol class="bk-orders">' + os.map(o => '<li>' + esc(o) + '</li>').join('') + '</ol>');
       if ((c.choices || []).length) h.push('<h4>What you answered at once</h4><ul>' + c.choices.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>');
+      if ((c.gazette || []).length) h.push('<h4>In the Diarium</h4><ul class="bk-gz">' + c.gazette.map(g => '<li><b>' + esc(g.head) + '</b> — ' + esc(g.text) + '</li>').join('') + '</ul>');
       if ((c.letters || []).length) h.push('<h4>Letters</h4>' + c.letters.map(l => '<details' + (l.battle || forFile ? ' open' : '') + ' class="bk-letter' + (l.battle ? ' bk-battle' : '') + '"><summary><b>' + esc(l.title) + '</b> — ' + esc(l.from || 'unsigned') + ', ' + esc(locName(l.place)) + ', ' + esc(fmtDate(l.dated)) + '</summary><p>' + esc(l.text) + '</p>' + (l.source ? '<p class="bk-src">Their source: ' + esc(l.source) + '</p>' : '') + '</details>').join(''));
-      if (over && c.secret) { const s = c.secret; h.push('<div class="bk-secret"><h4>What was hidden from you</h4>' + (s.chronicle ? '<p>' + esc(s.chronicle) + '</p>' : '') + ((s.decisions || []).length ? '<ul>' + s.decisions.map(d => '<li><b>' + esc(d.who) + '</b> knew ' + esc(d.knows || '—') + '; wanted ' + esc(d.wants || '—') + '; decided ' + esc(d.decides || '—') + '</li>').join('') + '</ul>' : '') + ((s.fortune || []).length ? '<p class="bk-src">Fortune: ' + s.fortune.map(f => esc(f.for) + ' (' + esc(f.roll) + '): ' + esc(f.outcome)).join(' · ') + '</p>' : '') + '</div>'); }
+      if (over && c.secret) { const s = c.secret; h.push('<div class="bk-secret"><h4>What was hidden from you</h4>' + (s.volumes || []).map(v => '<p><b>Volume ' + esc(v.n) + (v.title ? ': ' + esc(v.title) : '') + '</b> (' + esc(v.turns || '') + ') ' + esc(v.text || '') + '</p>').join('') + (s.chronicle ? '<p>' + esc(s.chronicle) + '</p>' : '') + ((s.decisions || []).length ? '<ul>' + s.decisions.map(d => '<li><b>' + esc(d.who) + '</b> knew ' + esc(d.knows || '—') + '; wanted ' + esc(d.wants || '—') + '; decided ' + esc(d.decides || '—') + '</li>').join('') + '</ul>' : '') + ((s.fortune || []).length ? '<p class="bk-src">Fortune: ' + s.fortune.map(f => esc(f.for) + ' (' + esc(f.roll) + '): ' + esc(f.outcome)).join(' · ') + '</p>' : '') + '</div>'); }
       h.push('</section>');
     });
     if (over) { const dv = (state.hidden || {}).divergences || []; if (dv.length) h.push('<section class="bk-ch"><h3>How this campaign departed from history</h3><ul>' + dv.map(d => '<li>' + esc(d.text) + '</li>').join('') + '</ul></section>'); }
