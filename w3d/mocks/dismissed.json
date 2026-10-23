@@ -1,6 +1,6 @@
 {
  "note": "Test reply: the player loses his office. Illustrative.",
- "patch": {
+ "changes": {
   "date": "1740-11-02",
   "player": {
    "name": "Ludwig Andreas, Count Khevenhüller",
@@ -31,6 +31,26 @@
     "via": "courier",
     "source": "the Hofkriegsrat"
    }
-  ]
+  ],
+  "hidden": {
+   "chronicle": "Test chronicle: the player is dismissed.",
+   "decisions": [
+    {
+     "who": "Frederick II",
+     "knows": "The Emperor is dead; Vienna is in mourning and short of money.",
+     "wants": "Silesia before Vienna recovers.",
+     "decides": "Keeps his counsel and orders the regiments readied, quietly."
+    }
+   ],
+   "fortune_used": [
+    {
+     "roll": 50,
+     "for": "test",
+     "outcome": "test"
+    }
+   ]
+  },
+  "title": "Relieved of your commission",
+  "briefing": "Her Majesty has withdrawn your commission."
  }
 }

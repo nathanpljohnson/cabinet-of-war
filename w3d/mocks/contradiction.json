@@ -1,9 +1,46 @@
 {
- "note": "Test reply that breaks continuity: time runs backwards and the canon is wiped.",
- "patch": {
-  "date": "1740-10-10",
+ "note": "Test reply that contradicts the record: a man marked dead writes a new letter.",
+ "changes": {
+  "date": "1740-10-25",
+  "cast": [
+   {
+    "id": "sinzendorf",
+    "dead": true
+   }
+  ],
+  "reports": [
+   {
+    "id": "r40",
+    "place": "vienna",
+    "dated": "1740-10-25",
+    "arrives": "1740-10-25",
+    "title": "From beyond",
+    "text": "A letter in Sinzendorf’s hand.",
+    "claim": "demo",
+    "from_id": "sinzendorf",
+    "via": "courier",
+    "source": "his secretary"
+   }
+  ],
   "hidden": {
-   "canon": []
-  }
+   "chronicle": "Test.",
+   "decisions": [
+    {
+     "who": "Frederick II",
+     "knows": "The Emperor is dead; Vienna is in mourning and short of money.",
+     "wants": "Silesia before Vienna recovers.",
+     "decides": "Keeps his counsel and orders the regiments readied, quietly."
+    }
+   ],
+   "fortune_used": [
+    {
+     "roll": 50,
+     "for": "test",
+     "outcome": "test"
+    }
+   ]
+  },
+  "title": "Contradiction",
+  "briefing": "Test."
  }
 }

@@ -1,0 +1,27 @@
+{
+ "note": "Test reply that cannot be accepted: time runs backwards.",
+ "changes": {
+  "date": "1740-10-10",
+  "reports": [],
+  "hidden": {
+   "chronicle": "Test.",
+   "decisions": [
+    {
+     "who": "Frederick II",
+     "knows": "The Emperor is dead; Vienna is in mourning and short of money.",
+     "wants": "Silesia before Vienna recovers.",
+     "decides": "Keeps his counsel and orders the regiments readied, quietly."
+    }
+   ],
+   "fortune_used": [
+    {
+     "roll": 50,
+     "for": "test",
+     "outcome": "test"
+    }
+   ]
+  },
+  "title": "Backwards",
+  "briefing": "Time runs backwards."
+ }
+}

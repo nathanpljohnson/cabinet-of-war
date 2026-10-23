@@ -21,6 +21,3 @@ export function checkContinuity(prev, next) {
   for (const f of prev.forces || []) { const n = (next.forces || []).find(x => x.id === f.id); if (n && f.men && n.men > f.men * 1.3 && !said.includes(f.name)) warn((f.name || f.id) + ' grows from ' + f.men + ' to ' + n.men + ' men with no word of reinforcement.'); }
   return out;
 }
-export function correctionRequest(issues, turn) {
-  return 'The reply for dispatch ' + turn + ' contradicts the established campaign:\n' + issues.map(i => '- ' + i.text).join('\n') + '\nPlease return the complete corrected state as ONE JSON object, keeping everything else the same and keeping hidden.canon as an append-only list of settled facts.';
-}

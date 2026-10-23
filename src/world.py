@@ -16,6 +16,5 @@ for path in [O/'cabinet-of-war.html',O/'src/desk.template.html']:
  if path.name=='cabinet-of-war.html':
   text,n=re.subn(r'(<script type="application/json" id="initial-state">).*?(</script>)',lambda m:m[1]+payload+m[2],text,flags=re.S);assert n==1
   path.write_text(text)
-(O/'opening-state.example.json').write_text(json.dumps(s,ensure_ascii=False,indent=2))
 (O/'src/world.json').write_text(json.dumps(w,ensure_ascii=False,indent=2))
 print('Rebuilt world document, opening state and HTML embedded state; 47 plots retained.')

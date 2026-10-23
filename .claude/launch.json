@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "cabinet-of-war", "runtimeExecutable": "python3", "runtimeArgs": ["w3d/dev_server.py", "8799"], "port": 8799 }
+  ]
+}

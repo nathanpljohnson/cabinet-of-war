@@ -1,6 +1,6 @@
 {
  "note": "Test reply: letters over three days, sources, contradictory sightings, answers to T0-1 and T0-3. Illustrative. Also: an overheard exchange, an intercepted letter in cipher, a captured order.",
- "patch": {
+ "changes": {
   "date": "1740-10-24",
   "world": {
    "mourning": true,
@@ -23,7 +23,23 @@
     "starhemberg": [
      "The player asked for the Hofkammer accounts through a clerk, not in person."
     ]
-   }
+   },
+   "chronicle": "Test chronicle: the first answers reach Vienna; the frontier reports disagree.",
+   "decisions": [
+    {
+     "who": "Frederick II",
+     "knows": "The Emperor is dead; Vienna is in mourning and short of money.",
+     "wants": "Silesia before Vienna recovers.",
+     "decides": "Keeps his counsel and orders the regiments readied, quietly."
+    }
+   ],
+   "fortune_used": [
+    {
+     "roll": 50,
+     "for": "test",
+     "outcome": "test"
+    }
+   ]
   },
   "reports": [
    {
@@ -139,6 +155,8 @@
     ],
     "line": "…and Neipperg will have the Silesian command before Christmas, mark me — the Grand Duke has already asked for him."
    }
-  ]
+  ],
+  "title": "Three accounts and two rumours",
+  "briefing": "The first answers come in: the treasury is thinner than promised, and the frontier reports disagree."
  }
 }

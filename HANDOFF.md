@@ -4,6 +4,8 @@ The current authority for research status is [VERIFICATION-REPORT.md](VERIFICATI
 
 # Cabinet of War — living handoff
 
+> Start with `CLAUDE.md` for the current layout. Revision notes below are a history: paths such as `work/v4/`, `outputs/` and `outputs/src/` are from the earlier workspace and no longer exist; their files now live in `src/` and `app/`.
+
 Updated: 2026-10-03. **Implementation is in progress.** This records the user's decisions and continuation requirements, not a claim that the new build or historical research is finished.
 
 ## Current authorization and files
@@ -11,7 +13,7 @@ Updated: 2026-10-03. **Implementation is in progress.** This records the user's 
 The user has now authorized building the game UI and continuity workflow, superseding the earlier “design and reusable scaffolding only” limit. They want an excellent **map-first command desk**, with the map as the central background image, inspired by their Kasim’s War and Orison command table games. Those references have not yet been inspected; do not claim to reproduce them. Inspect existing files before changing them:
 
 - `cabinet-of-war.html`: existing portable local HTML scaffold, not a finished campaign.
-- `opening-state.example.json`: example state; do not mistake illustrative material for established history.
+- `src/state.json`: the opening state (the build splits its research into `w3d/almanac.json`); do not mistake illustrative material for established history.
 - `CAMPAIGN-FOUNDATION.md`: initial rules, source leads, research gates, and role proposal. Its earlier scope statements and fixed one-to-two-week normal turns must yield to the newer decisions here.
 - `HANDOFF.md`: this living continuation record. Update as implementation, verification, and research actually finish.
 
@@ -191,3 +193,12 @@ User decision: most play is one order of the day; no letter writing; conversatio
 - Build: `python3 outputs/src/pdx_build.py` (it swaps `src/case.js` + `src/staff.js` into the page). The old letter CSS (`.lcard`, `.letter`, `.hh`, `.sealed`, `.chk` …) is now unused but left in the base page.
 - Not changed: the Scene tab and its own packet flow (the rare conversation path).
 
+
+### Revision 14 (2026-10-23): changes-only replies, safe saves, a living world (Claude Code)
+- **Turn replies are changes only** (schema 3): `{kind:"turn", changes:{…}}`, merged by `w3d/turn.js` (lists by id, append-only canon/ledger/dispatches/memory, per-turn fields cleared). Old full-state replies still load. The packet fell from ~150 KB to ~60 KB and Claude no longer retypes the world.
+- **Almanac out of the state**: `hidden.world` → `w3d/almanac.json`; the state keeps `hidden.threads` (one per plot, Claude updates status/next_check); the packet carries a thread index and full entries only for plots in play.
+- **Contract** moved to `w3d/contract.md`. Adds: page-rolled fortune (`hidden.fortune_used`), other powers decide first (`hidden.decisions`), `hidden.chronicle` (≤300 words), invented people, `whereabouts`, `world.weather` by day, `world.scene` tags, urgent letters with branches, the player's trust/doubt of sources, `battleDemo.enemy` temperament, endings with an epilogue.
+- **Saves**: snapshot pruning, loud warning when storage is full, campaign file (download each turn, load on any browser).
+- **Reply review**: one dialog for errors, fixes on arrival, warnings and continuity, with copy-a-correction and copy-a-resend (cut-off pastes).
+- **Book of the campaign** (bar → ⋯, or the notebook): chapters per turn; after the end, what was hidden; save as a page.
+- Tests: `python3 -m pytest -q tests` (node harness over the mocks).
