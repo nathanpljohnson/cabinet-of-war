@@ -6,6 +6,7 @@ import { createShell, locName, fmtDate } from './shell.js';
 import { createSound } from './sound.js';
 import { travel, loc, roadKm, travelDays, letterDays, placeOn, groupsOn } from './places.js';
 import { initCampaign } from './campaign.js';
+import { createPost } from './post.js';
 
 /* Cabinet of War: the 3D world over the desk's engine. Views: room (walk), map (the desk's live map, reached by leaning
    over the map table), field (3D battlefield, reached by zooming the map into it), hall (conference chamber).
@@ -13,13 +14,13 @@ import { initCampaign } from './campaign.js';
 const desk = window.__desk;
 const KEY = 'cabinet-of-war:w3d-gfx', COURIER_KEY = 'cabinet-of-war:w3d-courier';
 const PRESETS = {
-  low: { scale: .6, shadows: 0, terrain: 4, trees: .6, grass: 6000 },
-  medium: { scale: .8, shadows: 1024, terrain: 3, trees: .85, grass: 22000 },
-  high: { scale: 1, shadows: 2048, terrain: 2.5, trees: 1, grass: 40000 },
+  low: { scale: .6, shadows: 0, terrain: 4, trees: .6, grass: 6000, post: false },
+  medium: { scale: .8, shadows: 1024, terrain: 3, trees: .85, grass: 22000, post: true },
+  high: { scale: 1, shadows: 2048, terrain: 2.5, trees: 1, grass: 40000, post: true },
 };
 let gfx = { preset: 'medium', scale: null, shadows: null, veg: null, fps: false, sound: true, auto: true };
 try { Object.assign(gfx, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch { }
-const Q = () => { const p = PRESETS[gfx.veg || gfx.preset]; return { ...p, scale: gfx.scale ?? PRESETS[gfx.preset].scale, shadows: gfx.shadows ?? PRESETS[gfx.preset].shadows }; };
+const Q = () => { const p = PRESETS[gfx.veg || gfx.preset]; return { ...p, post: PRESETS[gfx.preset].post, scale: gfx.scale ?? PRESETS[gfx.preset].scale, shadows: gfx.shadows ?? PRESETS[gfx.preset].shadows }; };
 const saveGfx = () => { try { localStorage.setItem(KEY, JSON.stringify(gfx)); } catch { } };
 
 /* ---------- DOM ---------- */
@@ -53,6 +54,7 @@ $3('w3d-skip-opening').onclick = () => morning();
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const post = createPost(renderer);
 // the shadow map is redrawn only when its window moves or the scene changes (it was half the GPU's work when redrawn every
 // frame); moving people and animals use ground blobs instead (actors.js). The field redraws its own a few times a second.
 renderer.shadowMap.autoUpdate = false;
@@ -71,7 +73,7 @@ function adaptResolution(dt) {
   else if (ms >= 17.5) dyn.fast = Math.min(dyn.fast, 0);
 }
 function applyGfx() { const q = Q(); renderer.setPixelRatio(pixelRatio()); shadowsDirty(); renderer.shadowMap.enabled = q.shadows > 0; resize(); for (const s of [world, battle]) if (s && s.setShadows) s.setShadows(q.shadows); }
-function resize() { renderer.setSize(innerWidth, innerHeight, false); for (const c of [camera, battle && battle.camera]) if (c) { c.aspect = innerWidth / innerHeight; c.updateProjectionMatrix(); } hall && hall.resize(); }
+function resize() { renderer.setSize(innerWidth, innerHeight, false); post.setSize(); for (const c of [camera, battle && battle.camera]) if (c) { c.aspect = innerWidth / innerHeight; c.updateProjectionMatrix(); } hall && hall.resize(); }
 addEventListener('resize', resize);
 
 export function makeSky(scene, sunDir, opts = {}) {
@@ -139,7 +141,7 @@ function worldCues() {
   const snowed = W.weather && Object.entries(W.weather).some(([k, v]) => k <= d && k >= since && v === 'snow'), names = Object.fromEntries((state.cast || []).map(c => [c.id, c.name]));
   const ruler = here === 'vienna' && groupsOn('vienna', d).find(g => g.who.includes('maria_theresa') && g.who.length > 1);
   const men = (state.forces || []).filter(f => f.locationId === here).reduce((s, f) => s + (+f.men || 0), 0);
-  return { season: m === 11 || m <= 1 || snowed ? 'winter' : 'open', mourning: W.mourning ?? (state.date >= '1740-10-20' && state.date < '1741-10-20'), pay: W.pay || 'paid', roads: W.roads || 'good',
+  return { season: forcedSeason || (m === 11 || m <= 1 || snowed ? 'winter' : 'open'), mourning: W.mourning ?? (state.date >= '1740-10-20' && state.date < '1741-10-20'), pay: W.pay || 'paid', roads: W.roads || 'good',
     refugees: (W.refugees || []).includes(here), men: men || null, standing: (state.hidden || {}).standing || {}, dismissed: !!state.player.dismissed,
     overheard: road ? [] : (state.overheard || []).filter(o => !o.place || o.place === here), carried: carriedOrders(), rivalHere: !road && rivalHere(here),
     tempo: W.tempo || null, scene: road ? [] : ((W.scene || {})[here]) || [], ownWeather: !!W.weather, snowed: !!snowed, present: presentToday(here).map(c => c.id), groups: road ? [] : groupsOn(here, d), castNames: names, road,
@@ -405,8 +407,8 @@ async function showSighting(id) {
 // Lighting rule (see CLAUDE.md): no scene may go near-black. Night is moonlit and readable; dusk is warm, not dark.
 // LIGHT_FLOOR is checked by __w3d.lightCheck() across every hour and weather — run it after any lighting change.
 export const LIGHT_FLOOR = { mean: 60, nearBlackPct: 25 };
-let forcedWeather = null;
-const W0 = [3.4, 0xffd9a8, 1.25, 0x5b8fd6, 0xf3dcb4, 0xe8d4b2, 110, 1500];
+let forcedWeather = null, forcedSeason = null;
+const W0 = [3.8, 0xffcf96, 1.05, 0x5b8fd6, 0xf3dcb4, 0xe8d4b2, 110, 1500];
 // rain and snow fall round the camera (the region's own snow is only for winters the adjudicator has not described)
 const precip = { kind: null, obj: null };
 function setPrecip(kind) {
@@ -430,11 +432,11 @@ function applyAtmosphere(night) {
   const k = night ? 1 : clockH < 12 ? 1 - ease((clockH - 5.5) / 2) : ease((clockH - 17.5) / 3), dusk = Math.sin(Math.PI * Math.min(1, k * 1.4)) * (night ? 0 : 1);
   const day = Math.max(0, Math.sin((clockH - 6.5) / 12.5 * Math.PI)), az = (clockH - 12.5) / 7 * 1.2; // the sun crosses from east to west; the moon stands high
   sunDir.set(Math.cos(az) * .8 + .1, Math.max(.06, elev * (.35 + .65 * day)) * (1 - k) + .45 * k, Math.sin(az) * .8 + .2).normalize();
-  const W = { clear: [3.4, 0xffd9a8, 1.25, 0x5b8fd6, 0xf3dcb4, 0xe8d4b2, 110, 1500], haze: [2.6, 0xffe2b8, 1.4, 0x7aa0d0, 0xf0dcc0, 0xe6d6bc, 60, 900], overcast: [1.6, 0xe8e4dc, 1.85, 0x8e98a6, 0xcfccc4, 0xc4c0b8, 80, 950], mist: [1.4, 0xf0e8dc, 1.8, 0xb8bcc0, 0xdcdad2, 0xd6d4cc, 30, 380],
+  const W = { clear: [3.8, 0xffcf96, 1.05, 0x5b8fd6, 0xf3dcb4, 0xe8d4b2, 110, 1500], haze: [2.9, 0xffd8a8, 1.25, 0x7aa0d0, 0xf0dcc0, 0xe6d6bc, 60, 900], overcast: [1.6, 0xe8e4dc, 1.85, 0x8e98a6, 0xcfccc4, 0xc4c0b8, 80, 950], mist: [1.4, 0xf0e8dc, 1.8, 0xb8bcc0, 0xdcdad2, 0xd6d4cc, 30, 380],
     rain: [1.4, 0xdcdcd8, 1.85, 0x7e8894, 0xc4c6c4, 0xb8bcbc, 40, 520], snow: [1.5, 0xf0f0f4, 1.95, 0xb0b8c4, 0xe6e8ec, 0xdfe2e6, 30, 420], storm: [1.25, 0xc8ccd0, 1.8, 0x5e6876, 0xaeb2b6, 0xa2a6ac, 35, 460] }[weather] || W0;
   const C = (a, b) => new THREE.Color(a).lerp(new THREE.Color(b), k), u = skyMesh.material.uniforms, lerp = (a, b) => a + (b - a) * k;
   lights.sun.intensity = lerp(W[0] * (winter ? .8 : 1), NIGHT.sun); lights.sun.color.copy(C(winter ? 0xf2e6d8 : W[1], NIGHT.sunC)).lerp(new THREE.Color(0xffa060), .55 * dusk);
-  lights.hemi.intensity = lerp(W[2], NIGHT.hemi); lights.hemi.color.copy(C(0xcfdcff, NIGHT.hemiSky)); lights.hemi.groundColor.copy(C(0x7a6644, NIGHT.hemiGround));
+  lights.hemi.intensity = lerp(W[2], NIGHT.hemi); lights.hemi.color.copy(C(0xdcdde6, NIGHT.hemiSky)); lights.hemi.groundColor.copy(C(0x7a6644, NIGHT.hemiGround));
   u.top.value.copy(C(W[3], NIGHT.top)); u.hor.value.copy(C(W[4], NIGHT.hor)).lerp(new THREE.Color(0xf0a070), .5 * dusk);
   scene.fog.color.copy(C(W[5], NIGHT.fog)); scene.fog.near = lerp(W[6], NIGHT.near); scene.fog.far = lerp(W[7], NIGHT.far); scene.background.copy(scene.fog.color);
   renderer.toneMappingExposure = lerp(1.08, NIGHT.exposure);
@@ -562,7 +564,7 @@ function tick(dt) {
     skyMesh.position.copy(camera.position); cloudG.rotation.y += dt * .002; stepPrecip(dt, uTime.value);
     if (portableUp && mode === 'room' && activeTable && Math.hypot(activeTable.x - pl.x, activeTable.z - pl.z) > 7) { world.region.packTable(); portableUp = false; activeTable = null; shadowsDirty(); } // the aide packs the folding table when you move on
     if (mode === 'room') { const z = travel.onRoad() ? 'A post-house on the road to ' + locName(state.player.locationId) : world.region.zoneName(pl.x, pl.z); if ($3('sh-zone').textContent !== z) $3('sh-zone').textContent = z; }
-    if (!shell.papersOpen || mode !== 'room' || ++paperTick % 8 === 0) renderer.render(scene, camera); // behind open papers the dimmed world needs few frames
+    if (!shell.papersOpen || mode !== 'room' || ++paperTick % 8 === 0) (Q().post ? post : renderer).render(scene, camera); // behind open papers the dimmed world needs few frames
     const R = world.region; sound.update(dt, uTime.value, Math.min(...R.fires.map(([x, z]) => Math.hypot(x - pl.x, z - pl.z))), Math.hypot(R.camp.x - pl.x, R.camp.z - pl.z), shell.papersOpen, { night: clockH < 6.5 || clockH > 19.5 || introOn });
   } else if (body.classList.contains('w3d-field')) { battle.frame(dt, uTime.value); sound.update(dt, uTime.value, 1e9, 120, shell.papersOpen); }
   else if (body.classList.contains('w3d-hall')) { renderer.shadowMap.needsUpdate = true; hall.frame(dt); sound.update(dt, uTime.value, 1e9, 1e9, true); }
@@ -643,5 +645,8 @@ let shell = null; const sound = createSound();
   let opened = false; try { opened = !!localStorage.getItem(INTRO_KEY); } catch { }
   if (state.turn === 0 && !opened) opening();
   loop();
-  window.__w3d = { get mode() { return mode; }, perf, get world() { return world; }, get battle() { return battle; }, get shell() { return shell; }, pl, cam, camera, renderer, act, goView, keys, mockReply, drawSightings, lightCheck, gfx: () => Q(), step(n = 1, dt = 1 / 60) { for (let i = 0; i < n; i++) tick(dt); renderer.getContext().finish(); } };
+  window.__w3d = { get mode() { return mode; }, perf, get world() { return world; }, get battle() { return battle; }, get shell() { return shell; }, pl, cam, camera, renderer, act, goView, keys, mockReply, drawSightings, lightCheck, post, gfx: () => Q(),
+    // dev: pin the hour, weather, season and camera for like-for-like screenshots
+    async look({ h, weather, season, x, z, ry, yaw, pitch, dist } = {}) { shell.closeTop(); introOn = false; if (season !== undefined && season !== forcedSeason) { forcedSeason = season; await buildWorld(); applyGfx(); } if (weather !== undefined) forcedWeather = weather; if (h != null) { clockH = h; world.region.setHour(h); } Object.assign(pl, Object.fromEntries(Object.entries({ x, z, ry }).filter(e => e[1] != null))); Object.assign(cam, Object.fromEntries(Object.entries({ yaw, pitch, dist }).filter(e => e[1] != null))); applyAtmosphere(); shadowsDirty(); for (let i = 0; i < 200; i++) tick(1 / 60); shadowKey = ''; tick(1 / 60); },
+    step(n = 1, dt = 1 / 60) { for (let i = 0; i < n; i++) tick(dt); renderer.getContext().finish(); } };
 })().catch(e => { console.error(e); showLoading('3D view failed to start: ' + e.message + ' — the desk below still works.'); setTimeout(() => { root.remove(); float.remove(); body.classList.remove('w3d-on', 'w3d-room'); }, 4000); });

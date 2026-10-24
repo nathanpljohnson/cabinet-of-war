@@ -39,7 +39,8 @@ export function wing(L, D, storeys, opts = {}) {
       if (opts.door != null && side === 1 && b === opts.door && s === 0) continue;
       const y = 1.6 + s * sh;
       P.push(box(1.5, 2.5, .2, TRIM, x, y, side * (D / 2 + .02)));
-      P.push(box(1.1, 2.1, .22, GLASS, x, y + .2, side * (D / 2 + .04)));
+      P.push(box(1.1, 1.05, .22, GLASS, x, y + .2, side * (D / 2 + .04)), box(1.1, 1.05, .22, 0x6a7f90, x, y + 1.25, side * (D / 2 + .04)));
+      P.push(box(.07, 2.1, .26, TRIM, x, y + .2, side * (D / 2 + .05)), box(1.1, .07, .26, TRIM, x, y + 1.3, side * (D / 2 + .05)));
       P.push(box(1.8, .25, .35, TRIM, x, y + 2.6, side * (D / 2 + .06)));
     }
     if (b % 2 === 0) P.push(box(.5, H - 1.2, .2, TRIM, -L / 2 + step * b + .25, .9, side * (D / 2 + .03)));
@@ -83,8 +84,10 @@ export function gateWall(len, gap) { // wall along z at local x=0, centred gate 
 
 export function fountain() {
   const P = [];
-  P.push(place(tint(new THREE.CylinderGeometry(3.4, 3.6, .7, 16), TRIM, .04), 0, .35, 0));
-  P.push(place(tint(new THREE.CylinderGeometry(3.0, 3.0, .1, 16), 0x5f8a96), 0, .62, 0));
+  const basin = [[0, 0], [3.75, 0], [3.75, .14], [3.45, .14], [3.42, .72], [3.04, .72], [3.04, .4], [0, .4]].map(([x, y]) => new THREE.Vector2(x, y));
+  P.push(tint(new THREE.LatheGeometry(basin, 20), 0xe6dcc4, .05));
+  P.push(place(tint(new THREE.CircleGeometry(3.05, 20).rotateX(-Math.PI / 2), 0x6f9aa0), 0, .56, 0));
+  P.push(place(tint(new THREE.CircleGeometry(1.0, 12).rotateX(-Math.PI / 2), 0x7aa4aa), 0, 2.51, 0));
   P.push(place(tint(new THREE.CylinderGeometry(.35, .5, 2.2, 8), TRIM), 0, 1.1, 0));
   P.push(place(tint(new THREE.CylinderGeometry(1.1, .5, .4, 12), TRIM), 0, 2.3, 0));
   P.push(place(tint(new THREE.IcosahedronGeometry(.35, 1), TRIM), 0, 2.8, 0));
