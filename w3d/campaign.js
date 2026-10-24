@@ -22,9 +22,11 @@ export async function initCampaign(opts) {
 function migrate() {
   const h = state.hidden = state.hidden || {}; let ch = false;
   if (h.world) { delete h.world; ch = true; }
-  if (!Array.isArray(h.threads)) { h.threads = seedThreads(almanac); ch = true; }
+  if (!Array.isArray(h.threads)) { h.threads = seedThreads(almanac, state.date); ch = true; }
   if (!state.trust) { state.trust = {}; ch = true; }
   if (!state.record) { state.record = { chain: [], ironman: false }; ch = true; }
+  // each campaign its own dice: the same turn still rolls the same, so sealing again changes nothing
+  if (!state.record.salt) { state.record.salt = Math.floor(Math.random() * 2 ** 32).toString(16).padStart(8, '0'); ch = true; }
   markHigh();
   if (ch) persistState();
 }
@@ -32,7 +34,7 @@ function migrate() {
 /* ---------- the packet ---------- */
 const sentOrders = () => store(SENT_KEY, []).flatMap(s => (s.orders || []).filter(o => o && o.ref).map(o => o.ref));
 const choicesNow = () => store(CHOICE_KEY, []).filter(c => c.turn === state.turn);
-export const fortune = () => rollFortune(state.campaignId, state.turn);
+export const fortune = () => rollFortune(state.campaignId, state.turn, 8, (state.record || {}).salt || '');
 async function packet(orders) {
   const w = draft.w3d || {};
   return buildPacket({ state, contract, orders, almanac, fortune: fortune(), wake: w.wake, trust: state.trust, choices: choicesNow(), endRequested: !!w.end, purse: (w.items || []).filter(i => i.purse).map(i => i.text) });

@@ -31,13 +31,39 @@ export function placeOn(c, day) {
 // who is together at a place on a day, and what they are seen doing
 export const groupsOn = (place, day) => (state.whereabouts || []).filter(w => w.place === place && w.date === day && (w.who || []).length);
 
-/* ---------- travel: you go at once; the journey goes into the orders for the adjudicator ---------- */
+/* ---------- where you are on a day of the turn: a journey takes the days it takes ---------- */
+const POST_KEY = 'cabinet-of-war:w3d-post';
+const addDays = (d, n) => { const x = new Date(d + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+// the day you are living: the post walks it through the turn (shell.js keeps it); before that, the turn's date
+export function dayNow() { try { const p = JSON.parse(localStorage.getItem(POST_KEY) || 'null'); if (p && p.turn === state.turn && p.upto) return p.upto; } catch { } return (state.span && state.span.from) || state.date; }
+// the turn began at span.at on span.from (set when the reply was merged); player.route, if the adjudicator gave one, says where
+// he was each day; without it he is on the road from the first day and arrives after the usual days for the distance
+export function arrivalDay() {
+  const P = state.player, sp = state.span; if (!sp || !sp.at || sp.at === P.locationId) return null;
+  const route = (P.route || []).filter(s => s && s.place === P.locationId).sort((x, y) => x.date.localeCompare(y.date));
+  if (route.length) return route[0].date;
+  const A = loc(sp.at), B = loc(P.locationId); if (!A || !B) return null;
+  const d = addDays(sp.from, travelDays(roadKm(A, B))); return d < state.date ? d : state.date;
+}
+export function playerOn(day) {
+  const P = state.player, sp = state.span || {}, route = Array.isArray(P.route) ? P.route : [];
+  if (route.length) { let best = null; for (const s of route) if (s && s.date <= day && (!best || s.date >= best.date)) best = s; if (best) return best.place; return sp.at || P.locationId; }
+  const arr = arrivalDay(); if (!arr) return P.locationId;
+  return day >= arr ? P.locationId : 'road';
+}
+// the stages worth stopping on as the days pass: setting out and arriving
+export const routeDays = () => { const P = state.player, sp = state.span || {}, out = (P.route || []).map(s => s && s.date).filter(Boolean), a = arrivalDay(); if (a) out.push(a); if (sp.at && sp.at !== P.locationId && sp.from) out.push(sp.from); return out; };
+
+/* ---------- travel: a journey goes into the dispatch; you set out when it is sealed and arrive when the reply says ---------- */
 const TRAVEL_KEY = 'cabinet-of-war:w3d-travel';
 export const travel = {
   get() { try { const v = JSON.parse(localStorage.getItem(TRAVEL_KEY) || 'null'); return v && v.turn === state.turn ? v : null; } catch { return null; } },
   set(v) { try { v ? localStorage.setItem(TRAVEL_KEY, JSON.stringify(v)) : localStorage.removeItem(TRAVEL_KEY); } catch { } },
-  here() { return this.get()?.to || state.player.locationId; },
-  mode() { return this.get()?.mode || state.player.mode; },
+  // on the road you are still shown where you set out from, with no one about; onRoad() says so
+  onRoad() { return playerOn(dayNow()) === 'road'; },
+  here() { const p = playerOn(dayNow()); return p === 'road' ? (state.span && state.span.at) || state.player.locationId : p; },
+  bound() { const j = this.get(); return j ? j.to : this.onRoad() ? state.player.locationId : null; },
+  mode() { return state.player.mode; },
 };
 
 /* ---------- buildings ---------- */

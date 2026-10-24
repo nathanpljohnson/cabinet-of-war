@@ -27,10 +27,10 @@ function soldierFull(u, pose) {
   T.push(at(tint(new THREE.CylinderGeometry(.19, .31, .42, 7, 1, true, .6, Math.PI * 2 - 1.2), u.coat), 0, hipY - .1, 0));
   T.push(at(tint(new THREE.BoxGeometry(.2, .32, .05), u.facing), 0, hipY + .34, .16));
   T.push(at(tint(new THREE.BoxGeometry(.06, .5, .03), 0xf2eee4), .05, hipY + .3, .175, 0, 0, .55)); // cross-belt
-  T.push(at(tint(new THREE.DodecahedronGeometry(.11, 0), SKIN), 0, hipY + .74, .01));
-  T.push(at(tint(new THREE.CylinderGeometry(.24, .2, .07, 3), u.hat), 0, hipY + .84, 0, 0, Math.PI));
-  T.push(at(tint(new THREE.CylinderGeometry(.11, .12, .08, 6), u.hat), 0, hipY + .88, 0));
-  T.push(at(tint(new THREE.CylinderGeometry(.25, .21, .02, 3), u.trim), 0, hipY + .81, 0, 0, Math.PI));
+  T.push(at(tint(new THREE.DodecahedronGeometry(.145, 0), SKIN), 0, hipY + .76, .01));
+  T.push(at(tint(new THREE.CylinderGeometry(.3, .25, .08, 3), u.hat), 0, hipY + .89, 0, 0, Math.PI));
+  T.push(at(tint(new THREE.CylinderGeometry(.14, .15, .1, 6), u.hat), 0, hipY + .94, 0));
+  T.push(at(tint(new THREE.CylinderGeometry(.31, .26, .02, 3), u.trim), 0, hipY + .86, 0, 0, Math.PI));
   const sh = hipY + .52;
   // arms: left swings, right holds the musket
   T.push(at(limb(.52, .06, .05, u.coat), -.22, sh, 0, pose.la)); T.push(at(tint(new THREE.BoxGeometry(.11, .1, .11), u.facing), -.22 + 0, sh - Math.cos(pose.la) * .48, -Math.sin(pose.la) * .48));
@@ -51,8 +51,8 @@ export function rider(u, sword) {
   for (const s of [-1, 1]) { P.push(at(limb(.48, .08, .07, u.breeches), s * .15, hipY, .05, -1.25, 0, s * .25)); P.push(at(tint(new THREE.CylinderGeometry(.07, .065, .5, 5), 0x15110d), s * .28, hipY - .32, .3)); }
   P.push(at(tint(new THREE.CylinderGeometry(.17, .2, .6, 6), u.coat), 0, hipY + .32, 0));
   P.push(at(tint(new THREE.BoxGeometry(.2, .3, .05), u.facing), 0, hipY + .36, .17));
-  P.push(at(tint(new THREE.DodecahedronGeometry(.11, 0), SKIN), 0, hipY + .76, .01));
-  P.push(at(tint(new THREE.CylinderGeometry(.24, .2, .07, 3), u.hat), 0, hipY + .86, 0, 0, Math.PI)); P.push(at(tint(new THREE.CylinderGeometry(.11, .12, .08, 6), u.hat), 0, hipY + .9, 0));
+  P.push(at(tint(new THREE.DodecahedronGeometry(.145, 0), SKIN), 0, hipY + .78, .01));
+  P.push(at(tint(new THREE.CylinderGeometry(.3, .25, .08, 3), u.hat), 0, hipY + .91, 0, 0, Math.PI)); P.push(at(tint(new THREE.CylinderGeometry(.14, .15, .1, 6), u.hat), 0, hipY + .96, 0));
   P.push(at(limb(.5, .06, .05, u.coat), -.22, hipY + .55, 0, -.6)); P.push(at(limb(.5, .06, .05, u.coat), .22, hipY + .55, 0, sword ? -2.2 : -.6));
   if (sword) P.push(at(tint(new THREE.BoxGeometry(.03, .85, .02), 0xd0d0d4), .22, hipY + 1.15, -.2, -.4));
   return merge(P);
@@ -62,7 +62,7 @@ export function rider(u, sword) {
 function soldierLow(u, pose) {
   const P = [], hipY = .93;
   for (const [s, a] of [[-1, pose.lt], [1, pose.rt]]) P.push(at(tint(new THREE.BoxGeometry(.13, .93, .13), u.legs).translate(0, -.46, 0), s * .09, hipY, 0, a));
-  const T = [at(tint(new THREE.CylinderGeometry(.17, .29, 1.0, 4), u.coat), 0, hipY + .1, 0, 0, Math.PI / 4), at(tint(new THREE.BoxGeometry(.2, .22, .2), SKIN), 0, hipY + .74, 0), at(tint(new THREE.CylinderGeometry(.24, .2, .1, 3), u.hat), 0, hipY + .86, 0, 0, Math.PI)];
+  const T = [at(tint(new THREE.CylinderGeometry(.17, .29, 1.0, 4), u.coat), 0, hipY + .1, 0, 0, Math.PI / 4), at(tint(new THREE.BoxGeometry(.26, .28, .26), SKIN), 0, hipY + .76, 0), at(tint(new THREE.CylinderGeometry(.3, .25, .11, 3), u.hat), 0, hipY + .93, 0, 0, Math.PI)];
   if (pose.musket === 'present') T.push(at(tint(new THREE.BoxGeometry(.06, .06, 1.5), WOOD), .1, hipY + .58, .55));
   else { const tilt = pose.musket === 'trail' ? .55 : .12; T.push(at(tint(new THREE.BoxGeometry(.06, 1.6, .06), WOOD), .26, hipY + .3, -.04, tilt)); }
   const torso = merge(T); torso.translate(0, -hipY, 0); torso.rotateX(pose.lean || 0); torso.translate(0, hipY, 0);

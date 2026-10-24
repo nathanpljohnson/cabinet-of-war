@@ -39,7 +39,8 @@ export function wing(L, D, storeys, opts = {}) {
       if (opts.door != null && side === 1 && b === opts.door && s === 0) continue;
       const y = 1.6 + s * sh;
       P.push(box(1.5, 2.5, .2, TRIM, x, y, side * (D / 2 + .02)));
-      P.push(box(1.1, 2.1, .22, GLASS, x, y + .2, side * (D / 2 + .04)));
+      P.push(box(1.1, 1.05, .22, GLASS, x, y + .2, side * (D / 2 + .04)), box(1.1, 1.05, .22, 0x6a7f90, x, y + 1.25, side * (D / 2 + .04)));
+      P.push(box(.07, 2.1, .26, TRIM, x, y + .2, side * (D / 2 + .05)), box(1.1, .07, .26, TRIM, x, y + 1.3, side * (D / 2 + .05)));
       P.push(box(1.8, .25, .35, TRIM, x, y + 2.6, side * (D / 2 + .06)));
     }
     if (b % 2 === 0) P.push(box(.5, H - 1.2, .2, TRIM, -L / 2 + step * b + .25, .9, side * (D / 2 + .03)));
@@ -83,8 +84,10 @@ export function gateWall(len, gap) { // wall along z at local x=0, centred gate 
 
 export function fountain() {
   const P = [];
-  P.push(place(tint(new THREE.CylinderGeometry(3.4, 3.6, .7, 16), TRIM, .04), 0, .35, 0));
-  P.push(place(tint(new THREE.CylinderGeometry(3.0, 3.0, .1, 16), 0x5f8a96), 0, .62, 0));
+  const basin = [[0, 0], [3.75, 0], [3.75, .14], [3.45, .14], [3.42, .72], [3.04, .72], [3.04, .4], [0, .4]].map(([x, y]) => new THREE.Vector2(x, y));
+  P.push(tint(new THREE.LatheGeometry(basin, 20), 0xe6dcc4, .05));
+  P.push(place(tint(new THREE.CircleGeometry(3.05, 20).rotateX(-Math.PI / 2), 0x6f9aa0), 0, .56, 0));
+  P.push(place(tint(new THREE.CircleGeometry(1.0, 12).rotateX(-Math.PI / 2), 0x7aa4aa), 0, 2.51, 0));
   P.push(place(tint(new THREE.CylinderGeometry(.35, .5, 2.2, 8), TRIM), 0, 1.1, 0));
   P.push(place(tint(new THREE.CylinderGeometry(1.1, .5, .4, 12), TRIM), 0, 2.3, 0));
   P.push(place(tint(new THREE.IcosahedronGeometry(.35, 1), TRIM), 0, 2.8, 0));
@@ -129,6 +132,12 @@ export function tent(rnd) {
   P.push(place(gable(2.6, 2.3, 1.75, c), 0, 0, 0));
   P.push(box(.06, 2, .06, WOOD, -1.32, 0, 0)); P.push(box(.06, 2, .06, WOOD, 1.32, 0, 0));
   P.push(place(tint(new THREE.PlaneGeometry(.8, 1.4), 0x5a4a38), 1.31, .7, 0, Math.PI / 2)); // dark doorway
+  P.push(box(.06, .35, .06, WOOD, -1.32, 2, 0), box(.06, .35, .06, WOOD, 1.32, 2, 0)); // pole tops above the ridge
+  for (const s of [-1, 1]) { // guy ropes from the pole tops to pegs, and pegs along the skirts
+    P.push(place(tint(new THREE.BoxGeometry(.02, 1.5, .02), 0xb8a882), s * 1.85, 1.3, 0, 0, 1, 1, 1, 0, s * -.62), box(.05, .18, .05, WOOD, s * 2.3, 0, 0));
+    for (const x of [-.9, 0, .9]) P.push(box(.04, .14, .04, WOOD, x, 0, s * 1.3));
+  }
+  if (rnd && rnd() < .5) P.push(place(tint(new THREE.PlaneGeometry(.5, .4), 0xd6c9a4), -.4, 1, .96, 0, 1, 1, 1, -.72)); // a patched panel
   return merge(P);
 }
 
@@ -266,3 +275,14 @@ export function flagMesh(w, h, tex, uTime) {
   m.onBeforeCompile = sh => { sh.uniforms.uT = uTime; sh.vertexShader = 'uniform float uT;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n float k = transformed.x/' + w.toFixed(2) + '; transformed.z += sin(uT*3.2 - transformed.x*2.2)*.22*k; transformed.y -= k*k*.25;'); };
   const mesh = new THREE.Mesh(g, m); mesh.castShadow = true; return mesh;
 }
+
+// courtyard, road and camp clutter
+export function orangeTub(rnd) {
+  const T = [box(.72, .6, .72, 0x3e5e4a), box(.8, .08, .8, 0xd8cdb4, 0, .6, 0), box(.12, .9, .12, 0x6a4a30, 0, .6, 0), place(tint(jitterVerts(new THREE.IcosahedronGeometry(.62, 1), .12, rnd), 0x4f7a36, .12, rnd), 0, 1.75, 0, 0, 1, .9)];
+  for (let i = 0; i < 9; i++) { const a = rnd() * 6.28, e = rnd() * 1.2 - .3; T.push(place(tint(new THREE.IcosahedronGeometry(.07, 0), 0xe88a26), Math.cos(a) * Math.cos(e) * .6, 1.75 + Math.sin(e) * .52, Math.sin(a) * Math.cos(e) * .6)); }
+  return merge(T);
+}
+export function hayBale() { return merge([box(1.1, .5, .62, 0xd6b45c), box(1.12, .04, .64, 0x9a7a3a, 0, .2, 0), box(.04, .51, .64, 0x9a7a3a, -.3, 0, 0), box(.04, .51, .64, 0x9a7a3a, .3, 0, 0)]); }
+export function sack(rnd) { return place(tint(jitterVerts(new THREE.IcosahedronGeometry(.32, 1), .06, rnd), 0xcbb88e, .08, rnd), 0, .26, 0, 0, 1, .8, .75); }
+export function logPile(n, L, rnd) { const G = []; for (let r = 0, k = 0; r < 3; r++) for (let i = 0; i < n - r; i++, k++) G.push(place(tint(new THREE.CylinderGeometry(.13, .13, L, 6), k % 3 ? 0x8a6440 : 0x76563a, .1, rnd), (i - (n - r - 1) / 2) * .27, .13 + r * .23, 0, 0, 1, 1, 1, Math.PI / 2)); return merge(G); }
+export function milestone() { return merge([box(.42, .7, .3, 0xd8cdb4), place(tint(new THREE.CylinderGeometry(.21, .21, .3, 8, 1, false, 0, Math.PI), 0xd8cdb4), 0, .7, 0, Math.PI / 2, 1, 1, 1, 0, Math.PI / 2), box(.3, .12, .02, 0x8a3a2a, 0, .42, .16)]); }
