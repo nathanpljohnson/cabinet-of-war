@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { makeNoise, rngFrom, smooth, lerp, polylineFromCurve, makeDistField, stdMat, tint, merge, place, box, jitterVerts } from './lib.js';
+import { makeNoise, rngFrom, smooth, lerp, polylineFromCurve, makeDistField, stdMat, tint, merge, place, box } from './lib.js';
 import { axis, buildTerrain } from './terrain.js';
 import { buildForest, buildRocks, buildGrass, AUTUMN, FIRS } from './nature.js';
 import * as P from './props.js';
@@ -179,6 +179,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   const shrineAt = PP[Math.floor(PP.length * .5)]; add(P.shrine(), shrineAt[0] + 4.5, shrineAt[1] - 3.5, -.4); colliders.push({ c: [shrineAt[0] + 4.5, shrineAt[1] - 3.5, .6] });
   add(P.signpost(2), 152, 21, .5);
   for (let i = Math.floor(PP.length * .58); i < Math.floor(PP.length * .8); i += 6) { const [x0, z0] = PP[i], [x1, z1] = PP[i + 6] || PP[i], dx = x1 - x0, dz = z1 - z0, L = Math.hypot(dx, dz); if (L < 1) continue; const ox = -dz / L * 4.6, oz = dx / L * 4.6; const g = add(P.fenceSeg(L), (x0 + x1) / 2 - ox, (z0 + z1) / 2 - oz, Math.atan2(-dz, dx)); g.position.y = hAt(g.position.x, g.position.z); }
+  dressRoad();
   // vineyard on the south-west slope
   for (let r = 0; r < 6; r++) { const x = -95, z = 105 + r * 9; const g = add(P.vineRows(70, 1, 0), x, z, .15); g.position.y = hAt(x, z) - .1; }
 
@@ -212,9 +213,9 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   // camp
   const camp = new THREE.Group(); group.add(camp);
   const ch = campH, cadd = (geo, x, z, ry = 0) => { const m = new THREE.Mesh(geo, propsMat); m.position.set(x, ch, z); m.rotation.y = ry; m.castShadow = m.receiveShadow = true; camp.add(m); return m; };
-  const tentG = [P.tent(rngFrom(1)), P.tent(rngFrom(2))];
+  const tentG = [P.tent(rngFrom(1)), P.tent(rngFrom(2)), P.tent(rngFrom(6))];
   const ROWS = cues.men ? Math.max(1, Math.min(6, Math.round(cues.men / 1200))) : cues.tempo === 'winter quarters' ? 2 : cues.tempo === 'campaigning' ? 6 : 4;
-  for (let row = 0; row < ROWS; row++) for (let i = 0; i < 6; i++) { const x = 160 + i * 6.4, z = 36 + row * 8.5; cadd(tentG[(i + row) % 2], x, z, Math.PI / 2); colliders.push({ b: [x - 1.3, x + 1.3, z - 1.45, z + 1.45] }); if (i % 2 === 0) cadd(P.muskets(), x, z + 3.2); }
+  for (let row = 0; row < ROWS; row++) for (let i = 0; i < 6; i++) { const x = 160 + i * 6.4, z = 36 + row * 8.5; cadd(tentG[(i * 2 + row) % 3], x, z, Math.PI / 2); colliders.push({ b: [x - 1.3, x + 1.3, z - 1.45, z + 1.45] }); if (i % 2 === 0) cadd(P.muskets(), x, z + 3.2); }
   cadd(P.marquee(), 204, 24, -Math.PI / 2); colliders.push({ b: [201.6, 206.4, 20.8, 27.2] });
   const fieldTable = cadd(P.mapTable(), 199, 24, Math.PI / 2); colliders.push({ b: [197.9, 200.1, 22.4, 25.6] });
   const fires = [[170, 72], [192, 69]];
@@ -225,6 +226,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   for (let i = 0; i < 5; i++) cadd(i % 2 ? P.crate() : P.barrel(), 139 + (i % 3) * 1, 52 + i * .9, i);
   cadd(P.hitchPost(), 217, 48, Math.PI / 2); cadd(P.hitchPost(), 217, 57, Math.PI / 2);
   cadd(P.pole(8), 182, 26); cadd(P.pole(6), 204, 29.5);
+  dressCamp();
   const flagTex = P.flagTexture(); for (const [x, z, h, w] of [[182, 26, 8, 1.9], [204, 29.5, 6, 1.4]]) { const f = P.flagMesh(w, w * .72, flagTex, uTime); f.position.set(x + .06, ch + h - w * .38, z); camp.add(f); }
 
   // fire glow and smoke
@@ -473,12 +475,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
       c.copy(SL[Math.floor(prnd() * SL.length)]).multiplyScalar(.96 + prnd() * .07); if (winter) c.lerp(SNOW, .45 + prnd() * .3); slabs.setColorAt(i, c); });
     slabs.receiveShadow = true; group.add(slabs);
     const D = [], put = (geo, x, z, ry = 0, y = 0) => D.push(placeGeom(geo, x, hqH + .06 + y, z, ry));
-    const tub = () => { const T = [box(.72, .6, .72, 0x3e5e4a), box(.8, .08, .8, 0xd8cdb4, 0, .6, 0), box(.12, .9, .12, 0x6a4a30, 0, .6, 0), placeGeom(tint(jitterVerts(new THREE.IcosahedronGeometry(.62, 1), .12, prnd), 0x4f7a36, .12, prnd), 0, 1.75, 0, 0, 1, .9)];
-      for (let i = 0; i < 9; i++) { const a = prnd() * 6.28, e = prnd() * 1.2 - .3; T.push(placeGeom(tint(new THREE.IcosahedronGeometry(.07, 0), 0xe88a26), Math.cos(a) * Math.cos(e) * .6, 1.75 + Math.sin(e) * .52, Math.sin(a) * Math.cos(e) * .6)); }
-      return merge(T); };
-    const bale = () => merge([box(1.1, .5, .62, 0xd6b45c), box(1.12, .04, .64, 0x9a7a3a, 0, .2, 0), box(.04, .51, .64, 0x9a7a3a, -.3, 0, 0), box(.04, .51, .64, 0x9a7a3a, .3, 0, 0)]);
-    const sack = () => placeGeom(tint(jitterVerts(new THREE.IcosahedronGeometry(.32, 1), .06, prnd), 0xcbb88e, .08, prnd), 0, .26, 0, 0, 1, .8, .75);
-    const logs = (n, L) => { const G = []; for (let r = 0, k = 0; r < 3; r++) for (let i = 0; i < n - r; i++, k++) G.push(placeGeom(tint(new THREE.CylinderGeometry(.13, .13, L, 6), k % 3 ? 0x8a6440 : 0x76563a, .1, prnd), (i - (n - r - 1) / 2) * .27, .13 + r * .23, 0, 0, 1, 1, 1, Math.PI / 2)); return merge(G); };
+    const tub = () => P.orangeTub(prnd), bale = P.hayBale, sack = () => P.sack(prnd), logs = (n, L) => P.logPile(n, L, prnd);
     for (const [x, z] of [[-186.5, 5.6], [-178.5, 5.7], [-166, 5.7], [-192.6, -17.6], [-192.6, -2.4]]) { put(tub(), x, z); colliders.push({ c: [x, z, .55] }); }
     for (const [x, z, y] of [[-192.7, -25.6, 0], [-192.6, -24.8, 0], [-191.9, -25.7, 0], [-192.4, -25.2, .86]]) put(P.barrel(), x, z, prnd() * 3, y);
     put(P.crate(), -191.2, -24.6, .25); put(P.crate(), -191.3, -24.5, .6, .72); put(sack(), -190.6, -25.6, 1); put(sack(), -190.2, -25.3, 2.2);
@@ -501,6 +498,49 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
       const [x, z] = side === 0 ? [CY.x0 + o, lerp(CY.z0, CY.z1, t)] : side === 1 ? [lerp(CY.x0, CY.x1, t), CY.z1 - o] : side === 2 ? [lerp(CY.x0, CY.x1, t), CY.z0 + o] : [CY.x1 - o, lerp(CY.z0, CY.z1, t)];
       if (side === 3 && z > -13.4 && z < -6.6) continue; weeds.push({ x, y: hqH + .04, z, ry: prnd() * 6.28, s: .35 + prnd() * .4, k: prnd() < .12 ? 4 : Math.floor(prnd() * 3) }); }
       group.add(buildGrass(weeds, 6)); }
+  }
+  // the road worn by wheels: two ruts with grass between, long grass and flowers at the verges, puddles when it is wet, milestones
+  function dressRoad() {
+    const prnd = rngFrom(91), wet = cues.roads === 'heavy' || cues.roads === 'impassable', S = [];
+    const skip = (x, z) => inCY(x, z, 1) || (town && rectD(x, z, TOWN.x0, TOWN.x1, TOWN.z0, TOWN.z1) < 2) || riverD(x, z, 30)[0] < 14;
+    for (let i = 0; i < PP.length - 1; i++) { const [x0, z0] = PP[i], [x1, z1] = PP[i + 1], L = Math.hypot(x1 - x0, z1 - z0) || 1; for (const f of [0, .5]) S.push({ x: x0 + (x1 - x0) * f, z: z0 + (z1 - z0) * f, nx: -(z1 - z0) / L, nz: (x1 - x0) / L }); }
+    S.forEach(s => { s.off = skip(s.x, s.z); });
+    const pos = [], col = [], RUT = new THREE.Color(wet ? 0x62503a : 0x8c6c48), y = (x, z) => hAt(x, z) + .045;
+    for (let i = 0; i < S.length - 1; i++) { const a = S[i], b = S[i + 1]; if (a.off || b.off) continue;
+      for (const o of [-.75, .75]) { const q = [[a, o - .14], [a, o + .14], [b, o - .14], [b, o + .14]].map(([s, d]) => [s.x + s.nx * d, s.z + s.nz * d]);
+        for (const k of [0, 1, 2, 2, 1, 3]) { const [x, z] = q[k]; pos.push(x, y(x, z), z); const t = .9 + prnd() * .15; col.push(RUT.r * t, RUT.g * t, RUT.b * t); } } }
+    const rg = new THREE.BufferGeometry(); rg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); rg.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); rg.setAttribute('normal', new THREE.Float32BufferAttribute(pos.map((_, i) => i % 3 === 1 ? 1 : 0), 3));
+    const ruts = new THREE.Mesh(rg, stdMat({ side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })); ruts.receiveShadow = true; group.add(ruts);
+    const tufts = [], few = winter ? .15 : 1;
+    for (const s of S) { if (s.off) continue;
+      if (prnd() < .55 * few) { const d = (prnd() - .5) * .5; tufts.push({ x: s.x + s.nx * d, y: hAt(s.x + s.nx * d, s.z + s.nz * d), z: s.z + s.nz * d, ry: prnd() * 6.28, s: .3 + prnd() * .25, k: Math.floor(prnd() * 3) }); }
+      for (const side of [-1, 1]) for (let n = 0; n < 2; n++) { if (prnd() > .85 * few) continue; const d = side * (2.7 + prnd() * 1.2), x = s.x + s.nx * d, z = s.z + s.nz * d; tufts.push({ x, y: hAt(x, z), z, ry: prnd() * 6.28, s: .5 + prnd() * .45, k: prnd() < .16 ? 3 + Math.floor(prnd() * 3) : Math.floor(prnd() * 3) }); } }
+    group.add(buildGrass(tufts, 8));
+    if (wet) { const pm = new THREE.MeshStandardMaterial({ color: 0x8c968f, roughness: .06, metalness: .1, transparent: true, opacity: .6, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }), pg = new THREE.CircleGeometry(1, 10).rotateX(-Math.PI / 2);
+      for (let n = 0; n < 22; n++) { const s = S[Math.floor(prnd() * S.length)]; if (s.off) continue; const d = [-.75, .75, 0][Math.floor(prnd() * 3)], x = s.x + s.nx * d, z = s.z + s.nz * d, m = new THREE.Mesh(pg, pm);
+        m.position.set(x, hAt(x, z) + .06, z); m.rotation.y = Math.atan2(s.nx, s.nz); m.scale.set(.22 + prnd() * .18, 1, .4 + prnd() * .6); m.receiveShadow = true; group.add(m); } }
+    for (let i = 30; i < S.length; i += 70) { const s = S[i]; if (s.off) continue; const x = s.x + s.nx * 4, z = s.z + s.nz * 4; add(P.milestone(), x, z, Math.atan2(s.nx, s.nz)); colliders.push({ c: [x, z, .4] }); }
+  }
+  // the camp lived in: straw underfoot, firewood by the fires, hay at the horse lines, stores by the wagons, a drum at the marquee
+  function dressCamp() {
+    const prnd = rngFrom(53), d = new THREE.Object3D(), c = new THREE.Color(), STRAW = [0xd8bf6a, 0xc9a94e, 0xb89a48].map(x => new THREE.Color(x)), L = [];
+    while (L.length < 1600) { const a = prnd() * 6.28, r = Math.sqrt(prnd()) * CAMP.r * .85, x = CAMP.x + Math.cos(a) * r, z = CAMP.z + Math.sin(a) * r; if (prnd() < (x > 154 && x < 196 && z > 30 && z < 92 ? .9 : .25)) L.push([x, z]); }
+    const straw = new THREE.InstancedMesh(tint(new THREE.BoxGeometry(1, 1, 1), 0xffffff), propsMat, L.length);
+    L.forEach(([x, z], i) => { d.position.set(x, ch + .02, z); d.rotation.set(0, prnd() * 6.28, (prnd() - .5) * .2); d.scale.set(.35 + prnd() * .4, .02, .035); d.updateMatrix(); straw.setMatrixAt(i, d.matrix); straw.setColorAt(i, c.copy(STRAW[Math.floor(prnd() * 3)]).lerp(winter ? SNOW : c, winter ? .3 : 0)); });
+    straw.receiveShadow = true; camp.add(straw);
+    // company streets of trodden earth between the tent rows
+    const street = (x0, x1, z0, z1) => { const g = new THREE.PlaneGeometry(x1 - x0, z1 - z0, Math.ceil((x1 - x0) / 1.5), Math.ceil((z1 - z0) / 1.2)).rotateX(-Math.PI / 2), p = g.attributes.position;
+      for (let i = 0; i < p.count; i++) { const ex = Math.abs(p.getX(i)) > (x1 - x0) / 2 - .01, ez = Math.abs(p.getZ(i)) > (z1 - z0) / 2 - .01; if (ex || ez) p.setXYZ(i, p.getX(i) + (prnd() - .5) * .9, 0, p.getZ(i) + (prnd() - .5) * .9); }
+      const t = tint(g, winter ? 0xc4bcb0 : 0xa68b62, .12, prnd); t.translate((x0 + x1) / 2, ch + .03, (z0 + z1) / 2); return t; };
+    const S = []; for (let row = 0; row <= ROWS; row++) S.push(street(155, 197, 36 + row * 8.5 - 5, 36 + row * 8.5 - 3.4)); S.push(street(196.5, 199.5, 28, 36 + ROWS * 8.5 - 3)); S.push(street(140, 155, 34, 37));
+    const sm = new THREE.Mesh(merge(S), stdMat({ polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })); sm.receiveShadow = true; camp.add(sm);
+    const D = [], put = (geo, x, z, ry = 0, yy = 0) => D.push(placeGeom(geo, x, ch + yy, z, ry));
+    for (const [x, z] of fires) { put(P.logPile(4, 1.6, prnd), x + 2.4, z - 1.9, .5); put(P.sack(prnd), x - 2.2, z - 2, 1); colliders.push({ c: [x + 2.4, z - 1.9, 1] }); }
+    put(P.hayBale(), 220, 51.5, Math.PI / 2); put(P.hayBale(), 220, 52.7, Math.PI / 2 + .1); put(P.hayBale(), 220, 52.1, Math.PI / 2, .5); colliders.push({ b: [219.3, 220.7, 50.8, 53.4] });
+    for (const [x, z] of [[138.5, 36.5], [137.6, 37.2], [136.5, 47.5]]) put(P.sack(prnd), x, z, prnd() * 3);
+    put(P.crate(), 132.5, 44, .3); put(P.crate(), 132.6, 44.1, .9, .72); put(P.barrel(), 133.2, 45.2, 0);
+    put(merge([placeGeom(tint(new THREE.CylinderGeometry(.28, .28, .36, 10), 0x2c4a7a), 0, .18, 0), placeGeom(tint(new THREE.CylinderGeometry(.3, .3, .05, 10), 0xa3302a), 0, .02, 0), placeGeom(tint(new THREE.CylinderGeometry(.3, .3, .05, 10), 0xa3302a), 0, .34, 0)]), 200.8, 28.6);
+    const m = new THREE.Mesh(merge(D), propsMat); m.castShadow = m.receiveShadow = true; camp.add(m);
   }
   const out = { setNight, setHour, setArchive, onOverhear: null, group, heightAt: groundAt, courierRide, setLetters, tablePose, tables, setUpTable, packTable, spawnCamp: { x: 193, z: 31, ry: Math.PI * .75 }, fires: fires.map(([x, z]) => [x, z]), camp: CAMP, place, blockedAt, interact, zoneName, update, solid, spawn: { x: -167.5, z: -6.5, ry: -2.41 }, live, counts: { trees: Object.values(trees).reduce((s, a) => s + a.length, 0), farTrees: Object.values(far).reduce((s, a) => s + a.length, 0), rocks: rocks.length, grass: grass.length, people: live.length } };
   return out;

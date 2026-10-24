@@ -132,6 +132,12 @@ export function tent(rnd) {
   P.push(place(gable(2.6, 2.3, 1.75, c), 0, 0, 0));
   P.push(box(.06, 2, .06, WOOD, -1.32, 0, 0)); P.push(box(.06, 2, .06, WOOD, 1.32, 0, 0));
   P.push(place(tint(new THREE.PlaneGeometry(.8, 1.4), 0x5a4a38), 1.31, .7, 0, Math.PI / 2)); // dark doorway
+  P.push(box(.06, .35, .06, WOOD, -1.32, 2, 0), box(.06, .35, .06, WOOD, 1.32, 2, 0)); // pole tops above the ridge
+  for (const s of [-1, 1]) { // guy ropes from the pole tops to pegs, and pegs along the skirts
+    P.push(place(tint(new THREE.BoxGeometry(.02, 1.5, .02), 0xb8a882), s * 1.85, 1.3, 0, 0, 1, 1, 1, 0, s * -.62), box(.05, .18, .05, WOOD, s * 2.3, 0, 0));
+    for (const x of [-.9, 0, .9]) P.push(box(.04, .14, .04, WOOD, x, 0, s * 1.3));
+  }
+  if (rnd && rnd() < .5) P.push(place(tint(new THREE.PlaneGeometry(.5, .4), 0xd6c9a4), -.4, 1, .96, 0, 1, 1, 1, -.72)); // a patched panel
   return merge(P);
 }
 
@@ -269,3 +275,14 @@ export function flagMesh(w, h, tex, uTime) {
   m.onBeforeCompile = sh => { sh.uniforms.uT = uTime; sh.vertexShader = 'uniform float uT;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n float k = transformed.x/' + w.toFixed(2) + '; transformed.z += sin(uT*3.2 - transformed.x*2.2)*.22*k; transformed.y -= k*k*.25;'); };
   const mesh = new THREE.Mesh(g, m); mesh.castShadow = true; return mesh;
 }
+
+// courtyard, road and camp clutter
+export function orangeTub(rnd) {
+  const T = [box(.72, .6, .72, 0x3e5e4a), box(.8, .08, .8, 0xd8cdb4, 0, .6, 0), box(.12, .9, .12, 0x6a4a30, 0, .6, 0), place(tint(jitterVerts(new THREE.IcosahedronGeometry(.62, 1), .12, rnd), 0x4f7a36, .12, rnd), 0, 1.75, 0, 0, 1, .9)];
+  for (let i = 0; i < 9; i++) { const a = rnd() * 6.28, e = rnd() * 1.2 - .3; T.push(place(tint(new THREE.IcosahedronGeometry(.07, 0), 0xe88a26), Math.cos(a) * Math.cos(e) * .6, 1.75 + Math.sin(e) * .52, Math.sin(a) * Math.cos(e) * .6)); }
+  return merge(T);
+}
+export function hayBale() { return merge([box(1.1, .5, .62, 0xd6b45c), box(1.12, .04, .64, 0x9a7a3a, 0, .2, 0), box(.04, .51, .64, 0x9a7a3a, -.3, 0, 0), box(.04, .51, .64, 0x9a7a3a, .3, 0, 0)]); }
+export function sack(rnd) { return place(tint(jitterVerts(new THREE.IcosahedronGeometry(.32, 1), .06, rnd), 0xcbb88e, .08, rnd), 0, .26, 0, 0, 1, .8, .75); }
+export function logPile(n, L, rnd) { const G = []; for (let r = 0, k = 0; r < 3; r++) for (let i = 0; i < n - r; i++, k++) G.push(place(tint(new THREE.CylinderGeometry(.13, .13, L, 6), k % 3 ? 0x8a6440 : 0x76563a, .1, rnd), (i - (n - r - 1) / 2) * .27, .13 + r * .23, 0, 0, 1, 1, 1, Math.PI / 2)); return merge(G); }
+export function milestone() { return merge([box(.42, .7, .3, 0xd8cdb4), place(tint(new THREE.CylinderGeometry(.21, .21, .3, 8, 1, false, 0, Math.PI), 0xd8cdb4), 0, .7, 0, Math.PI / 2, 1, 1, 1, 0, Math.PI / 2), box(.3, .12, .02, 0x8a3a2a, 0, .42, .16)]); }

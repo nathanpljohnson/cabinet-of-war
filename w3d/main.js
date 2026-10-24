@@ -413,7 +413,7 @@ const W0 = [3.8, 0xffcf96, 1.05, 0x5b8fd6, 0xf3dcb4, 0xe8d4b2, 110, 1500];
 const precip = { kind: null, obj: null };
 function setPrecip(kind) {
   if (!precip.obj) { const n = 2400, g = new THREE.BufferGeometry(), pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) { pos[i * 3] = (Math.random() - .5) * 70; pos[i * 3 + 1] = Math.random() * 34; pos[i * 3 + 2] = (Math.random() - .5) * 70; }
-    g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); precip.obj = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: .1, transparent: true, opacity: .8, depthWrite: false })); precip.obj.frustumCulled = false; scene.add(precip.obj); }
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); precip.obj = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: .1, transparent: true, opacity: .8, depthWrite: false })); precip.obj.frustumCulled = false; precip.obj.visible = false; scene.add(precip.obj); }
   if (precip.kind === kind) return; precip.kind = kind; precip.obj.visible = !!kind;
   const m = precip.obj.material; if (kind === 'rain') { m.color.set(0xb4bec8); m.size = .07; m.opacity = .55; } else { m.color.set(0xffffff); m.size = .13; m.opacity = .85; }
 }
@@ -448,7 +448,7 @@ function applyAtmosphere(night) {
 // measures every hour and weather in the courtyard against LIGHT_FLOOR; returns { pass, rows } (dev tool: __w3d.lightCheck())
 async function lightCheck() {
   const gl = renderer.getContext(), keep = { h: clockH, pl: { ...pl }, cam: { yaw: cam.yaw, pitch: cam.pitch, dist: cam.dist } }, rows = [];
-  shell.closeTop(); Object.assign(pl, { x: -172, z: -8, ry: 1.6 }); Object.assign(cam, { yaw: -1.5, pitch: .22, dist: 10 });
+  shell.closeTop(); Object.assign(pl, { x: -172, z: -8, ry: 1.6 }); Object.assign(cam, { yaw: -1.5, pitch: .22, dist: 10 }); for (let i = 0; i < 240; i++) tick(1 / 60); // let the camera arrive before measuring
   const measure = (label, night) => { applyAtmosphere(night); for (let i = 0; i < 3; i++) tick(1 / 60);
     const w = gl.drawingBufferWidth, h = gl.drawingBufferHeight, px = new Uint8Array(w * h * 4); tick(1 / 60); gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
     let s = 0, dark = 0, n = 0; for (let i = 0; i < px.length; i += 16) { const L = .2126 * px[i] + .7152 * px[i + 1] + .0722 * px[i + 2]; s += L; if (L < 28) dark++; n++; }

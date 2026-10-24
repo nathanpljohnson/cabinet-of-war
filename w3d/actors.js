@@ -83,6 +83,8 @@ const propMat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading
 export async function initActors(base = 'w3d/assets/') {
   const [m, hb, hw, sh, dg] = await Promise.all(['ual1_standard.glb', 'horse_bay.glb', 'horse_white.glb', 'sheep.glb', 'shibainu.glb'].map(f => loadGLB(base + f)));
   mannequin = m;
+  // the clips' bone scales are all 1; dropping them lets the house proportions below stick
+  for (const c of m.animations) c.tracks = c.tracks.filter(t => !t.name.endsWith('.scale'));
   return { m, hb, hw, sh, dg };
 }
 
@@ -93,6 +95,21 @@ const blobMat = new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, d
 function groundShadow(obj, rx, rz) { obj.traverse(x => { x.castShadow = false; }); const m = new THREE.Mesh(blobGeo, blobMat); m.scale.set(rx, 1, rz); m.position.y = .05; m.renderOrder = 1; obj.add(m); }
 
 const geoCache = {};
+// the house style: big heads, hands and feet on a stocky body, like painted toy figures
+// limbs and body thickened around each bone's centre line (bind pose), so they fatten without getting longer
+const THICK = { upperarm_l: 1.45, upperarm_r: 1.45, lowerarm_l: 1.4, lowerarm_r: 1.4, thigh_l: 1.3, thigh_r: 1.3, calf_l: 1.35, calf_r: 1.35, pelvis: 1.1, spine_01: 1.1, spine_02: 1.1, spine_03: 1.08, neck_01: 1.2 };
+function thicken(geo, sk) {
+  const B = sk.bones, M = new THREE.Matrix4(), at = B.map((b, i) => new THREE.Vector3().setFromMatrixPosition(M.copy(sk.boneInverses[i]).invert()));
+  const end = B.map(b => { const c = b.children.find(x => x.isBone); return c ? B.indexOf(c) : -1; });
+  const p = geo.attributes.position, si = geo.attributes.skinIndex, sw = geo.attributes.skinWeight, v = new THREE.Vector3(), seg = new THREE.Line3(), c = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    let k = 0, top = 0, j = -1; for (let n = 0; n < 4; n++) { const b = si.getComponent(i, n), w = sw.getComponent(i, n); k += w * (THICK[B[b].name] || 1); if (w > top) { top = w; j = b; } }
+    if (Math.abs(k - 1) < .01 || end[j] < 0) continue;
+    v.fromBufferAttribute(p, i); seg.set(at[j], at[end[j]]).closestPointToPoint(v, true, c); v.sub(c).multiplyScalar(k).add(c); p.setXYZ(i, v.x, v.y, v.z);
+  }
+  geo.computeVertexNormals();
+}
+const CHUNK = { Head: 1.32, hand_l: 1.3, hand_r: 1.3, foot_l: 1.15, foot_r: 1.15 }, BODY = [1.1, .96, 1.1];
 /* A dressed, animated person. Returns {obj, mixer, play(name, fade), clips} */
 export function makePerson(kind, look = {}) {
   const o = OUTFITS[kind], root = SkeletonUtils.clone(mannequin.scene);
@@ -100,7 +117,7 @@ export function makePerson(kind, look = {}) {
   root.traverse(x => {
     if (!x.isSkinnedMesh) return;
     const key = kind + x.geometry.uuid;
-    if (!geoCache[key]) { const g = x.geometry.clone(); paint(g, o); geoCache[key] = g; }
+    if (!geoCache[key]) { const g = x.geometry.clone(); paint(g, o); thicken(g, x.skeleton); geoCache[key] = g; }
     x.geometry = geoCache[key]; x.material = actorMat; x.castShadow = true; x.receiveShadow = false; x.frustumCulled = false;
   });
   // put the skeleton in bind pose so world positions of attachments match the T-pose measurements
@@ -118,7 +135,8 @@ export function makePerson(kind, look = {}) {
   if (props.includes('papers')) attach(root, 'spine_03', merge([box(.24, .03, .32, 0xf3ecd8, 0, 0, 0), box(.05, .035, .32, 0xa3302a, .06, 0, 0)]), propMat, new THREE.Vector3(.2, 1.12, .02), new THREE.Euler(0, 0, -1.2));
   if (props.includes('star')) attach(root, 'spine_03', place(tint(new THREE.CylinderGeometry(.045, .045, .01, 8), 0xe8d48a), 0, 0, 0, 0, 1, 1, 1, Math.PI / 2), propMat, new THREE.Vector3(.09, 1.3, .13));
   if (props.includes('cane')) attach(root, 'pelvis', merge([box(.025, .98, .025, 0x3a2416, 0, 0, 0), box(.05, .05, .05, 0xd4b24a, 0, .98, 0)]), propMat, new THREE.Vector3(.3, .02, .14), new THREE.Euler(.1, 0, -.06));
-  if (look.scale) root.scale.set(...look.scale);
+  for (const b in CHUNK) { const bone = root.getObjectByName(b); if (bone) bone.scale.setScalar(CHUNK[b]); }
+  root.scale.set(...BODY.map((v, i) => v * (look.scale ? look.scale[i] : 1)));
   const obj = new THREE.Group(); obj.add(root); groundShadow(obj, .5, .5);
   const mixer = new THREE.AnimationMixer(root), clips = {};
   for (const c of mannequin.animations) clips[c.name] = c;
