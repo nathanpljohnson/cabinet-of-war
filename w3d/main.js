@@ -282,7 +282,7 @@ const battleCentreIn = m => m.getBounds().contains(lo(state.battleDemo.center, 0
 const fieldSeason = () => { const bd = state.battleDemo || {}; const bdd = bd.date || (bd.aftermath || {}).date; if ((account || aftermath) && bdd) { const m = new Date(bdd + 'T12:00:00').getMonth(); return m === 11 || m <= 1 ? 'winter' : 'open'; } return worldCues().season; };
 async function ensureBattle() {
   if (battle && battle.season !== fieldSeason()) battle = null;
-  if (battle) return battle; showLoading('Laying out the field…');
+  if (battle) return battle; showLoading('Laying out the field…'); await actors.ready;
   const season = fieldSeason(), mod = await import('./battle3d.js'); battle = await mod.createBattle({ renderer, actors, quality: Q(), makeSky, makeLights, toast, onRise: (x, z) => fieldToMap(x, z), winter: season === 'winter' }); battle.season = season;
   hideLoading(); return battle;
 }

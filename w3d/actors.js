@@ -80,12 +80,17 @@ let mannequin = null;
 const actorMat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: .85, metalness: 0 });
 const propMat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: .8, metalness: 0 });
 
+// people first: the world is built as soon as they arrive. The animals load after them and step into place when they land
+// (actors.hb etc. are promises until then; await actors.ready before baking them)
 export async function initActors(base = 'w3d/assets/') {
-  const [m, hb, hw, sh, dg] = await Promise.all(['ual1_standard.glb', 'horse_bay.glb', 'horse_white.glb', 'sheep.glb', 'shibainu.glb'].map(f => loadGLB(base + f)));
+  const m = await loadGLB(base + 'ual1_standard.glb');
   mannequin = m;
   // the clips' bone scales are all 1; dropping them lets the house proportions below stick
   for (const c of m.animations) c.tracks = c.tracks.filter(t => !t.name.endsWith('.scale'));
-  return { m, hb, hw, sh, dg };
+  const later = ['horse_bay.glb', 'horse_white.glb', 'sheep.glb', 'shibainu.glb'].map(f => loadGLB(base + f));
+  const actors = { m, hb: later[0], hw: later[1], sh: later[2], dg: later[3] };
+  actors.ready = Promise.all(later).then(([hb, hw, sh, dg]) => Object.assign(actors, { hb, hw, sh, dg }));
+  return actors;
 }
 
 // moving people and animals do not cast into the shadow map (it is redrawn only when the view moves, see main.js);
@@ -152,11 +157,12 @@ function wrapAnim(obj, mixer, clips) {
     if (cur) a.crossFadeFrom(cur, fade, false);
     cur = a; curName = name;
   };
-  return { obj, mixer, clips, play, get anim() { return curName; } };
+  return { obj, mixer, clips, play, get anim() { return curName; }, ready: Promise.resolve() };
 }
 
 /* Horses: Quaternius models are authored huge and rotated; normalise to ~2.1 m tall incl. head, nose along +z */
 export function makeAnimal(gltf, height, opts = {}) {
+  if (gltf.then) return animalLater(gltf, height, opts);
   const root = SkeletonUtils.clone(gltf.scene);
   root.traverse(x => { if (x.isMesh) { x.castShadow = true; x.frustumCulled = false; if (x.material) { x.material = x.material.clone(); x.material.flatShading = true; x.material.roughness = .85; x.material.metalness = 0; } } });
   root.updateMatrixWorld(true); root.traverse(x => { if (x.isSkinnedMesh) x.skeleton.update(); }); // bone matrices are otherwise only refreshed at render time
@@ -171,8 +177,29 @@ export function makeAnimal(gltf, height, opts = {}) {
   }
   groundShadow(obj, height * .3, height * .62);
   const mixer = new THREE.AnimationMixer(root), clips = {};
-  for (const c of gltf.animations) if (!c.name.includes('|')) clips[c.name] = c;
+  // some files name clips 'AnimalArmature|…|Idle'; a plain 'Idle' wins over those
+  for (const c of gltf.animations) { const n = c.name.split('|').pop(); if (!clips[n] || !c.name.includes('|')) clips[n] = c; }
   return wrapAnim(obj, mixer, clips);
+}
+
+// an animal whose model is still loading: an empty group to place and turn now, filled in when the model lands;
+// play() and mixer.update() before then are remembered
+function animalLater(pending, height, opts) {
+  const obj = new THREE.Group(), clips = {};
+  let real = null, want = null, t = 0;
+  const a = {
+    obj, clips,
+    mixer: { update(dt) { if (real) real.mixer.update(dt); else t += dt; } },
+    play(...args) { if (real) real.play(...args); else want = args; },
+    get anim() { return real ? real.anim : want ? want[0] : ''; },
+  };
+  a.ready = pending.then(g => {
+    real = makeAnimal(g, height, opts); Object.assign(clips, real.clips);
+    for (const c of [...real.obj.children]) obj.add(c);
+    if (want) real.play(want[0], 0, want[2]);
+    real.mixer.update(t);
+  });
+  return a;
 }
 
 export function makeHorse(which, opts = {}) { return makeAnimal(which, 2.15, opts); }
