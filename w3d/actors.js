@@ -100,9 +100,9 @@ const blobMat = new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, d
 function groundShadow(obj, rx, rz) { obj.traverse(x => { x.castShadow = false; }); const m = new THREE.Mesh(blobGeo, blobMat); m.scale.set(rx, 1, rz); m.position.y = .05; m.renderOrder = 1; obj.add(m); }
 
 const geoCache = {};
-// the house style: big heads, hands and feet on a stocky body, like painted toy figures
-// limbs and body thickened around each bone's centre line (bind pose), so they fatten without getting longer
-const THICK = { upperarm_l: 1.45, upperarm_r: 1.45, lowerarm_l: 1.4, lowerarm_r: 1.4, thigh_l: 1.3, thigh_r: 1.3, calf_l: 1.35, calf_r: 1.35, pelvis: 1.1, spine_01: 1.1, spine_02: 1.1, spine_03: 1.08, neck_01: 1.2 };
+// the house style: close to real proportions, a touch of stylisation, a slim 18th-century silhouette
+// limbs and body scaled around each bone's centre line (bind pose), so they change girth without getting longer
+const THICK = { upperarm_l: .95, upperarm_r: .95, lowerarm_l: .95, lowerarm_r: .95, thigh_l: .95, thigh_r: .95, calf_l: 1, calf_r: 1, pelvis: .95, spine_01: .95, spine_02: .95, spine_03: .95 };
 function thicken(geo, sk) {
   const B = sk.bones, M = new THREE.Matrix4(), at = B.map((b, i) => new THREE.Vector3().setFromMatrixPosition(M.copy(sk.boneInverses[i]).invert()));
   const end = B.map(b => { const c = b.children.find(x => x.isBone); return c ? B.indexOf(c) : -1; });
@@ -112,9 +112,29 @@ function thicken(geo, sk) {
     if (Math.abs(k - 1) < .01 || end[j] < 0) continue;
     v.fromBufferAttribute(p, i); seg.set(at[j], at[end[j]]).closestPointToPoint(v, true, c); v.sub(c).multiplyScalar(k).add(c); p.setXYZ(i, v.x, v.y, v.z);
   }
+  smoothTorso(geo, sk);
   geo.computeVertexNormals();
 }
-const CHUNK = { Head: 1.32, hand_l: 1.3, hand_r: 1.3, foot_l: 1.15, foot_r: 1.15 }, BODY = [1.1, .96, 1.1];
+// a coat over the mannequin's muscles: torso cross-sections pulled toward a smooth ellipse per height band
+let torsoExt = null;
+function smoothTorso(geo, sk) {
+  const B = sk.bones, p = geo.attributes.position, si = geo.attributes.skinIndex, sw = geo.attributes.skinWeight, T = /^(pelvis|spine_0[123])$/, band = y => Math.round(y / .03);
+  // the first mesh (the body) sets the coat's shape; the second (chest and belly plates) is pressed onto it
+  const first = !torsoExt, ext = torsoExt || (torsoExt = {}), torso = [];
+  for (let i = 0; i < p.count; i++) {
+    let w = 0; for (let n = 0; n < 4; n++) if (T.test(B[si.getComponent(i, n)].name)) w += sw.getComponent(i, n);
+    const y = p.getY(i); if (w < .6 || y < .9 || y > 1.52) continue;
+    if (first) { const x = p.getX(i), z = p.getZ(i), e = ext[band(y)] || (ext[band(y)] = { x: 0, z0: 1, z1: -1 }); e.x = Math.max(e.x, Math.abs(x)); e.z0 = Math.min(e.z0, z); e.z1 = Math.max(e.z1, z); }
+    if (ext[band(y)]) torso.push([i, w]);
+  }
+  const k = first ? .94 : .955;
+  for (const [i, w] of torso) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), e = ext[band(y)], zc = (e.z0 + e.z1) / 2, rx = e.x * k, rz = (e.z1 - e.z0) / 2 * k;
+    const a = Math.atan2(z - zc, x), r = Math.hypot(x, z - zc), re = rx * rz / Math.hypot(rz * Math.cos(a), rx * Math.sin(a)), f = .9 * Math.min(1, (w - .6) / .3), nr = r + (re - r) * f;
+    if (r > 1e-4) p.setXYZ(i, Math.cos(a) * nr, y, zc + Math.sin(a) * nr);
+  }
+}
+const CHUNK = { Head: 1.1, hand_l: .95, hand_r: .95 }, BODY = [.96, 1.03, .96];
 /* A dressed, animated person. Returns {obj, mixer, play(name, fade), clips} */
 export function makePerson(kind, look = {}) {
   const o = OUTFITS[kind], root = SkeletonUtils.clone(mannequin.scene);
@@ -140,6 +160,7 @@ export function makePerson(kind, look = {}) {
   if (props.includes('papers')) attach(root, 'spine_03', merge([box(.24, .03, .32, 0xf3ecd8, 0, 0, 0), box(.05, .035, .32, 0xa3302a, .06, 0, 0)]), propMat, new THREE.Vector3(.2, 1.12, .02), new THREE.Euler(0, 0, -1.2));
   if (props.includes('star')) attach(root, 'spine_03', place(tint(new THREE.CylinderGeometry(.045, .045, .01, 8), 0xe8d48a), 0, 0, 0, 0, 1, 1, 1, Math.PI / 2), propMat, new THREE.Vector3(.09, 1.3, .13));
   if (props.includes('cane')) attach(root, 'pelvis', merge([box(.025, .98, .025, 0x3a2416, 0, 0, 0), box(.05, .05, .05, 0xd4b24a, 0, .98, 0)]), propMat, new THREE.Vector3(.3, .02, .14), new THREE.Euler(.1, 0, -.06));
+  attach(root, 'Head', merge([box(.014, .018, .01, 0x1d1712, .04, 0, 0), box(.014, .018, .01, 0x1d1712, -.04, 0, 0)]), propMat, new THREE.Vector3(0, 1.675, .112)); // painted eyes
   for (const b in CHUNK) { const bone = root.getObjectByName(b); if (bone) bone.scale.setScalar(CHUNK[b]); }
   root.scale.set(...BODY.map((v, i) => v * (look.scale ? look.scale[i] : 1)));
   const obj = new THREE.Group(); obj.add(root); groundShadow(obj, .5, .5);
