@@ -27,6 +27,7 @@ python3 w3d/dev_server.py 8000                          # play at http://localho
 python3 -m pytest -q tests                              # reply format, merge rules, packet, build
 ```
 `w3d/` modules load directly; only `src/` changes need a rebuild.
+The `.glb` files in `w3d/assets` hold only the clips the game plays (`src/slim_glb.py`, list in `KEEP`). To use another clip, restore the full file from git (`git show 6447ec8:w3d/assets/<file> > w3d/assets/<file>`), add the name to `KEEP`, and re-run the script.
 
 ## The turn loop
 Seal → packet (contract + orders + fortune + active almanac plots + the record's seal + live state) → Claude → reply `{kind:"turn", schemaVersion:3, seal, changes:{…}}` with only what changed → `checkReply` (errors, fixes, warnings; a wrong seal is refused) → `mergeTurn` → `checkContinuity` → accept → the record's next link (`state.record.chain`) + book entry + campaign file download.
