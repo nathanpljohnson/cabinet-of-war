@@ -77,4 +77,19 @@ rep("return{name:best,why,F}}","return{name:best,why:window.__temperWhy?window._
 # worst for guns, vines and their stakes slow a march about as a village does
 rep("function terMul(u,t){if(t===1)return u.type==='cav'?.3:.5;if(t===2)return u.type==='art'?.1:.25;if(t===3)return .6;return 1}",
     "function terMul(u,t){if(t===1)return u.type==='cav'?.3:.5;if(t===2)return u.type==='art'?.1:.25;if(t===3)return .6;if(t===4)return u.type==='art'?.2:u.type==='cav'?.35:.45;if(t===5)return u.type==='cav'?.5:.65;return 1}",1)
+# marching (w3d/march.js, game-v13): lines keep facing and wheel, columns take routes, units give way; troop types
+# (inf, gd, lt, cav, lc, art) ride on u.kind and shade men, morale, sight, fire, cover and shock. The desk's own rules
+# stay as the fallback when the 3D layer is not loaded.
+rep("function moveStep(u){","function moveStep(u){if(window.__march)return window.__march.move(u);",1)
+rep("for(const u of us)moveStep(u);","for(const u of us)moveStep(u);if(window.__march)window.__march.after(us);",1)
+rep("const base={inf:600,cav:130,art:60}[u.type];","const base=window.__march?window.__march.men(u):{inf:600,cav:130,art:60}[u.type];",1)
+rep("u.mor=u.side==='A'?76:86;","u.mor=(u.side==='A'?76:86)+(window.__march?window.__march.mor(u):0);",1)
+rep("function sight(u){return","function sight(u){if(window.__march)return window.__march.sight(u);return",1)
+rep("*cov*(a.ammo>25?1:.5);","*cov*(a.ammo>25?1:.5);if(window.__march)k*=window.__march.fire(a)*window.__march.cover(t);",1)
+rep("const pForm=t.form==='column'?.62:.32;","const pForm=(t.form==='column'?.62:.32)*(window.__march?window.__march.charge(a,t):1);",1)
+rep("const pa=a.men*a.mor,pt=t.men*t.mor*","const sh=u=>window.__march?window.__march.shock(u):1;const pa=a.men*a.mor*sh(a),pt=t.men*t.mor*sh(t)*",1)
+rep("const pa=a.mor*a.coh*flankMul,pt=t.mor*t.coh;","const pa=a.mor*a.coh*flankMul*(window.__march?window.__march.shock(a):1),pt=t.mor*t.coh*(window.__march?window.__march.shock(t):1);",1)
+rep("function dims(u){const f=u.form||'line',d=(DIM[u.type]||DIM.inf)[f];","function dims(u){const f=u.form||'line',d=(DIM[u.kind]||DIM[u.type]||DIM.inf)[f];",1)
+rep("const DIM={inf:{line:[150,12],column:[34,90]},cav:{line:[110,16],column:[30,60]},art:{line:[14,10],column:[14,10]}};",
+    "const DIM={inf:{line:[150,12],column:[34,90]},cav:{line:[110,16],column:[30,60]},art:{line:[14,10],column:[14,10]},lt:{line:[300,24],column:[24,70]},lc:{line:[120,20],column:[26,56]}};",1)
 (O/'cabinet-of-war.html').write_text(t);print('cabinet-of-war.html',len(t)//1024,'KB')

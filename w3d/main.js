@@ -8,6 +8,7 @@ import { travel, loc, roadKm, travelDays, letterDays, placeOn, groupsOn } from '
 import { initCampaign } from './campaign.js';
 import { createPost } from './post.js';
 import { syncGround } from './ground.js';
+import { install as installMarch } from './march.js';
 
 /* Cabinet of War: the 3D world over the desk's engine. Views: room (walk), map (the desk's live map, reached by leaning
    over the map table), field (3D battlefield, reached by zooming the map into it), hall (conference chamber).
@@ -611,6 +612,7 @@ function beginAsHeir() {
 
 /* ---------- boot ---------- */
 let shell = null; const sound = createSound();
+installMarch(); // lines, columns, giving way and troop types for the desk's battle engine (w3d/march.js)
 (async function boot() {
   // original-desk bug: a persisted battleDemo._sim makes initSim() skip setting BS.mem, so runPhase() throws after a reload
   if (!BS.mem) BS.mem = battleMem();

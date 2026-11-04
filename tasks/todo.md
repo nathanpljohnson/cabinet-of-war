@@ -52,7 +52,7 @@
 - [x] 5 Page: swap `TER` in place on load (sim, desk map and 3D see the same ground); battle3d uses real relief instead of noise; vineyards/marsh get their own paint and props.
 - [ ] 6 Sim: ridges block sight (relief in `blocked()`), uphill slows a march. Small, in `src/battle.js`.
 - [ ] 7 Replay a battle account phase by phase (atlas `setPhase`): Claude gives positions per phase; "See the ground as described" steps through them.
-- [ ] 8 Atlas-style marching in the table battle: lines keep formation, columns follow roads, contact push.
+- [x] 8 Atlas-style marching in the table battle: lines keep formation, columns follow roads, contact push.
 - [ ] 9 Atlas camera (orbit) + clock rail (←/→, Play) for both the replay and the commanded battle; in the commanded battle a rail step = one phase of orders then moves.
 
 Decisions (Nathan, 4 Nov): library + live fallback; replay accounts; atlas marching; atlas camera + clock rail everywhere.
@@ -71,4 +71,11 @@ Decisions (Nathan, 4 Nov): library + live fallback; replay accounts; atlas march
 - Small modern embankments (rail, roads) of a few metres remain in the relief at Brieg and Glogau.
 - Place names are in the ground files but not yet shown on the field.
 - In headless (software) rendering, woods beyond ~2 km draw white; the same happens on `main`, so it is the renderer, not this change.
+
+## Stage 8 (4 Nov): marching
+- `w3d/march.js` hooks the desk's battle engine (`window.__march`, wired in `src/w3d_build.py`): lines keep their facing up to 60° off the front (advance, oblique, giving ground at 0.6 pace) and wheel on the inner flank (outer flank marches the arc, ≤ 12°/step); columns route over the 30 m grid by A* (roads ×1.3 speed and bridge water; woods, marsh, vines, villages at their slowing; water ×2 dearer off-road) with straight runs merged; after every move, overlapping units are pushed apart (oriented-rectangle separation), the mover giving way, a routing unit most.
+- Troop types (atlas): inf, gd, lt, cav, lc, art. `u.type` stays the engine class (inf/cav/art), `u.kind` carries the type; men, morale, sight, fire, cover and shock shaded per type (`TROOPS`). Replies may give any of the six as `type`; unknown → inf with a fix.
+- Roads for every library ground: today's country roads from Overture Maps (primary, secondary, tertiary, unclassified; left out inside today's towns), labelled as such; Leuthen keeps the atlas's period roads; live fields get illustrative tracks. Painted on the field.
+- 3D: columns snake along their own track; light infantry in open order (2 ranks, loose); light horse looser.
+- Tests: wheel pivot, separation, route fords and roads, troop types in replies (33 pass). In-page check on Mollwitz: line kept facing over a 500 m advance, second line wheeled 40° on its right flank, column marched 3.8 km, no overlaps.
 

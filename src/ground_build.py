@@ -187,6 +187,47 @@ def in_poly(e, n, P):
         if (y1 > n) != (y2 > n) and e < (x2 - x1) * (n - y1) / (y2 - y1) + x1: hit = not hit
     return hit
 
+ROAD_CLASSES = {'primary', 'secondary', 'tertiary', 'unclassified'}   # country roads; motorways, trunk roads and streets left out
+
+def overture_roads(gid, c):
+    """Today's country roads round the ground from Overture Maps (transportation segments), cached in
+    src/grounds_src/<id>.roads.json as [class, [[lat, lon], ...]]. Most link the same villages the old ways linked."""
+    f = SRC / f'{gid}.roads.json'
+    if f.exists(): return json.loads(f.read_text())
+    import fsspec, pyarrow.parquet as pq, re, struct
+    from concurrent.futures import ThreadPoolExecutor
+    B = 'https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com/'
+    release = sorted(re.findall(r'<Prefix>release/([^<]+)/</Prefix>', curl(B + '?list-type=2&prefix=release/&delimiter=/').decode()))[-1]
+    keys = re.findall(r'<Key>([^<]+\.parquet)</Key>', curl(B + f'?list-type=2&prefix=release/{release}/theme=transportation/type=segment/').decode())
+    lat0, lon0 = c; R_, RL = (H_M / 2 + 600) / 111200, (W_M / 2 + 600) / (111200 * math.cos(math.radians(lat0)))
+    def scan(k):
+        pf = pq.ParquetFile(fsspec.filesystem('https', block_size=2 ** 16).open(B + k, 'rb')); md = pf.metadata
+        ix = {pf.schema.column(i).path: i for i in range(len(pf.schema))}; out = []
+        for g in range(md.num_row_groups):
+            st = lambda p: md.row_group(g).column(ix[p]).statistics
+            if st('bbox.xmin').min > lon0 + RL or st('bbox.xmax').max < lon0 - RL or st('bbox.ymin').min > lat0 + R_ or st('bbox.ymax').max < lat0 - R_: continue
+            for r in pf.read_row_group(g, columns=['subtype', 'class', 'geometry', 'bbox']).to_pylist():
+                b = r['bbox']
+                if r['subtype'] != 'road' or r['class'] not in ROAD_CLASSES: continue
+                if b['xmin'] > lon0 + RL or b['xmax'] < lon0 - RL or b['ymin'] > lat0 + R_ or b['ymax'] < lat0 - R_: continue
+                w = r['geometry']; bo = '<' if w[0] == 1 else '>'; typ, n = struct.unpack(bo + 'II', w[1:9])
+                if typ != 2: continue
+                xy = struct.unpack(bo + 'd' * (2 * n), w[9:9 + 16 * n])
+                out.append([r['class'], [[round(xy[i + 1], 6), round(xy[i], 6)] for i in range(0, 2 * n, 2)]])
+        return out
+    with ThreadPoolExecutor(16) as ex: segs = [x for part in ex.map(scan, keys) for x in part]
+    out = {'source': f'Overture Maps Foundation, transportation segments, release {release} (ODbL; includes OpenStreetMap data); classes ' + ', '.join(sorted(ROAD_CLASSES)), 'segments': segs}
+    f.write_text(json.dumps(out, separators=(',', ':'))); return out
+
+def simplify(p, tol):
+    """Douglas-Peucker on [(e, n), ...]."""
+    if len(p) < 3: return p
+    (x1, y1), (x2, y2) = p[0], p[-1]; L = math.hypot(x2 - x1, y2 - y1) or 1e-9; best, bi = -1, 0
+    for i in range(1, len(p) - 1):
+        d = abs((x2 - x1) * (y1 - p[i][1]) - (x1 - p[i][0]) * (y2 - y1)) / L
+        if d > best: best, bi = d, i
+    return simplify(p[:bi + 1], tol)[:-1] + simplify(p[bi:], tol) if best > tol else [p[0], p[-1]]
+
 # ---------------------------------------------------------------- relief
 def fill_under(h, mask, mpp):
     """Replace heights under `mask` (canopy, buildings) by a smooth estimate from the open ground around (battle-atlas)."""
@@ -452,6 +493,21 @@ def build(gid):
         for name, v in A['hills'].items():
             e, n = to_en(*v)
             if abs(e) < W_M / 2 and abs(n) < H_M / 2: villages.append({'name': name, 'e': round(e, 1), 'n': round(n, 1), 'hill': True, 'src': 'battle-atlas'})
+    # roads: the atlas's period roads at Leuthen; elsewhere today's country roads, left out inside today's towns
+    if not A:
+        rs = overture_roads(gid, c); urban_c = blur(built, 6) > .3; kept = 0
+        for cls, pts in rs['segments']:
+            P = [to_en(la, lo) for la, lo in pts]; run = []
+            for q in P + [None]:
+                e, n = q if q else (None, None)
+                inside = e is not None and abs(e) < W_M / 2 + 300 and abs(n) < H_M / 2 + 300
+                cell_urban = inside and urban_c[int(np.clip((H_M / 2 - n) // CELL, 0, ROWS - 1)), int(np.clip((e + W_M / 2) // CELL, 0, COLS - 1))]
+                if inside and not cell_urban: run.append((e, n)); continue
+                if len(run) > 1 and sum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(run[:-1], run[1:])) > 120:
+                    roads.append({'p': [[round(a, 1), round(b, 1)] for a, b in simplify(run, 6)], 'cls': cls}); kept += 1
+                run = []
+        if kept: notes.append('Roads: today\'s country roads (Overture Maps), left out inside today\'s towns; most follow the old ways between the same villages, but none is mapped from 1740.')
+        places_src = (places_src or '') + '; roads: ' + rs['source']
     imn, ib64 = enc16(inner); omn, ob64 = enc16(hO)
     g = {'id': gid, 'title': G['title'], 'place': G['place'], 'center': c, 'about': G['about'],
          'cell': CELL, 'cols': COLS, 'rows': ROWS, 'w': W_M, 'h': H_M, 'legend': LEGEND, 'rows_str': [''.join(r) for r in grid],

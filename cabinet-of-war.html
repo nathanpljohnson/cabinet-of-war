@@ -1419,8 +1419,8 @@ function drawBlocks(){
 /* ----- army: select, order, preview (true scale from z15, counters when far) ----- */
 let selUnits=new Set(),armyTool=null,orderLayer=L.layerGroup(),dragBox=null,dragStart=null;
 const lo=(c,e,n)=>[c[0]+n/111320,c[1]+e/(111320*Math.cos(c[0]*Math.PI/180))];
-const DIM={inf:{line:[150,12],column:[34,90]},cav:{line:[110,16],column:[30,60]},art:{line:[14,10],column:[14,10]}};
-function dims(u){const f=u.form||'line',d=(DIM[u.type]||DIM.inf)[f];return {w:d[0],d:d[1]}}
+const DIM={inf:{line:[150,12],column:[34,90]},cav:{line:[110,16],column:[30,60]},art:{line:[14,10],column:[14,10]},lt:{line:[300,24],column:[24,70]},lc:{line:[120,20],column:[26,56]}};
+function dims(u){const f=u.form||'line',d=(DIM[u.kind]||DIM[u.type]||DIM.inf)[f];return {w:d[0],d:d[1]}}
 function armyOrders(){draft.armyOrders=draft.armyOrders||{};return draft.armyOrders}
 function myUnits(){return state.battleDemo.units.filter(u=>u.side==='A')}
 function unitById(id){return state.battleDemo.units.find(u=>u.id===id)}
@@ -1552,13 +1552,13 @@ function rng(){BS.rngSeed|=0;BS.rngSeed=BS.rngSeed+0x6D2B79F5|0;let t=Math.imul(
 function terrainAt(e,n){const c=Math.floor((e+TER.w/2)/TER.cell),r=Math.floor((TER.h/2-n)/TER.cell);if(c<0||r<0||c>=TER.cols||r>=TER.rows)return 0;return +TER.rows_str[r][c]}
 function terMul(u,t){if(t===1)return u.type==='cav'?.3:.5;if(t===2)return u.type==='art'?.1:.25;if(t===3)return .6;if(t===4)return u.type==='art'?.2:u.type==='cav'?.35:.45;if(t===5)return u.type==='cav'?.5:.65;return 1}
 function initSim(){const bd=state.battleDemo;if(bd._sim)return;bd._sim=true;
-  for(const u of bd.units){const base={inf:600,cav:130,art:60}[u.type];u.men=u.max=Math.round(base*(u.side==='B'?1.18:1));u.mor=u.side==='A'?76:86;u.coh=100;u.ammo=100;u.st='ok';u.guns=u.type==='art'?6:0;u.fire=0;u.vis=u.side==='A';u.seenE=null;u.seenN=null;u.rout=0}
+  for(const u of bd.units){const base=window.__march?window.__march.men(u):{inf:600,cav:130,art:60}[u.type];u.men=u.max=Math.round(base*(u.side==='B'?1.18:1));u.mor=(u.side==='A'?76:86)+(window.__march?window.__march.mor(u):0);u.coh=100;u.ammo=100;u.st='ok';u.guns=u.type==='art'?6:0;u.fire=0;u.vis=u.side==='A';u.seenE=null;u.seenN=null;u.rout=0}
   BS.rngSeed=[...(state.campaignId||'x')].reduce((a,c)=>a*31+c.charCodeAt(0)|0,7);BS.mem=battleMem()}
 function alive(u){return u.st!=='gone'&&u.men>0}
 function dist(a,b){return Math.hypot(a.e-b.e,a.n-b.n)}
 function ang(a,b){return(Math.atan2(b.e-a.e,b.n-a.n)*180/Math.PI+360)%360}
 function dAng(a,b){let d=Math.abs(a-b)%360;return d>180?360-d:d}
-function sight(u){return u.type==='cav'?1600:u.type==='art'?700:900}
+function sight(u){if(window.__march)return window.__march.sight(u);return u.type==='cav'?1600:u.type==='art'?700:900}
 function blocked(a,b){const d=dist(a,b),k=Math.floor(d/30);let w=0;for(let i=1;i<k;i++){const t=terrainAt(a.e+(b.e-a.e)*i/k,a.n+(b.n-a.n)*i/k);if(t===1)w++}return w>=4&&terrainAt(b.e,b.n)!==1}
 function sees(a,b){return dist(a,b)<=sight(a)&&!blocked(a,b)}
 function updateVis(){const us=state.battleDemo.units;
@@ -1570,7 +1570,7 @@ function fireStep(a,us,ev){
   for(const t of us){if(t.side===a.side||!alive(t)||t.st==='gone')continue;const d=dist(a,t);if(d>R||d>=bd)continue;if(a.type==='inf'&&dAng(ang(a,t),a.facing)>75)continue;if(!sees(a,t)&&d>250)continue;best=t;bd=d}
   if(!best)return;const t=best,d=bd,aspect=inFlank(t,a),cov=terrainAt(t.e,t.n)===1||terrainAt(t.e,t.n)===3?.55:1;
   let k;if(a.type==='art'){k=a.guns*(d<250?2.2:.75)*(1-d/700)*DOCTRINE[a.side].fire}else{k=a.men*.0045*(1-d/150)*(a.form==='column'?.4:1)*DOCTRINE[a.side].fire}
-  k*=mv*(a.st==='wavering'?.5:1)*(.6+a.mor/250)*(aspect==='front'?1:aspect==='flank'?1.4:1.8)*cov*(a.ammo>25?1:.5);
+  k*=mv*(a.st==='wavering'?.5:1)*(.6+a.mor/250)*(aspect==='front'?1:aspect==='flank'?1.4:1.8)*cov*(a.ammo>25?1:.5);if(window.__march)k*=window.__march.fire(a)*window.__march.cover(t);
   const kills=Math.max(0,k*(.7+rng()*.6));t.men=Math.max(0,t.men-kills);a.ammo-=1.1;a.fire=1;
   const fr=kills/Math.max(1,t.max);t.mor-=fr*130+(aspect!=='front'?1.6:0.3);t.coh-=fr*60;t.hit=(t.hit||0)+kills;
   if(aspect!=='front'&&rng()<.04)ev.push((t.side==='A'?'Your ':'The enemy ')+t.name.split(' (')[0]+' is taking fire on the '+aspect+'.')}
@@ -1578,11 +1578,11 @@ function meleeStep(a,us,ev){
   if(a.st==='routing'||!alive(a))return;for(const t of us){if(t.side===a.side||!alive(t)||t.st==='gone'||t.st==='routing')continue;if(dist(a,t)>(a.type==='art'||t.type==='art'?24:(a.type==='cav'?30:20)))continue;
     if(a.type==='art'||(a.type==='inf'&&t.type==='cav'))continue;
     const ap=inFlank(t,a),flankMul=ap==='front'?1:ap==='flank'?1.5:2;
-    if(a.type==='cav'&&t.type==='inf'){const chargeOK=a.mode==='charge'&&a.mor>25;if(!chargeOK)continue;const pForm=t.form==='column'?.62:.32;const p=Math.min(.95,pForm*flankMul*(a.mor/Math.max(20,t.mor))*(t.ammo>20?.9:1.1));
+    if(a.type==='cav'&&t.type==='inf'){const chargeOK=a.mode==='charge'&&a.mor>25;if(!chargeOK)continue;const pForm=(t.form==='column'?.62:.32)*(window.__march?window.__march.charge(a,t):1);const p=Math.min(.95,pForm*flankMul*(a.mor/Math.max(20,t.mor))*(t.ammo>20?.9:1.1));
       if(rng()<p){const lost=t.men*.1;t.men-=lost;t.mor-=26;t.coh-=30;a.men-=a.men*.05;ev.push('Cavalry broke into '+(t.side==='A'?'your ':'the enemy ')+t.name.split(' (')[0]+' ('+ap+').');}
       else{a.men-=a.men*.12;a.mor-=20;a.mode='hold';a.dest=null;ev.push((a.side==='A'?'Your':'The enemy')+' horse were repulsed by steady fire.')}}
-    else if(a.type==='cav'&&t.type==='cav'){const pa=a.men*a.mor,pt=t.men*t.mor*(t.mode==='charge'?1.05:1);const w=rng()<pa/(pa+pt);const L=w?t:a;L.men-=L.men*.12;L.mor-=22;(w?a:t).men-=(w?a:t).men*.06;ev.push('Cavalry clashed.')}
-    else if(a.type==='inf'&&t.type==='inf'){const pa=a.mor*a.coh*flankMul,pt=t.mor*t.coh;const w=rng()<pa/(pa+pt);const L=w?t:a;L.men-=L.men*.03;L.mor-=14;(w?a:t).men-=(w?a:t).men*.015}
+    else if(a.type==='cav'&&t.type==='cav'){const sh=u=>window.__march?window.__march.shock(u):1;const pa=a.men*a.mor*sh(a),pt=t.men*t.mor*sh(t)*(t.mode==='charge'?1.05:1);const w=rng()<pa/(pa+pt);const L=w?t:a;L.men-=L.men*.12;L.mor-=22;(w?a:t).men-=(w?a:t).men*.06;ev.push('Cavalry clashed.')}
+    else if(a.type==='inf'&&t.type==='inf'){const pa=a.mor*a.coh*flankMul*(window.__march?window.__march.shock(a):1),pt=t.mor*t.coh*(window.__march?window.__march.shock(t):1);const w=rng()<pa/(pa+pt);const L=w?t:a;L.men-=L.men*.03;L.mor-=14;(w?a:t).men-=(w?a:t).men*.015}
     else if(a.type==='cav'&&t.type==='art'){t.men=0;t.st='gone';ev.push((t.side==='A'?'Your':'Their')+' battery was overrun.');t.gunLost=true}
   }}
 function moraleStep(us,ev){
@@ -1594,7 +1594,7 @@ function moraleStep(us,ev){
     else if(u.st==='routing'){u.rout++;const dir=u.side==='A'?-1:1;u.n+=dir*90*.5;u.e+=(rng()-.5)*20;if(u.mor>42&&u.rout>6){u.st='wavering';u.mode='hold'}if(Math.abs(u.n)>2000||u.rout>26){u.st='gone'}}
     else if(u.mor<36&&u.st!=='wavering'){u.st='wavering';ev.push((u.side==='A'?'Your ':'The enemy ')+u.name.split(' (')[0]+' is wavering.')}
     else if(u.st==='wavering'&&u.mor>48)u.st='ok'}}
-function moveStep(u){
+function moveStep(u){if(window.__march)return window.__march.move(u);
   if(!alive(u)||u.st==='routing')return;u.moved=false;const o=u.ord;if(!o)return;
   if(o.form&&o.form!==u.form){u.form=o.form;o.form=null}
   if(o.dest){const dx=o.dest[0]-u.e,dy=o.dest[1]-u.n,d=Math.hypot(dx,dy);
@@ -1659,7 +1659,7 @@ async function runPhase(n){
     BS.phase++;const ev=[];draftToOrders();const plan=enemyPlan();enemyOrders(plan);const snap=us.map(u=>u.men);
     soundDrums(true);
     for(let t=0;t<30;t++){
-      for(const u of us)moveStep(u);for(const u of us)autoTurn(u,us);
+      for(const u of us)moveStep(u);if(window.__march)window.__march.after(us);for(const u of us)autoTurn(u,us);
       for(const u of us)if(alive(u)&&u.st!=='routing'){fireStep(u,us,ev);}
       for(const u of us)meleeStep(u,us,ev);moraleStep(us,ev);updateVis();
       if(t%2===0||t===29){drawBattle();$('armybar').querySelector('.ab-cnt')&&($('armybar').querySelector('.ab-cnt').textContent='Phase '+BS.phase+' · '+(t+1)*30/60+' min');await new Promise(r=>setTimeout(r,90))}

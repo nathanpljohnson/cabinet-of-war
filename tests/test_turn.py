@@ -202,3 +202,33 @@ def test_ground_choice_is_checked(run):
     assert any("Unknown battle ground" in w for w in g["unknownId"]["warns"]) and g["unknownId"]["ground"] == {"kind": "open plain"}
     assert g["unknownKind"]["ground"] == {"kind": "open plain", "asked": "swamp"}
     assert any("no ground was given" in w for w in g["noGround"])
+
+
+def test_a_line_wheels_on_its_flank(run):
+    w = run["march"]["wheel"]
+    assert w["to"]["facing"] == 90 and w["pivotBefore"] == pytest.approx(w["pivotAfter"], abs=1e-6)
+    assert w["small"]["facing"] == 348  # at most 12 degrees a step, toward the left
+
+
+def test_units_push_apart(run):
+    s = run["march"]["sep"]
+    assert s["apart"] is None and s["overlap"]["depth"] == pytest.approx(4) and s["overlap"]["y"] == pytest.approx(1)
+
+
+def test_columns_go_round_water_and_take_roads(run):
+    m = run["march"]
+    assert m["route"]["wet"] == 0 and m["route"]["ford"]
+    assert [p[1] for p in m["road"]["pts"][:-1]] == [-45, -45] and m["road"]["pts"][1][0] - m["road"]["pts"][0][0] >= 300
+
+
+def test_troop_types(run):
+    m = run["march"]
+    assert m["troops"] == ["inf", "gd", "lt", "cav", "lc", "art"]
+    assert [(t["type"], t.get("kind")) for t in m["types"]] == [("inf", "gd"), ("inf", "lt"), ("cav", "lc"), ("inf", None), ("cav", None), ("art", None)]
+    assert (m["north"], m["east"]) == (0, 90)
+
+
+def test_troop_types_in_replies(run):
+    t = run["grounds"]["troops"]
+    assert [(u.get("type"), u.get("kind")) for u in t["units"]] == [("cav", "lc"), ("inf", None), (None, None)]
+    assert any("pandour" in f for f in t["fixes"])

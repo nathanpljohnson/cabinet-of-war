@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS } from '../w3d/turn.js';
 import { checkContinuity } from '../w3d/continuity.js';
+import { wheel, separation, findRoute, rasterize, normalizeUnit, TROOPS, bearing } from '../w3d/march.js';
 const root = new URL('../', import.meta.url), read = p => readFileSync(new URL(p, root), 'utf8');
 const html = read('cabinet-of-war.html'), m = html.match(/id="initial-state">([\s\S]*?)<\/script>/);
 const opening = JSON.parse(m[1].replace(/\\u003c/g, '<')), almanac = JSON.parse(read('w3d/almanac.json')), contract = read('w3d/contract.md');
@@ -56,5 +57,20 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
     files: index.grounds.map(x => { const f = JSON.parse(read('w3d/grounds/' + x.id + '.json')); return { id: x.id, cols: f.cols, rows: f.rows, cell: f.cell, w: f.w, h: f.h, rows: f.rows_str.length, len: new Set(f.rows_str.map(r => r.length)), chars: [...new Set(f.rows_str.join(''))].sort().join(''), relief: atob(f.relief.b64).length === 2 * f.relief.cols * f.relief.rows, outer: atob(f.outer.b64).length === 2 * f.outer.cols * f.outer.rows, sources: f.sources.length, notes: f.notes.length }; }) };
   out.grounds.files.forEach(f => f.len = [...f.len]);
   const T = JSON.parse(html.match(/id="terrain">([\s\S]*?)<\/script>/)[1]), M = JSON.parse(read('w3d/grounds/mollwitz.json'));
+  { const r = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], battleDemo: { ground: 'mollwitz', units: [{ id: 'B20', side: 'B', type: 'lc', e: 0, n: 900, facing: 180 }, { id: 'B21', side: 'B', type: 'pandour', e: 0, n: 900, facing: 180 }, { id: 'A1', e: 10 }] }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } });
+    const c = checkReply(opening, r, {}); out.grounds.troops = { units: r.changes.battleDemo.units, fixes: c.fixes }; }
   out.grounds.inlineIsMollwitz = JSON.stringify(T.rows_str) === JSON.stringify(M.rows_str); }
+// marching: a wheel turns on its inner flank, rectangles push apart, columns go round water and take the road
+{ const u = { e: 0, n: 0, facing: 0 }, w = wheel(u, 90, 150, 90), w2 = wheel(u, -30, 150, 12);
+  const flank = (x, f, s) => [x.e + s * Math.cos(f * Math.PI / 180) * 75, x.n - s * Math.sin(f * Math.PI / 180) * 75];
+  const g = { cols: 20, rows: 10, cell: 30, w: 600, h: 300 }, river = (c, r) => c === 10 && r !== 8; // a river down column 10, a ford at row 8
+  const cost = (c, r) => river(c, r) ? 8 : 1, ctr = (c, r) => [-300 + (c + .5) * 30, 150 - (r + .5) * 30];
+  const route = findRoute(g, cost, ctr(2, 2), ctr(17, 2)), roadCells = rasterize([[ctr(2, 6), ctr(17, 6)]], g);
+  const road = findRoute(g, (c, r) => roadCells.has(r * 20 + c) ? .5 : river(c, r) ? 8 : 1, ctr(2, 5), ctr(17, 5));
+  const cellsOf = pts => { const out = []; let prev = ctr(2, 2); for (const p of pts) { for (let k = 1; k <= 20; k++) { const x = prev[0] + (p[0] - prev[0]) * k / 20, y = prev[1] + (p[1] - prev[1]) * k / 20; out.push([Math.floor((x + 300) / 30), Math.floor((150 - y) / 30)]); } prev = p; } return out; };
+  out.march = { wheel: { to: w, pivotBefore: flank(u, 0, 1), pivotAfter: flank(w, w.facing, 1), small: w2 },
+    sep: { overlap: separation({ e: 0, n: 0, facing: 0 }, { w: 150, d: 12 }, { e: 0, n: 8, facing: 180 }, { w: 150, d: 12 }), apart: separation({ e: 0, n: 0, facing: 0 }, { w: 150, d: 12 }, { e: 0, n: 30, facing: 0 }, { w: 150, d: 12 }) },
+    route: { pts: route, wet: cellsOf(route).filter(([c, r]) => river(c, r)).length, ford: cellsOf(route).some(([c, r]) => c === 10 && r === 8) },
+    road: { pts: road, onRoad: cellsOf(road).filter(([c, r]) => roadCells.has(r * 20 + c)).length },
+    types: ['gd', 'lt', 'lc', 'inf', 'cav', 'art'].map(t => normalizeUnit({ type: t })), troops: Object.keys(TROOPS), north: bearing(0, 1), east: bearing(1, 0) }; }
 console.log(JSON.stringify(out));

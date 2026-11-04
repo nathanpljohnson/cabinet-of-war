@@ -64,8 +64,11 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     }
     ctx.putImageData(img, 0, 0); ctx.filter = 'blur(2px)'; ctx.drawImage(cvs, 0, 0); ctx.filter = 'none'; // soft edges to woods, water and hamlets
     for (const [x, y, w, h] of [[0, 0, CW, 4], [0, CH - 4, CW, 4], [0, 0, 4, CH], [CW - 4, 0, 4, CH]]) ctx.putImageData(img, 0, 0, x, y, w, h); // the blur fades the rim
-    // brooks and ditches at their own width, a darker bank either side
     const mpp = W / CW, px = ([e, n]) => [(e + W / 2) / mpp, (H / 2 - n) / mpp]; ctx.lineJoin = ctx.lineCap = 'round';
+    // roads and tracks: worn earth, ~7 m with softer verges (ground roads, w3d/grounds)
+    for (const rd of (G && G.roads) || []) for (const [col, wd] of [[winter ? 'rgba(170,160,140,.35)' : 'rgba(112,94,62,.35)', 11 / mpp], [winter ? 'rgba(214,206,190,.85)' : 'rgba(178,154,108,.88)', Math.max(1.4, 6 / mpp)]]) {
+      ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.beginPath(); rd.p.forEach((q, i) => { const [a, b] = px(q); i ? ctx.lineTo(a, b) : ctx.moveTo(a, b); }); ctx.stroke(); }
+    // brooks and ditches at their own width, a darker bank either side
     for (const rv of rivers) { if (rv.w >= 20) continue;
       for (const [col, wd] of [[winter ? 'rgba(120,120,110,.45)' : 'rgba(70,84,52,.55)', (rv.w + 5) / mpp], [winter ? 'rgba(206,218,224,.95)' : 'rgba(84,112,118,.95)', Math.max(1.2, rv.w / mpp)]]) {
         ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.beginPath(); rv.p.forEach((q, i) => { const [a, b] = px(q); i ? ctx.lineTo(a, b) : ctx.moveTo(a, b); }); ctx.stroke(); } }
@@ -168,7 +171,7 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   for (const s of 'AB') pools[s] = { near: mkPool(infantryFrames(s), 5000, true), mid: mkPool(infantryFrames(s, true), 16000, false), far: mkPool(tinyFrames(s), 16000, false), cavNear: mkPool(cavalryFrames(s === 'A' ? actors.hb : actors.hw, s), 900, true), cavFar: mkPool(tinyCavalryFrames(s), 1600, false) };
   const guns = mkPool([P.cannon(), P.limber()], 80, true);
   const layout = (u, d, n) => { // [ranks, files] for n men on the sim's footprint
-    if (u.type === 'inf') { if (u.form === 'column') { const f = Math.max(4, Math.round(d.w / .8)); return [Math.ceil(n / f), f]; } return [3, Math.ceil(n / 3)]; }
+    if (u.type === 'inf') { if (u.form === 'column') { const f = Math.max(4, Math.round(d.w / .8)); return [Math.ceil(n / f), f]; } return u.kind === 'lt' ? [2, Math.ceil(n / 2)] : [3, Math.ceil(n / 3)]; }
     if (u.form === 'column') { const f = Math.max(3, Math.round(d.w / 1.5)); return [Math.ceil(n / f), f]; }
     return [2, Math.ceil(n / 2)];
   };
@@ -259,6 +262,20 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   }
 
   /* ---------- per-frame drawing of the authoritative state ---------- */
+  // a point s metres ahead of a column's centre (straight on) or behind it (back along its trail), and the way it faces there
+  const alongOut = { x: 0, z: 0, dx: 0, dz: 0 };
+  function along(v, s, fx, fz) {
+    const o = alongOut;
+    if (s >= 0) { o.x = v.x + fx * s; o.z = v.z + fz * s; o.dx = fx; o.dz = fz; return o; }
+    let x = v.x, z = v.z, rem = -s, dx = fx, dz = fz; const T = v.trail;
+    for (let i = T.length - 1; i >= 0; i--) {
+      const px = T[i][0], pz = T[i][1], L = Math.hypot(x - px, z - pz); if (L < 1e-6) continue;
+      dx = (x - px) / L; dz = (z - pz) / L;
+      if (L >= rem) { o.x = x - dx * rem; o.z = z - dz * rem; o.dx = dx; o.dz = dz; return o; }
+      rem -= L; x = px; z = pz;
+    }
+    o.x = x - dx * rem; o.z = z - dz * rem; o.dx = dx; o.dz = dz; return o;
+  }
   function draw(dt, t) {
     const bd = state.battleDemo, us = bd.units, k = 1 - Math.exp(-dt * 5), figScale = 1; // true scale at every distance, so men, guns and houses keep their proportions
     for (const s of 'AB') for (const k in pools[s]) pools[s][k].begin(); guns.begin();
@@ -280,6 +297,9 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
       let df = ((u.facing - v.f + 540) % 360) - 180; v.f = (v.f + df * k + 360) % 360;
       if (u.ammo < v.ammo - .5) { v.fireT = .7; v.fired = true; } v.ammo = u.ammo; v.fireT -= dt;
       const d = dims(u), f = v.f * Math.PI / 180, fx = Math.sin(f), fz = -Math.cos(f), rx = Math.cos(f), rz = Math.sin(f), cy = hAt(v.x, v.z);
+      if (u.form === 'column') { const T = v.trail || (v.trail = [[v.x, v.z]]), last = T[T.length - 1];
+        if (Math.hypot(v.x - last[0], v.z - last[1]) > 4) { T.push([v.x, v.z]); let L = 0; for (let i = T.length - 1; i > 0; i--) { L += Math.hypot(T[i][0] - T[i - 1][0], T[i][1] - T[i - 1][1]); if (L > d.d + 40) { T.splice(0, i - 1); break; } } } }
+      else v.trail = null;
       v.plate.position.set(v.x, cy + .6, v.z); v.plate.scale.set(d.w, 1, d.d); v.plate.rotation.y = -f;
       const sel = selUnits.has(u.id) || inspected === u.id, rout = u.st === 'routing', wav = u.st === 'wavering';
       v.plate.material.opacity = sel ? .42 : hover === u.id ? .3 : .1; v.plate.material.color.set(sel ? 0xffd45e : rout ? 0xd06040 : A ? 0xf2e6c8 : 0x7fa6ee); v.edge.material.color.set(sel ? 0xffd45e : rout ? 0xd06040 : wav ? 0xe8c46a : A ? 0xf2e6c8 : 0x7fa6ee);
@@ -292,14 +312,17 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
       const yc = Math.cos(yaw), ys = Math.sin(yaw), put = (pl, frame, lx, lz) => pl.put(frame, v.x + rx * lx + fx * lz, cy + gx * lx + gz * lz, v.z + rz * lx + fz * lz, yc, ys, S);
       const cyc = t * (u.type === 'cav' ? (u.mode === 'charge' ? 2.2 : 1.4) : 1.6) + (u.id.charCodeAt(1) % 7) * .13, spread = rout ? 2.4 : wav ? 1.25 : 1;
       if (u.type === 'inf' || u.type === 'cav') {
-        const inf = u.type === 'inf', [ranks, files] = layout(u, d, n), sx = d.w / files, sz = u.form === 'column' ? d.d / ranks : inf ? 1.1 : 3.2;
+        const inf = u.type === 'inf', [ranks, files] = layout(u, d, n), sx = d.w / files, open = u.kind === 'lt' && u.form !== 'column' ? 1 : 0, sz = u.form === 'column' ? d.d / ranks : open ? 6 : inf ? 1.1 : u.kind === 'lc' ? 4.2 : 3.2;
+        // a column keeps to its track: the ranks behind the centre walk where the head has been (v.trail)
+        const snake = u.form === 'column' && v.trail && v.trail.length > 1;
         const pl = inf ? (lod === 0 ? pool.near : lod === 1 ? pool.mid : pool.far) : (lod === 0 ? pool.cavNear : pool.cavFar);
         for (let i = 0; i < n; i++) {
-          const fi = i % files, ri = (i / files) | 0, lx = (fi - (files - 1) / 2) * sx * spread + jit(i) * sx * (rout ? 4 : .25), lz = ((ranks - 1) / 2 - ri) * sz * spread + jit(i + 7) * (rout ? 24 : .3);
+          const fi = i % files, ri = (i / files) | 0, lx = (fi - (files - 1) / 2) * sx * spread + jit(i) * sx * (rout ? 4 : open ? .8 : .25), lz = ((ranks - 1) / 2 - ri) * sz * spread + jit(i + 7) * (rout ? 24 : open ? 3 : .3);
           let frame;
           if (inf) frame = lod === 2 ? (moving ? ((Math.floor(cyc * 4) + i) & 1) : 0) : rout ? 8 + Math.floor((cyc * 1.6 + i * .3) * 4) % 4 : moving ? 1 + Math.floor((cyc + (i % 2) * .04) * 6) % 6 : (v.fireT > 0 && ri === 0 ? 7 : 0);
           else frame = lod === 0 ? (moving ? (u.mode === 'charge' || rout ? 7 + Math.floor((cyc + i * .07) * 6) % 6 : 1 + Math.floor((cyc + i * .05) * 6) % 6) : 0) : (moving ? 1 + ((Math.floor(cyc * 5) + i) & 1) : 0);
-          put(pl, frame, lx, lz);
+          if (snake && !rout) { const q = along(v, lz, fx, fz), yw = Math.PI - Math.atan2(q.dx, -q.dz), x = q.x - q.dz * lx, z = q.z + q.dx * lx; pl.put(frame, x, hAt(x, z), z, Math.cos(yw), Math.sin(yw), S); }
+          else put(pl, frame, lx, lz);
         }
         if (v.flag) { v.flag.visible = !rout; v.flag.position.set(v.x - fx * 2, cy + 3.4 * S, v.z - fz * 2); v.flag.rotation.y = yaw + Math.PI / 2; v.flag.scale.setScalar(Math.min(1.8, S * .7)); }
         if (v.fired && inf) { v.fired = false; for (let i = 0; i < 6; i++) { const lx = (rnd() - .5) * d.w, x = v.x + rx * lx + fx * 3, z = v.z + rz * lx + fz * 3; puff(x, hAt(x, z) + 1.6 * S, z, 6 * S, 2.6); } }

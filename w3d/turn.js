@@ -1,3 +1,4 @@
+import { TROOPS, normalizeUnit } from './march.js';
 /* The turn: what goes to Claude and how its reply comes back. Pure functions (no DOM), so tests/ can run them in node.
    A reply carries only what changed (schema 3); mergeTurn applies it to the state by the rules in REPLY_RULES. */
 
@@ -151,6 +152,10 @@ export function checkReply(prev, reply, ctx = {}) {
   if (ctx.volumeDue && !(Array.isArray(h.volumes) && h.volumes.length)) warns.push('A volume of the chronicle was due this turn (hidden.volumes).');
   if (w && w.tempo && !TEMPO.includes(w.tempo)) { fixes.push('Unknown tempo "' + w.tempo + '" was left out.'); delete w.tempo; }
   if (Array.isArray(ch.gazette)) ch.gazette = ch.gazette.filter((g, i) => { if (!isObj(g) || !g.date || !Array.isArray(g.items) || !g.items.length) { fixes.push('Gazette issue ' + (i + 1) + ' had no date or items and was left out.'); return false; } g.id = g.id || 'gz-' + g.date; if (g.date < prev.date) g.date = prev.date; if (g.date > ch.date) g.date = ch.date; return true; });
+  // troop types: the six of the table (w3d/march.js) are kept as the engine's class plus a kind
+  if (ch.battleDemo && Array.isArray(ch.battleDemo.units)) for (const u of ch.battleDemo.units) if (isObj(u) && u.type != null) {
+    if (!TROOPS[u.type]) { fixes.push('Unknown troop type "' + u.type + '" for ' + (u.id || 'a unit') + ' read as inf. Types: ' + Object.keys(TROOPS).join(', ') + '.'); u.type = 'inf'; }
+    normalizeUnit(u); }
   const gr = ch.battleDemo && ch.battleDemo.ground;
   if (gr != null && !(typeof gr === 'string' && GROUNDS.includes(gr)) && !(isObj(gr) && GROUND_KINDS.includes(gr.kind))) {
     const kind = isObj(gr) && typeof gr.kind === 'string' ? gr.kind : null;
@@ -216,7 +221,7 @@ export function liveState(state) {
   const bd = s.battleDemo; // the table battle's ground, compactly: change units by id ({"id", "e", "n", "facing"}) when a battle moves them
   const battleNear = bd && (bd.enemy || bd.aftermath || (state.world || {}).tempo === 'campaigning' || state.player.mode === 'field');
   if (bd && !battleNear) s.battleDemo = { id: bd.id, title: bd.title, place: bd.place, center: bd.center, ground: bd.ground, date: bd.date, note: 'Units and positions are sent when a battle may come (campaigning, an enemy commander named, or the player with the army).' };
-  else if (bd) s.battleDemo = { id: bd.id, date: bd.date, title: bd.title, place: bd.place, center: bd.center, ground: bd.ground, enemy: bd.enemy, aftermath: bd.aftermath, unitsAs: 'id, side, type, e, n, facing', units: (bd.units || []).map(u => [u.id, u.side, u.type, u.e, u.n, u.facing]) };
+  else if (bd) s.battleDemo = { id: bd.id, date: bd.date, title: bd.title, place: bd.place, center: bd.center, ground: bd.ground, enemy: bd.enemy, aftermath: bd.aftermath, unitsAs: 'id, side, type, e, n, facing', units: (bd.units || []).map(u => [u.id, u.side, u.kind || u.type, u.e, u.n, u.facing]) };
   return s;
 }
 
@@ -239,7 +244,7 @@ Return ONE JSON object and nothing else:
 - Optional, give only when they apply: gazette (the Diarium issues of this turn), weather (only the days it changes; each day keeps the last weather given), overheard, whereabouts, decision (only a real fork), scene (an audience he asked for: {"id","title","setting","participants":[{"id","name"}],"lines":[{"who","text"}],"commitments":["…"],"status":"closed"}).
 - A journey: give player.locationId where he ends the turn, and player.route [{"date","place"}] (place a location id or "road") if he stops anywhere or arrives on a day other than the distance implies. Without a route he is on the road from the first day of the turn and arrives after the usual days for the distance.
 - A battle account (a report with "battle": true) needs battleDemo for that battle: title, place, center [lat, lon], ground, date, and its units moved or removed by id.
-- battleDemo.ground is the field it is drawn on: one of ${GROUNDS.join(', ')} (the library, real ground), or for a field elsewhere {"kind": ${GROUND_KINDS.map(k => '"' + k + '"').join(' | ')}} and the page lays that kind of country on the real relief at center. Units stand in metres from center (e east, n north) on a field 5940 m by 3960 m. For a battle outside this campaign, write an ordinary letter instead.
+- battleDemo.ground is the field it is drawn on: one of ${GROUNDS.join(', ')} (the library, real ground), or for a field elsewhere {"kind": ${GROUND_KINDS.map(k => '"' + k + '"').join(' | ')}} and the page lays that kind of country on the real relief at center. Units stand in metres from center (e east, n north) on a field 5940 m by 3960 m. A unit's type is one of ${Object.keys(TROOPS).map(k => k + ' (' + TROOPS[k].word.toLowerCase() + ')').join(', ')}. For a battle outside this campaign, write an ordinary letter instead.
 
 Skeleton (fill it from the story; leave out what did not change):
 {"kind":"turn","schemaVersion":3,"campaignId":"${state.campaignId}","turn":${n},"parentTurn":${state.turn},"seal":"${sealOf(state)}","changes":{

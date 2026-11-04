@@ -103,7 +103,7 @@ async function liveGround(center, kind) {
   const g = { id: null, title: kind[0].toUpperCase() + kind.slice(1), place: 'Laid out for ' + kind + ' country at ' + center.map(v => (+v).toFixed(3)).join(', '), center, about: kind,
     cell: CELL, cols: COLS, rows: ROWS, w: W, h: H, legend: { 0: 'open', 1: 'wood', 2: 'water', 3: 'village', 4: 'marsh', 5: 'vineyard' },
     relief: { cols: COLS + 1, rows: ROWS + 1, step: CELL, min: ie.min, b64: ie.b64 }, outer: { half: HALF, step: OSTEP, cols: oc, rows: oc, min: oe.min, b64: oe.b64 },
-    rivers: [], roads: [], places: [], notes: [note, 'Woods, water, marsh, vines and hamlets are laid out for "' + kind + '" country; they are illustrative, not mapped.'], sources: ['Relief: AWS Terrain Tiles (Terrarium)'], live: true };
+    rivers: [], roads: [], places: [], notes: [note, 'Woods, water, marsh, vines, hamlets and tracks are laid out for "' + kind + '" country; they are illustrative, not mapped.'], sources: ['Relief: AWS Terrain Tiles (Terrarium)'], live: true };
   layOut(g, inner, kind, center); return g;
 }
 
@@ -130,7 +130,8 @@ function layOut(g, inner, kind, center) {
     return dEW / COLS <= dNS / ROWS ? sm(ew, 9).map((r, c) => [r, c]) : sm(ns, 9).map((c, r) => [r, c]);
   };
   const paint = (r, c, v) => { if (r >= 0 && c >= 0 && r < ROWS && c < COLS) grid[r][c] = v; };
-  const hamlet = (r0, c0, len, along) => { for (let i = -len; i <= len; i++) for (let w = -1; w <= 1; w++) { const r = r0 + (along ? w : i), c = c0 + (along ? i : w); if (r >= 0 && c >= 0 && r < ROWS && c < COLS && grid[r][c] !== '2' && rnd() < .8) grid[r][c] = '3'; } };
+  const spots = []; // hamlets and the crossing, joined by tracks at the end
+  const hamlet = (r0, c0, len, along) => { spots.push([x(c0), y(r0)]); for (let i = -len; i <= len; i++) for (let w = -1; w <= 1; w++) { const r = r0 + (along ? w : i), c = c0 + (along ? i : w); if (r >= 0 && c >= 0 && r < ROWS && c < COLS && grid[r][c] !== '2' && rnd() < .8) grid[r][c] = '3'; } };
   const flank = () => { for (let k = 0; k < 40; k++) { const r = 8 + Math.floor(rnd() * (ROWS - 16)), c = 8 + Math.floor(rnd() * (COLS - 16)); if (Math.abs(x(c)) > 1700 || Math.abs(y(r)) > 1300) return [r, c]; } return [10, 10]; };
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
     const k = at(r, c), n1 = N.fbm(x(c) / 700, y(r) / 700, 3), n2 = N(x(c) / 180, y(r) / 180), tt = t(k);
@@ -152,9 +153,15 @@ function layOut(g, inner, kind, center) {
       const along = line.length === COLS; hamlet(best[0] + (along ? -4 : 0), best[1] + (along ? 0 : -4), 5, along); hamlet(best[0] + (along ? 4 : 0), best[1] + (along ? 0 : 4), 5, along);
       for (let w = -2; w <= 2; w++) paint(along ? best[0] + w : best[0], along ? best[1] : best[1] + w, '3');
       g.places.push({ name: 'the crossing', e: x(best[1]), n: y(best[0]), src: 'laid out' });
+      // the road over the crossing runs across the river from edge to edge
+      const ce = x(best[1]), cn = y(best[0]); g.roads.push({ p: along ? [[ce, H / 2], [ce, cn], [ce, -H / 2]] : [[-W / 2, cn], [ce, cn], [W / 2, cn]], src: 'laid out' });
     }
   }
   for (let i = 0; i < 3; i++) { const [r, c] = flank(); hamlet(r, c, 4 + Math.floor(rnd() * 4), rnd() < .5); }
+  // tracks: each hamlet to its nearest neighbour, and the first one on to the field's edge
+  for (let i = 0; i < spots.length; i++) { let b = -1, bd = Infinity; for (let j = 0; j < spots.length; j++) if (j !== i) { const d = Math.hypot(spots[i][0] - spots[j][0], spots[i][1] - spots[j][1]); if (d < bd) { bd = d; b = j; } }
+    if (b >= 0 && b > i) g.roads.push({ p: [spots[i], [(spots[i][0] + spots[b][0]) / 2 + (rnd() - .5) * 200, (spots[i][1] + spots[b][1]) / 2 + (rnd() - .5) * 200], spots[b]], src: 'laid out' }); }
+  if (spots.length) { const [e, n] = spots[0]; g.roads.push({ p: [[e, n], Math.abs(e) / W > Math.abs(n) / H ? [Math.sign(e) * W / 2, n] : [e, Math.sign(n) * H / 2]], src: 'laid out' }); }
   g.rows_str = grid.map(r => r.join(''));
   g.outer.cover = []; { const oc = g.outer.cols; for (let j = 0; j < oc; j++) { let s = ''; for (let i = 0; i < oc; i++) { const e = -HALF + i * OSTEP, n = HALF - j * OSTEP; s += N.fbm(e / 2500, n / 2500, 3) > (kind === 'wooded hills' ? -.05 : .3) ? '1' : '0'; } g.outer.cover.push(s); } }
 }
