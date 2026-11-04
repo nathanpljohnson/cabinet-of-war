@@ -19,6 +19,10 @@ export const THREAD_STATUS = ['dormant', 'building', 'triggered', 'resolved', 'a
 export const TEMPERS = ['rash', 'bold', 'steady', 'cautious', 'timid'];
 export const TEMPO = ['winter quarters', 'campaigning', 'truce'];
 export const LOSSES = ['light', 'heavy', 'destroyed'];
+// battle grounds: the library built by src/ground_build.py (w3d/grounds/index.json; a test keeps the two in step),
+// and the kinds of country the page lays out itself on live relief for any other field
+export const GROUNDS = ['mollwitz', 'brieg', 'neisse', 'glogau', 'chotusitz', 'prague', 'leuthen', 'linz'];
+export const GROUND_KINDS = ['open plain', 'river crossing', 'vineyards', 'marsh', 'wooded hills'];
 // a fingerprint for the sealed record (not cryptographic: it shows tampering and stale replies, it does not stop a determined editor)
 export function fingerprint(s) {
   let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
@@ -147,6 +151,12 @@ export function checkReply(prev, reply, ctx = {}) {
   if (ctx.volumeDue && !(Array.isArray(h.volumes) && h.volumes.length)) warns.push('A volume of the chronicle was due this turn (hidden.volumes).');
   if (w && w.tempo && !TEMPO.includes(w.tempo)) { fixes.push('Unknown tempo "' + w.tempo + '" was left out.'); delete w.tempo; }
   if (Array.isArray(ch.gazette)) ch.gazette = ch.gazette.filter((g, i) => { if (!isObj(g) || !g.date || !Array.isArray(g.items) || !g.items.length) { fixes.push('Gazette issue ' + (i + 1) + ' had no date or items and was left out.'); return false; } g.id = g.id || 'gz-' + g.date; if (g.date < prev.date) g.date = prev.date; if (g.date > ch.date) g.date = ch.date; return true; });
+  const gr = ch.battleDemo && ch.battleDemo.ground;
+  if (gr != null && !(typeof gr === 'string' && GROUNDS.includes(gr)) && !(isObj(gr) && GROUND_KINDS.includes(gr.kind))) {
+    const kind = isObj(gr) && typeof gr.kind === 'string' ? gr.kind : null;
+    warns.push('Unknown battle ground ' + JSON.stringify(gr) + ': the field is laid out as open plain on the relief at battleDemo.center. Grounds: ' + GROUNDS.join(', ') + '; or {"kind": ' + GROUND_KINDS.map(k => '"' + k + '"').join(' | ') + '}.');
+    ch.battleDemo.ground = { kind: 'open plain' }; if (kind) ch.battleDemo.ground.asked = kind; }
+  if (isObj(ch.battleDemo) && ch.battleDemo.center && !('ground' in ch.battleDemo)) warns.push('battleDemo.center moved but no ground was given; the old ground is kept under the new place.');
   const af = ch.battleDemo && ch.battleDemo.aftermath; if (af && isObj(af.fallen)) for (const [id, v] of Object.entries(af.fallen)) if (!LOSSES.includes(v)) { fixes.push('Unknown losses "' + v + '" for ' + id + ' read as heavy.'); af.fallen[id] = 'heavy'; }
   return { errors, warns, fixes };
 }
@@ -205,8 +215,8 @@ export function liveState(state) {
   if (isObj(h.memory)) for (const k of Object.keys(h.memory)) if (Array.isArray(h.memory[k])) h.memory[k] = h.memory[k].slice(-KEEP.memory);
   const bd = s.battleDemo; // the table battle's ground, compactly: change units by id ({"id", "e", "n", "facing"}) when a battle moves them
   const battleNear = bd && (bd.enemy || bd.aftermath || (state.world || {}).tempo === 'campaigning' || state.player.mode === 'field');
-  if (bd && !battleNear) s.battleDemo = { id: bd.id, title: bd.title, place: bd.place, center: bd.center, date: bd.date, note: 'Units and positions are sent when a battle may come (campaigning, an enemy commander named, or the player with the army).' };
-  else if (bd) s.battleDemo = { id: bd.id, date: bd.date, title: bd.title, place: bd.place, center: bd.center, enemy: bd.enemy, aftermath: bd.aftermath, unitsAs: 'id, side, type, e, n, facing', units: (bd.units || []).map(u => [u.id, u.side, u.type, u.e, u.n, u.facing]) };
+  if (bd && !battleNear) s.battleDemo = { id: bd.id, title: bd.title, place: bd.place, center: bd.center, ground: bd.ground, date: bd.date, note: 'Units and positions are sent when a battle may come (campaigning, an enemy commander named, or the player with the army).' };
+  else if (bd) s.battleDemo = { id: bd.id, date: bd.date, title: bd.title, place: bd.place, center: bd.center, ground: bd.ground, enemy: bd.enemy, aftermath: bd.aftermath, unitsAs: 'id, side, type, e, n, facing', units: (bd.units || []).map(u => [u.id, u.side, u.type, u.e, u.n, u.facing]) };
   return s;
 }
 
@@ -228,7 +238,8 @@ Return ONE JSON object and nothing else:
 - Player-facing text holds only what the character could know. Keep ids stable.
 - Optional, give only when they apply: gazette (the Diarium issues of this turn), weather (only the days it changes; each day keeps the last weather given), overheard, whereabouts, decision (only a real fork), scene (an audience he asked for: {"id","title","setting","participants":[{"id","name"}],"lines":[{"who","text"}],"commitments":["…"],"status":"closed"}).
 - A journey: give player.locationId where he ends the turn, and player.route [{"date","place"}] (place a location id or "road") if he stops anywhere or arrives on a day other than the distance implies. Without a route he is on the road from the first day of the turn and arrives after the usual days for the distance.
-- A battle account (a report with "battle": true) needs battleDemo for that battle: title, place, center [lat, lon], date, and its units moved or removed by id. For a battle outside this campaign, write an ordinary letter instead.
+- A battle account (a report with "battle": true) needs battleDemo for that battle: title, place, center [lat, lon], ground, date, and its units moved or removed by id.
+- battleDemo.ground is the field it is drawn on: one of ${GROUNDS.join(', ')} (the library, real ground), or for a field elsewhere {"kind": ${GROUND_KINDS.map(k => '"' + k + '"').join(' | ')}} and the page lays that kind of country on the real relief at center. Units stand in metres from center (e east, n north) on a field 5940 m by 3960 m. For a battle outside this campaign, write an ordinary letter instead.
 
 Skeleton (fill it from the story; leave out what did not change):
 {"kind":"turn","schemaVersion":3,"campaignId":"${state.campaignId}","turn":${n},"parentTurn":${state.turn},"seal":"${sealOf(state)}","changes":{

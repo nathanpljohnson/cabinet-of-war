@@ -45,11 +45,11 @@
 **What battle-atlas gives us.** Real relief from AWS Terrarium tiles (CORS open, reachable), stored as uint16 (elev−min)×10 base64; scenery authored per battle from period maps (woods as ellipses, rivers as polylines, villages as points, roads); season tint; phase-keyed unit moves (lines keep formation, columns snake along roads, contact push). Leuthen (Breslau, 1757) and Rossbach are already authored.
 
 ## Plan
-- [ ] 1 Ground file format `w3d/grounds/<id>.json`: bbox, relief grid (atlas encoding), 30 m land-cover rows (open/wood/water/village + new: marsh, vineyard, hill-steep), rivers, roads, villages with names.
-- [ ] 2 Build tool `src/ground_build.py` (port of atlas `terrain.py` + `battlekit` scenery rasteriser): DEM fetch → relief; authored scenery → land-cover grid.
-- [ ] 3 Library of likely fields for 1740–45, scenery from period sources: Mollwitz (re-cut from today's grid), Breslau/Leuthen ground (from atlas), Brieg, Neisse, Glogau, Chotusitz, Prague, Linz/Danube. List in the packet as vocabulary.
-- [ ] 4 `battleDemo.ground`: Claude picks a library id, or gives `ground: {kind}` (river crossing, vineyards, marsh, wooded hills, open plain) for a field not in the library; the page then fetches real relief for `center` at runtime and lays land cover from the kind. Reply check warns on unknown ids. Contract + `replyFormat()` + tests together.
-- [ ] 5 Page: swap `TER` in place on load (sim, desk map and 3D see the same ground); battle3d uses real relief instead of noise; vineyards/marsh get their own paint and props.
+- [x] 1 Ground file format `w3d/grounds/<id>.json`: bbox, relief grid (atlas encoding), 30 m land-cover rows (open/wood/water/village + new: marsh, vineyard, hill-steep), rivers, roads, villages with names.
+- [x] 2 Build tool `src/ground_build.py` (port of atlas `terrain.py` + `battlekit` scenery rasteriser): DEM fetch → relief; authored scenery → land-cover grid.
+- [x] 3 Library of likely fields for 1740–45, scenery from period sources: Mollwitz (re-cut from today's grid), Breslau/Leuthen ground (from atlas), Brieg, Neisse, Glogau, Chotusitz, Prague, Linz/Danube. List in the packet as vocabulary.
+- [x] 4 `battleDemo.ground`: Claude picks a library id, or gives `ground: {kind}` (river crossing, vineyards, marsh, wooded hills, open plain) for a field not in the library; the page then fetches real relief for `center` at runtime and lays land cover from the kind. Reply check warns on unknown ids. Contract + `replyFormat()` + tests together.
+- [x] 5 Page: swap `TER` in place on load (sim, desk map and 3D see the same ground); battle3d uses real relief instead of noise; vineyards/marsh get their own paint and props.
 - [ ] 6 Sim: ridges block sight (relief in `blocked()`), uphill slows a march. Small, in `src/battle.js`.
 - [ ] 7 Replay a battle account phase by phase (atlas `setPhase`): Claude gives positions per phase; "See the ground as described" steps through them.
 - [ ] 8 Atlas-style marching in the table battle: lines keep formation, columns follow roads, contact push.
@@ -57,3 +57,18 @@
 
 Decisions (Nathan, 4 Nov): library + live fallback; replay accounts; atlas marching; atlas camera + clock rail everywhere.
 - [ ] Verify: pytest, mock reply per ground kind, screenshots of 3+ grounds, lightCheck, sound off, separate profile.
+
+## Stage 1 done (4 Nov): grounds, library, TER swap, real relief
+- `src/ground_build.py` → `w3d/grounds/<id>.json` (+ `index.json`): the 30 m grid, relief at its nodes and 200 m relief + cover 12.6 km round, brooks, roads (Leuthen only), named places, notes and sources. Library: mollwitz, brieg, neisse, glogau, chotusitz, prague, leuthen, linz.
+- Sources: Terrarium relief (surface model: canopy filled from the fields, buildings removed by a 150 m opening); ESA WorldCover 2021 for woods/water/marsh (today's cover, said so in each file); villages = WorldCover built-up joined to Overture Maps gazetteer points (German name where Overture has one); town extents for 1740 inferred and marked; brooks traced from the relief; Leuthen scenery from battle-atlas. Removed by hand: Nysa reservoir (1971), Linz harbour basins.
+- **Found: the game's Mollwitz grid was stored south-up.** Flipped, 2244 of 2470 wood cells fall on today's woods (116 as stored). Now north-up; both armies moved 660 m north to stay on open ground; the band of cleared villages redone in true orientation; older saves are moved the same way at boot.
+- Page: `w3d/ground.js` loads a library ground or lays out a `{kind}` field on Terrarium relief fetched in the browser, then `Object.assign(TER, …)`; synced at boot, after each accepted turn and before the field is built; `battle3d` is rebuilt when the ground changes (`dispose()`), uses real relief (level ground up to 2× so it reads), paints marsh and vines, draws brooks at their width, water at its own level, and the country round from the outer grid.
+- Rules: `GROUNDS`, `GROUND_KINDS` in `turn.js`; unknown ground → warning and open plain; contract lists the library with centres; sim `terMul` knows marsh and vines.
+
+### Known gaps (later stages or follow-ups)
+- Roads only at Leuthen (atlas); others need a source before stage 8 (columns follow roads).
+- Towns are houses scattered over a walled area; no walls, bastions or bridges yet. Prague reads as a large village.
+- Small modern embankments (rail, roads) of a few metres remain in the relief at Brieg and Glogau.
+- Place names are in the ground files but not yet shown on the field.
+- In headless (software) rendering, woods beyond ~2 km draw white; the same happens on `main`, so it is the renderer, not this change.
+

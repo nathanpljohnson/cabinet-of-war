@@ -1,6 +1,6 @@
 // Runs the reply pipeline (w3d/turn.js, w3d/continuity.js) on the opening state and the mock replies; prints JSON for pytest.
 import { readFileSync } from 'node:fs';
-import { parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue } from '../w3d/turn.js';
+import { parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS } from '../w3d/turn.js';
 import { checkContinuity } from '../w3d/continuity.js';
 const root = new URL('../', import.meta.url), read = p => readFileSync(new URL(p, root), 'utf8');
 const html = read('cabinet-of-war.html'), m = html.match(/id="initial-state">([\s\S]*?)<\/script>/);
@@ -47,4 +47,14 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
   const rc = checkReply(opening, rt, {}); out.route = { fixes: rc.fixes, route: rt.changes.player.route };
   out.salt = [rollFortune('c', 1, 8, 'aa'), rollFortune('c', 1, 8, 'aa'), rollFortune('c', 1, 8, 'bb'), rollFortune('c', 1)];
   out.opening = { briefing: opening.briefing, scene: opening.scene, movements: opening.movements.length, wallis: opening.cast.find(c => c.id === 'wallis').place, early: opening.hidden.threads.filter(t => t.next_check && t.next_check < opening.date).length, demoCast: opening.cast.filter(c => c.claim === 'demo').length }; }
+// battle grounds: library ids and kinds pass, anything else is laid out as open plain with a warning
+{ const g = ground => { const r = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], battleDemo: { center: [50.1, 14.4], ground }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } }); const c = checkReply(opening, r, {}); return { warns: c.warns, ground: r.changes.battleDemo.ground }; };
+  const r0 = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], battleDemo: { center: [50.1, 14.4] }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } });
+  const index = JSON.parse(read('w3d/grounds/index.json'));
+  out.grounds = { lib: g('prague'), kind: g({ kind: 'marsh' }), unknownId: g('atlantis'), unknownKind: g({ kind: 'swamp' }), noGround: checkReply(opening, r0, {}).warns, ids: GROUNDS, kinds: GROUND_KINDS, index: index.grounds.map(x => x.id), indexKinds: Object.keys(index.kinds), opening: opening.battleDemo.ground,
+    packetHasIds: GROUNDS.every(id => packet.includes(id)), live: liveState(opening).battleDemo.ground,
+    files: index.grounds.map(x => { const f = JSON.parse(read('w3d/grounds/' + x.id + '.json')); return { id: x.id, cols: f.cols, rows: f.rows, cell: f.cell, w: f.w, h: f.h, rows: f.rows_str.length, len: new Set(f.rows_str.map(r => r.length)), chars: [...new Set(f.rows_str.join(''))].sort().join(''), relief: atob(f.relief.b64).length === 2 * f.relief.cols * f.relief.rows, outer: atob(f.outer.b64).length === 2 * f.outer.cols * f.outer.rows, sources: f.sources.length, notes: f.notes.length }; }) };
+  out.grounds.files.forEach(f => f.len = [...f.len]);
+  const T = JSON.parse(html.match(/id="terrain">([\s\S]*?)<\/script>/)[1]), M = JSON.parse(read('w3d/grounds/mollwitz.json'));
+  out.grounds.inlineIsMollwitz = JSON.stringify(T.rows_str) === JSON.stringify(M.rows_str); }
 console.log(JSON.stringify(out));

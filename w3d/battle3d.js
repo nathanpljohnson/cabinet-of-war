@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { makeNoise, rngFrom, smooth, lerp, stdMat, tint, merge, place, box, setWindTime } from './lib.js';
+import { makeNoise, rngFrom, smooth, lerp, stdMat, tint, merge, place, box, setWindTime, disposeTree } from './lib.js';
 import { axis, buildTerrain } from './terrain.js';
 import { buildForest, AUTUMN, FIRS } from './nature.js';
 import * as P from './props.js';
@@ -7,8 +7,9 @@ import { infantryFrames, cavalryFrames, tinyFrames, tinyCavalryFrames, FramePool
 
 /* The table battle in 3D. Everything shown comes from state.battleDemo and the desk's battle engine
    (battle.js / army.js): orders go through armyOrders()/selectUnits()/armyMapClick(), time through runPhase().
-   World axes: x = east (e), z = −north (−n). Relief is illustrative; land cover is the project's OSM grid (TER). */
-export async function createBattle({ renderer, actors, quality, makeSky, makeLights, toast, onRise, winter }) {
+   World axes: x = east (e), z = −north (−n). The ground is state.battleDemo.ground (w3d/ground.js): its land cover is
+   TER, its relief real (metres above the field's lowest point; level country is raised up to 2× so it reads). */
+export async function createBattle({ renderer, actors, quality, makeSky, makeLights, toast, onRise, winter, ground }) {
   const N = makeNoise(1741), rnd = rngFrom(41), scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 2, 30000);
   const sunDir = new THREE.Vector3(-.55, .42, .5).normalize();
@@ -23,23 +24,35 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   const landAt = (x, z) => cellAt(x + 18 * N(x / 95, z / 95), z + 18 * N(x / 95 + 31, z / 95 - 17));
   const near = (r, c, t) => { for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) { const row = TER.rows_str[r + dr]; if (row && +row[c + dc] === t) return true; } return false; };
   const outside = (x, z) => Math.hypot(Math.max(0, Math.abs(x) - W / 2), Math.max(0, Math.abs(z) - H / 2));
-  const frac = (x, z, t) => { let k = 0; for (const [dx, dz] of [[-12, -12], [12, -12], [-12, 12], [12, 12], [0, 0]]) if (landAt(x + dx, z + dz) === t) k++; return k / 5; };
-  const height = (x, z) => {
-    let h = 7 + 5 * N.fbm(x / 1100, z / 1100, 3) + 1.6 * N.fbm(x / 300 + 3, z / 300, 3);
-    const o = outside(x, z); h += smooth(200, 3500, o) * (35 + 90 * Math.max(0, N.fbm(x / 1500, z / 1500, 3) + .3));
-    h -= frac(x, z, 2) * 9;
-    return h;
-  };
+  // relief: metres above the field's lowest point, × EXAG (1 for hilly ground, up to 2 for a plain of a few metres)
+  const G = ground || window.__ground;
+  let lo = 0, hi = 0; if (G) { lo = Infinity; hi = -Infinity; for (const v of G.inner) { if (v < lo) lo = v; if (v > hi) hi = v; } }
+  const EXAG = Math.min(2, Math.max(1, 30 / Math.max(1, hi - lo)));
+  const elevAt = G ? (x, z) => (G.elev(x, -z) - lo) * EXAG : (x, z) => 7 + 5 * N.fbm(x / 1100, z / 1100, 3);
+  // brooks narrower than a cell are water to the sim but drawn at their own width; broad water (rivers, ponds) fills cells
+  const brook = new Set(), rivers = (G && G.rivers) || [];
+  for (const rv of rivers) { if (rv.w >= 20) continue; const p = rv.p;
+    for (let i = 1; i < p.length; i++) { const [x1, y1] = p[i - 1], [x2, y2] = p[i], k = Math.max(1, Math.ceil(Math.hypot(x2 - x1, y2 - y1) / 10));
+      for (let j = 0; j <= k; j++) { const c = Math.floor((x1 + (x2 - x1) * j / k + W / 2) / cell), r = Math.floor((H / 2 - (y1 + (y2 - y1) * j / k)) / cell); brook.add(r * 1000 + c); } } }
+  const isBrook = (x, z) => brook.has(Math.floor((H / 2 + z) / cell) * 1000 + Math.floor((x + W / 2) / cell));
+  const drawnAt = (x, z) => { const t = landAt(x, z); return t === 2 && isBrook(x + 18 * N(x / 95, z / 95), z + 18 * N(x / 95 + 31, z / 95 - 17)) ? 0 : t; };
+  const frac = (x, z, t) => { let k = 0; for (const [dx, dz] of [[-12, -12], [12, -12], [-12, 12], [12, 12], [0, 0]]) if (drawnAt(x + dx, z + dz) === t) k++; return k / 5; };
+  const height = (x, z) => elevAt(x, z) + .35 * N.fbm(x / 60, z / 60, 2) - (outside(x, z) > 0 ? 0 : frac(x, z, 2) * 3.5);
   // the battlefield's land cover is painted into a texture (~4.6 m per pixel) so edges are smooth whatever the mesh
   // resolution; vertex colours carry only the countryside outside the battle map
   const CW = 1600, CH = Math.round(CW * H / W), cvs = document.createElement('canvas'); cvs.width = CW; cvs.height = CH;
   { const ctx = cvs.getContext('2d'), img = ctx.createImageData(CW, CH), D = img.data;
     const hex = h => [h >> 16 & 255, h >> 8 & 255, h & 255], mix = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
     const PASTURE = hex(0x7f9645), STUBBLE = hex(0xb7a463), FALLOW = hex(0x96974f), PLOUGH = hex(0x8a6e4c), WOOD = hex(0x4e6532), VILLAGE = hex(0x9c9670), WATER = hex(0x5c716a);
+    const MARSH = hex(0x7d8752), REED = hex(0x9a8f5a), POOL = hex(0x66786c), SOIL = hex(0x8b7254), VINE = hex(0x6f7434);
     const ss = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
     for (let j = 0; j < CH; j++) for (let i = 0; i < CW; i++) {
-      const x = -W / 2 + (i + .5) / CW * W, z = -H / 2 + (j + .5) / CH * H, lt = landAt(x, z); let c;
+      const x = -W / 2 + (i + .5) / CW * W, z = -H / 2 + (j + .5) / CH * H, lt = drawnAt(x, z); let c;
       if (lt === 1) c = WOOD; else if (lt === 2) c = WATER; else if (lt === 3) c = VILLAGE;
+      else if (lt === 4) { const a = N(x / 40, z / 40), b = N.fbm(x / 150 + 4, z / 150, 2); c = mix(MARSH, REED, ss(-.2, .5, a)); if (b > .35) c = mix(c, POOL, ss(.35, .55, b)); }
+      else if (lt === 5) { // vines in rows along the contour, ~11 m apart in the painting
+        const gx = elevAt(x + 6, z) - elevAt(x - 6, z), gz = elevAt(x, z + 6) - elevAt(x, z - 6), gl = Math.hypot(gx, gz) || 1, s = gl > .02 ? (x * gx + z * gz) / gl : x;
+        c = mix(SOIL, VINE, .5 + .5 * Math.sin(s / 11 * Math.PI * 2)); }
       else { // open country after harvest: pasture, stubble, fallow and a little ploughland in soft irregular patches, no straight lines
         const a = N.fbm(x / 900, z / 900, 3), b = N.fbm(x / 340 + 7, z / 340 - 3, 3), d = N(x / 140 - 11, z / 140 + 5);
         c = mix(PASTURE, STUBBLE, ss(-.1, .25, a + b * .35));
@@ -50,7 +63,13 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
       const k = 1 + N.fbm(x / 45, z / 45, 2) * .07, o = (j * CW + i) * 4; D[o] = c[0] * k; D[o + 1] = c[1] * k; D[o + 2] = c[2] * k; D[o + 3] = 255;
     }
     ctx.putImageData(img, 0, 0); ctx.filter = 'blur(2px)'; ctx.drawImage(cvs, 0, 0); ctx.filter = 'none'; // soft edges to woods, water and hamlets
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.strokeRect(0, 0, CW, CH); } // white rim: outside the map the texture clamps to white
+    for (const [x, y, w, h] of [[0, 0, CW, 4], [0, CH - 4, CW, 4], [0, 0, 4, CH], [CW - 4, 0, 4, CH]]) ctx.putImageData(img, 0, 0, x, y, w, h); // the blur fades the rim
+    // brooks and ditches at their own width, a darker bank either side
+    const mpp = W / CW, px = ([e, n]) => [(e + W / 2) / mpp, (H / 2 - n) / mpp]; ctx.lineJoin = ctx.lineCap = 'round';
+    for (const rv of rivers) { if (rv.w >= 20) continue;
+      for (const [col, wd] of [[winter ? 'rgba(120,120,110,.45)' : 'rgba(70,84,52,.55)', (rv.w + 5) / mpp], [winter ? 'rgba(206,218,224,.95)' : 'rgba(84,112,118,.95)', Math.max(1.2, rv.w / mpp)]]) {
+        ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.beginPath(); rv.p.forEach((q, i) => { const [a, b] = px(q); i ? ctx.lineTo(a, b) : ctx.moveTo(a, b); }); ctx.stroke(); } }
+  } // outside the field the shader leaves the texture out; vertex colours carry the country there
   const groundTex = new THREE.CanvasTexture(cvs); groundTex.colorSpace = THREE.SRGBColorSpace; groundTex.anisotropy = 8;
   // close-up grain: a tiling noise multiplied over the painted cover so the ground never shows its texels
   const grain = document.createElement('canvas'); grain.width = grain.height = 256;
@@ -61,22 +80,55 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     gx.putImageData(gi, 0, 0); }
   const grainTex = new THREE.CanvasTexture(grain); grainTex.wrapS = grainTex.wrapT = THREE.RepeatWrapping; grainTex.anisotropy = 8;
   const MEAD = new THREE.Color(0x7d9442), tmp = new THREE.Color();
-  const color = (x, z, h, out) => {
-    const o = outside(x, z);
-    if (o > 0) { out.copy(MEAD).lerp(tmp.set(0x5a7438), smooth(0, 3000, o) * .6); if (winter) out.lerp(tmp.set(0xeef1f4), .78); return; }
-    out.setRGB(1, 1, 1);
+  // the country round the field: the same patchwork of pasture, stubble and fallow, with its real woods, towns and water
+  // (the 200 m cover of the ground, softened over four samples)
+  const C_PAST = new THREE.Color(0x7f9645), C_STUB = new THREE.Color(0xb7a463), C_FALL = new THREE.Color(0x96974f), C_WOOD = new THREE.Color(0x4a6230), C_TOWN = new THREE.Color(0xa09878), C_WATER = new THREE.Color(0x5c716a), C_SNOW = new THREE.Color(0xeef1f4);
+  const coverFrac = (x, z, t) => { if (!G) return 0; const r = outside(x, z) > 2900 ? 300 : 100; let k = 0; for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + .3; if (G.outerCover(x + Math.cos(a) * r, -(z + Math.sin(a) * r)) === t) k++; } return k / 8; };
+  const country = (x, z, out) => {
+    { const ss = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
+      const a = N.fbm(x / 900, z / 900, 3), b = N.fbm(x / 340 + 7, z / 340 - 3, 3);
+      out.copy(C_PAST).lerp(C_STUB, ss(-.1, .25, a + b * .35)).lerp(C_FALL, ss(.15, .45, b) * .7);
+      const fw = coverFrac(x, z, 1), ft = coverFrac(x, z, 3), fa = coverFrac(x, z, 2);
+      out.lerp(C_WOOD, fw * .9).lerp(C_TOWN, ft * .6).lerp(C_WATER, fa);
+      if (winter && fa < .5) out.lerp(C_SNOW, .78 - fw * .38);
+      return out; }
   };
+  const color = (x, z, h, out) => out.setRGB(1, 1, 1);
+  // mesh posts: fine over the field, 80 m for 3 km around it, coarse out to 12 km
+  const axis3 = (lo, hi, fine) => { const a = []; for (let x = -12000; x < lo - 3000; x += 320) a.push(x); for (let x = lo - 3000; x < lo; x += 80) a.push(x);
+    for (let x = lo; x < hi; x += fine) a.push(x); for (let x = hi; x < hi + 3000; x += 80) a.push(x); for (let x = hi + 3000; x <= 12000; x += 320) a.push(x); return a; };
   const g = quality.terrain <= 2.5 ? 18 : quality.terrain <= 3 ? 22 : 30;
-  const T = buildTerrain({ xs: axis(-W / 2 - 60, W / 2 + 60, g, 12000, 320), zs: axis(-H / 2 - 60, H / 2 + 60, g, 12000, 320), height, color, steep: 0x7a7458, seed: 9, jitter: 0 });
+  const T = buildTerrain({ xs: axis3(-W / 2 - 60, W / 2 + 60, g), zs: axis3(-H / 2 - 60, H / 2 + 60, g), height, color, steep: 0x7a7458, seed: 9, jitter: 0 });
   { const pos = T.mesh.geometry.attributes.position, uv = new Float32Array(pos.count * 2);
     for (let i = 0; i < pos.count; i++) { uv[i * 2] = (pos.getX(i) + W / 2) / W; uv[i * 2 + 1] = 1 - (pos.getZ(i) + H / 2) / H; }
     T.mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); groundTex.wrapS = groundTex.wrapT = THREE.ClampToEdgeWrapping; T.mesh.material.map = groundTex;
+    // the country colour of each corner, with the same steep-slope tint buildTerrain gives the vertex colours
+    const cc = new Float32Array(pos.count * 3), steepC = new THREE.Color(0x7a7458), cv = new THREE.Color(), na = new THREE.Vector3(), nb = new THREE.Vector3(), nc = new THREE.Vector3();
+    for (let i = 0; i < pos.count; i += 3) {
+      na.fromBufferAttribute(pos, i); nb.fromBufferAttribute(pos, i + 1); nc.fromBufferAttribute(pos, i + 2); nb.sub(na); nc.sub(na); nb.cross(nc).normalize();
+      const st = Math.min(1, Math.max(0, (.86 - Math.abs(nb.y)) / .22));
+      for (let k = 0; k < 3; k++) { const x = pos.getX(i + k), z = pos.getZ(i + k);
+        if (outside(x, z) > 0 || Math.abs(x) > W / 2 - 200 || Math.abs(z) > H / 2 - 200) country(x, z, cv); else cv.setRGB(1, 1, 1);
+        cv.lerp(steepC, st); cc[(i + k) * 3] = cv.r; cc[(i + k) * 3 + 1] = cv.g; cc[(i + k) * 3 + 2] = cv.b; } }
+    T.mesh.geometry.setAttribute('country', new THREE.BufferAttribute(cc, 3));
     T.mesh.material.onBeforeCompile = sh => { sh.uniforms.grain = { value: grainTex }; sh.uniforms.grainRep = { value: new THREE.Vector2(W / 14, H / 14) };
-      sh.fragmentShader = 'uniform sampler2D grain; uniform vec2 grainRep;\n' + sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n diffuseColor.rgb *= .8 + .4 * texture2D(grain, vMapUv * grainRep).r * (.6 + .4 * texture2D(grain, vMapUv * grainRep * .23).r);'); };
+      sh.vertexShader = 'attribute vec3 country; varying vec3 vCountry;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vCountry = country;');
+      // on the painted field: texture × vertex colour (white, or the steep tint); off it: the country colour
+      sh.fragmentShader = 'varying vec3 vCountry;\n' + sh.fragmentShader.replace('#include <color_fragment>', '#if defined( USE_COLOR )\n diffuseColor.rgb *= mix(vCountry, vColor, inField);\n#endif');
+      sh.fragmentShader = 'uniform sampler2D grain; uniform vec2 grainRep;\n' + sh.fragmentShader.replace('#include <map_fragment>', 'vec4 sampledDiffuseColor = texture2D(map, vMapUv); float inField = step(.002, vMapUv.x) * step(vMapUv.x, .998) * step(.002, vMapUv.y) * step(vMapUv.y, .998);\n diffuseColor *= mix(vec4(1.), sampledDiffuseColor, inField);\n diffuseColor.rgb *= .8 + .4 * texture2D(grain, vMapUv * grainRep).r * (.6 + .4 * texture2D(grain, vMapUv * grainRep * .23).r);'); };
     T.mesh.material.needsUpdate = true; }
   scene.add(T.mesh); const hAt = T.heightAt;
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(W, H).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x78a8b4, roughness: .1, metalness: .1, transparent: true, opacity: .85 }));
-  water.position.y = 2.2; scene.add(water);
+  // water: one surface over the broad-water cells, each corner at the relief there (the tiles give the water's own level)
+  // quads over the water cells and one cell beyond, so the shore is where the banks rise through the surface
+  { const wet = (r, c) => r >= 0 && c >= 0 && r < TER.rows && c < TER.cols && +TER.rows_str[r][c] === 2 && !brook.has(r * 1000 + c);
+    const L = new Map(), lvl = new Map(), pos = [], cells = new Set();
+    for (let r = 0; r < TER.rows; r++) for (let c = 0; c < TER.cols; c++) if (wet(r, c)) { L.set(r * 1000 + c, elevAt(-W / 2 + (c + .5) * cell, -(H / 2 - (r + .5) * cell)) - 1.2); for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) cells.add((r + dr) * 1000 + c + dc); }
+    const node = (r, c) => { const k = r * 1000 + c; if (!lvl.has(k)) { let m = Infinity; for (let dr = -3; dr <= 2; dr++) for (let dc = -3; dc <= 2; dc++) { const v = L.get((r + dr) * 1000 + c + dc); if (v !== undefined && v < m) m = v; } lvl.set(k, m); } return lvl.get(k); };
+    const P = (r, c) => [-W / 2 + c * cell, node(r, c), -(H / 2 - r * cell)];
+    for (const k of cells) { const r = Math.floor(k / 1000), c = k - r * 1000; if (r < 0 || c < 0 || r >= TER.rows || c >= TER.cols) continue;
+      const a = P(r, c), b = P(r, c + 1), d = P(r + 1, c), e = P(r + 1, c + 1); pos.push(...a, ...d, ...b, ...b, ...d, ...e); }
+    if (pos.length) { const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.computeVertexNormals();
+      scene.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: winter ? 0xc9d6dc : 0x78a8b4, roughness: winter ? .5 : .1, metalness: .1, transparent: true, opacity: .85 }))); } }
 
   // woods, villages and a church per large village (land cover from TER)
   const trees = { broadleaf: [], fir: [], poplar: [], bush: [] }, per = quality.trees >= 1 ? 3 : quality.trees >= .8 ? 2 : 1, vill = [];
@@ -87,7 +139,10 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     else if (near(r, c, 3)) vill.push([r, c, x, z, true]);
   }
   for (let i = 0; i < 900; i++) { const x = -W / 2 + rnd() * W, z = -H / 2 + rnd() * H; if (cellAt(x, z) === 0 && N(x / 400, z / 400) > .35) trees.broadleaf.push({ x, y: hAt(x, z), z, ry: rnd() * 6, s: 1 + rnd() * .5, col: winter ? 0x6e5e4e : AUTUMN[Math.floor(rnd() * AUTUMN.length)] }); }
-  for (let i = 0; i < 2500; i++) { const a = rnd() * 6.28, d = Math.max(W, H) * .55 + rnd() * 5000, x = Math.cos(a) * d, z = Math.sin(a) * d * .8; if (N.fbm(x / 1500, z / 1500, 2) > -.05) trees[rnd() < .4 ? 'fir' : 'broadleaf'].push({ x, y: hAt(x, z), z, ry: rnd() * 6, s: 1.6 + rnd(), col: rnd() < .4 ? FIRS[0] : winter ? 0x6e5e4e : AUTUMN[Math.floor(rnd() * AUTUMN.length)] }); }
+  for (const [r, c] of [].concat(...TER.rows_str.map((row, r) => [...row].map((t, c) => t === '4' || t === '5' ? [r, c] : null).filter(Boolean)))) {
+    const t = TER.rows_str[r][c]; if (rnd() > (t === '5' ? .5 : .25)) continue; const x = -W / 2 + (c + rnd()) * cell, z = -(H / 2 - (r + rnd()) * cell); if (drawnAt(x, z) + '' !== t) continue;
+    trees.bush.push({ x, y: hAt(x, z), z, ry: rnd() * 6, s: t === '5' ? .45 + rnd() * .2 : .35 + rnd() * .3, col: t === '5' ? (winter ? 0x6e5e4e : 0x7d7a2e) : (winter ? 0x9a8f72 : 0x8f8a4a) }); }
+  for (let i = 0, n = 0; i < 9000 && n < 2600; i++) { const a = rnd() * 6.28, d = Math.max(W, H) * .55 + rnd() * 6500, x = Math.cos(a) * d, z = Math.sin(a) * d * .8; if (G ? G.outerCover(x, -z) === 1 : N.fbm(x / 1500, z / 1500, 2) > -.05) { n++; trees[rnd() < .4 ? 'fir' : 'broadleaf'].push({ x, y: hAt(x, z), z, ry: rnd() * 6, s: 1.6 + rnd(), col: rnd() < .4 ? FIRS[0] : winter ? 0x6e5e4e : AUTUMN[Math.floor(rnd() * AUTUMN.length)] }); } }
   scene.add(buildForest(trees, { variants: 2, seed: 8, lod: true, shadows: quality.shadows >= 2048 }));
   const houseG = [merge([box(9, 4.5, 6, 0xeee6d2), place(tint(new THREE.CylinderGeometry(0, 1, 1, 4, 1), 0x8e4a34, .06), 0, 6.3, 0, Math.PI / 4, 7.4, 3.6, 5.2)]),
     merge([box(11, 3.8, 6.5, 0xd9c49a), box(.4, 3.8, 6.6, 0x5a4030, -3, 0, 0), box(.4, 3.8, 6.6, 0x5a4030, 3, 0, 0), place(tint(new THREE.CylinderGeometry(0, 1, 1, 4, 1), 0x8a7a52, .06), 0, 5.6, 0, Math.PI / 4, 8.8, 3.6, 5.6)])];
@@ -366,7 +421,9 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     },
     pointerUp(e, drag) { if (drag && drag.moved < 6 && drag.b === 0) click(e); },
     wheel(e) { if (e.deltaY > 0 && cam.dist >= 5900 && onRise) { onRise(cam.tx, cam.tz); return; } cam.tw = null; cam.dist = Math.min(6000, Math.max(50, cam.dist * (1 + Math.sign(e.deltaY) * .12))); },
-    debug: { cam, vis, pools, guns, get inspected() { return inspected; } },
+    debug: { cam, vis, pools, guns, get inspected() { return inspected; }, ground: G, exag: EXAG },
+    // the field's own geometry and painted textures; materials are shared with the rest of the world (nature.js, props.js)
+    dispose() { labels.remove(); card.remove(); scene.traverse(o => { if (o.geometry) o.geometry.dispose(); }); groundTex.dispose(); grainTex.dispose(); },
   };
   function resize() { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
 }

@@ -179,3 +179,26 @@ def test_opening_is_not_a_demo(run):
     assert o["scene"] is None and o["movements"] == 0 and o["demoCast"] == 0
     assert o["wallis"] == "glogau"
     assert o["early"] == 0
+
+
+def test_grounds_library_matches_rules(run):
+    g = run["grounds"]
+    assert g["ids"] == g["index"] and g["kinds"] == g["indexKinds"]
+    assert g["opening"] == "mollwitz" and g["live"] == "mollwitz" and g["inlineIsMollwitz"]
+    assert g["packetHasIds"]
+
+
+def test_grounds_files_are_whole(run):
+    for f in run["grounds"]["files"]:
+        assert (f["cols"], f["cell"], f["w"], f["h"], f["rows"]) == (198, 30, 5940, 3960, 132), f["id"]
+        assert f["len"] == [198] and set(f["chars"]) <= set("012345"), f["id"]
+        assert f["relief"] and f["outer"] and f["sources"] and f["notes"], f["id"]
+
+
+def test_ground_choice_is_checked(run):
+    g = run["grounds"]
+    assert g["lib"]["warns"] == [] and g["lib"]["ground"] == "prague"
+    assert g["kind"]["warns"] == [] and g["kind"]["ground"] == {"kind": "marsh"}
+    assert any("Unknown battle ground" in w for w in g["unknownId"]["warns"]) and g["unknownId"]["ground"] == {"kind": "open plain"}
+    assert g["unknownKind"]["ground"] == {"kind": "open plain", "asked": "swamp"}
+    assert any("no ground was given" in w for w in g["noGround"])

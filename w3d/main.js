@@ -7,6 +7,7 @@ import { createSound } from './sound.js';
 import { travel, loc, roadKm, travelDays, letterDays, placeOn, groupsOn } from './places.js';
 import { initCampaign } from './campaign.js';
 import { createPost } from './post.js';
+import { syncGround } from './ground.js';
 
 /* Cabinet of War: the 3D world over the desk's engine. Views: room (walk), map (the desk's live map, reached by leaning
    over the map table), field (3D battlefield, reached by zooming the map into it), hall (conference chamber).
@@ -281,9 +282,11 @@ const battleCentreIn = m => m.getBounds().contains(lo(state.battleDemo.center, 0
 // the ground is painted for the season: of the battle itself when you read an account of it, else of today
 const fieldSeason = () => { const bd = state.battleDemo || {}; const bdd = bd.date || (bd.aftermath || {}).date; if ((account || aftermath) && bdd) { const m = new Date(bdd + 'T12:00:00').getMonth(); return m === 11 || m <= 1 ? 'winter' : 'open'; } return worldCues().season; };
 async function ensureBattle() {
-  if (battle && battle.season !== fieldSeason()) battle = null;
+  // the field is rebuilt when the season or the ground changes (state.battleDemo.ground, w3d/ground.js)
+  let ground; try { ground = await syncGround(state.battleDemo); } catch (e) { console.warn(e); toast('The ground could not be laid out: ' + e.message); ground = window.__ground; }
+  if (battle && (battle.season !== fieldSeason() || battle.groundKey !== (ground && ground.key))) { battle.dispose(); battle = null; }
   if (battle) return battle; showLoading('Laying out the field…'); await actors.ready;
-  const season = fieldSeason(), mod = await import('./battle3d.js'); battle = await mod.createBattle({ renderer, actors, quality: Q(), makeSky, makeLights, toast, onRise: (x, z) => fieldToMap(x, z), winter: season === 'winter' }); battle.season = season;
+  const season = fieldSeason(), mod = await import('./battle3d.js'); battle = await mod.createBattle({ renderer, actors, quality: Q(), makeSky, makeLights, toast, onRise: (x, z) => fieldToMap(x, z), winter: season === 'winter', ground }); battle.season = season; battle.groundKey = ground && ground.key;
   hideLoading(); return battle;
 }
 async function mapToField() {
@@ -613,13 +616,19 @@ let shell = null; const sound = createSound();
   if (!BS.mem) BS.mem = battleMem();
   // a new campaign begun as the heir of the last one
   try { const lg = JSON.parse(localStorage.getItem('cabinet-of-war:w3d-legacy') || 'null'); if (lg && state.turn === 0 && !state.legacy) { state.legacy = lg; state.player.name = 'The heir of ' + lg.from; state.player.note = 'A new campaign as the heir of ' + lg.from + '; the adjudicator decides who that is. ' + (state.player.note || ''); persistState(); } } catch { }
-  // older saves predate the open-ground deployment (see src/w3d_build.py); move an un-fought battle the same way
-  { const bd = state.battleDemo, SHIFT = { A: [360, -690], B: [300, -360] };
-    if (!bd.deployment && !BS.log.length && !draft.battleResult) {
-      for (const u of bd.units) { const [de, dn] = SHIFT[u.side]; u.e += de; u.n += dn; if (u.seenE != null) { u.seenE += de; u.seenN += dn; } }
-      for (const o of bd.options || []) for (const a of o.arrows || []) { const [de, dn] = SHIFT[a.side]; a.from = [a.from[0] + de, a.from[1] + dn]; a.to = [a.to[0] + de, a.to[1] + dn]; }
-      bd.deployment = 'Armies moved as whole formations to open ground (older save).'; draft.armyOrders = {}; persistState(); saveDraft();
-    } }
+  // older saves predate the open-ground deployment and the Mollwitz ground turned north-up (game-v13, src/w3d_build.py):
+  // move an un-fought opening battle the same way, and name its ground
+  { const bd = state.battleDemo;
+    if (bd && bd.id === 'bd-demo' && !bd.ground) {
+      const SHIFT = bd.deployment ? { A: [0, 660], B: [0, 660] } : { A: [360, -30], B: [300, 300] };
+      if (!BS.log.length && !draft.battleResult) {
+        for (const u of bd.units) { const [de, dn] = SHIFT[u.side]; u.e += de; u.n += dn; if (u.seenE != null) { u.seenE += de; u.seenN += dn; } }
+        for (const o of bd.options || []) for (const a of o.arrows || []) { const [de, dn] = SHIFT[a.side]; a.from = [a.from[0] + de, a.from[1] + dn]; a.to = [a.to[0] + de, a.to[1] + dn]; }
+        bd.deployment = 'Armies moved as whole formations to open ground (older save).'; draft.armyOrders = {}; saveDraft();
+      }
+      bd.ground = 'mollwitz'; persistState();
+    }
+    syncGround(bd).catch(e => console.warn('ground', e)); }
   body.classList.add('w3d-on', 'w3d-room');
   showLoading('Raising the country…'); syncGfxUi();
   shell = createShell({ act, onSeal, clock });
@@ -632,7 +641,7 @@ let shell = null; const sound = createSound();
     const pick = D.filter(([, p]) => Math.random() < p).map(([id, , text]) => ({ id, text })); state.hidden = Object.assign(state.hidden || {}, { divergences: pick.length ? pick : [{ id: 'history', text: 'Events follow their historical course unless the player’s actions change them.' }] }); persistState(); }
   loadClock();
   // the keeper of the campaign: packet, reply, saves, the book (w3d/campaign.js)
-  await initCampaign({ toast, onChange: () => { shell.refresh(); if (world) world.region.setLetters(shell.unread().length); refreshHud(); } });
+  await initCampaign({ toast, onChange: () => { syncGround(state.battleDemo).catch(e => console.warn('ground', e)); shell.refresh(); if (world) world.region.setLetters(shell.unread().length); refreshHud(); } });
 
   scene.background = new THREE.Color(0xf1d9b0); scene.fog = new THREE.Fog(0xe8d4b2, 110, 1500);
   skyMesh = makeSky(scene, sunDir); lights = makeLights(scene, sunDir, 75, Q().shadows); cloudG = clouds(scene, Math.random);
@@ -646,6 +655,8 @@ let shell = null; const sound = createSound();
   if (state.turn === 0 && !opened) opening();
   loop();
   window.__w3d = { get mode() { return mode; }, perf, get world() { return world; }, get battle() { return battle; }, get shell() { return shell; }, pl, cam, camera, renderer, act, goView, keys, mockReply, drawSightings, lightCheck, post, gfx: () => Q(),
+    // dev: put a ground on the table and look at it (read-only, as an account): __w3d.ground('prague') or ground({kind:'marsh'}, [lat, lon])
+    async ground(g, center) { if (mode === 'field') await fieldToRoom(); if (mode !== 'room') await goView('room'); state.battleDemo.ground = g; if (center) state.battleDemo.center = center; account = true; aftermath = false; await roomToField(); return battle.debug.ground && { key: battle.debug.ground.key, exag: battle.debug.exag, notes: battle.debug.ground.notes }; },
     // dev: pin the hour, weather, season and camera for like-for-like screenshots
     async look({ h, weather, season, x, z, ry, yaw, pitch, dist } = {}) { shell.closeTop(); introOn = false; if (season !== undefined && season !== forcedSeason) { forcedSeason = season; await buildWorld(); applyGfx(); } if (weather !== undefined) forcedWeather = weather; if (h != null) { clockH = h; world.region.setHour(h); } Object.assign(pl, Object.fromEntries(Object.entries({ x, z, ry }).filter(e => e[1] != null))); Object.assign(cam, Object.fromEntries(Object.entries({ yaw, pitch, dist }).filter(e => e[1] != null))); applyAtmosphere(); shadowsDirty(); for (let i = 0; i < 200; i++) tick(1 / 60); shadowKey = ''; tick(1 / 60); },
     step(n = 1, dt = 1 / 60) { for (let i = 0; i < n; i++) tick(dt); renderer.getContext().finish(); } };

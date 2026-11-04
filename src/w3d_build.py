@@ -73,4 +73,8 @@ t=t[:m.start(2)]+payload+t[m.end(2):]
 # the opposing commander's temperament (state.battleDemo.enemy, set by the adjudicator) weighs the enemy's plan (w3d/campaign.js)
 rep("if(BS.lastPlan&&S[BS.lastPlan]!==undefined)S[BS.lastPlan]-=.45*(BS.repeat||0);","if(window.__temper)window.__temper(S,F,M,BS.phase,avgMor);if(BS.lastPlan&&S[BS.lastPlan]!==undefined)S[BS.lastPlan]-=.45*(BS.repeat||0);",1)
 rep("return{name:best,why,F}}","return{name:best,why:window.__temperWhy?window.__temperWhy(why):why,F}}",1)
+# the battle grounds (w3d/grounds, game-v13) add marsh (4) and vineyards (5) to the land cover: marsh is slow going and
+# worst for guns, vines and their stakes slow a march about as a village does
+rep("function terMul(u,t){if(t===1)return u.type==='cav'?.3:.5;if(t===2)return u.type==='art'?.1:.25;if(t===3)return .6;return 1}",
+    "function terMul(u,t){if(t===1)return u.type==='cav'?.3:.5;if(t===2)return u.type==='art'?.1:.25;if(t===3)return .6;if(t===4)return u.type==='art'?.2:u.type==='cav'?.35:.45;if(t===5)return u.type==='cav'?.5:.65;return 1}",1)
 (O/'cabinet-of-war.html').write_text(t);print('cabinet-of-war.html',len(t)//1024,'KB')
