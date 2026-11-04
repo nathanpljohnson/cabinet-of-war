@@ -81,6 +81,7 @@ rep("function terMul(u,t){if(t===1)return u.type==='cav'?.3:.5;if(t===2)return u
 # (inf, gd, lt, cav, lc, art) ride on u.kind and shade men, morale, sight, fire, cover and shock. The desk's own rules
 # stay as the fallback when the 3D layer is not loaded.
 rep("function moveStep(u){","function moveStep(u){if(window.__march)return window.__march.move(u);",1)
+rep("function autoTurn(u,us){","function autoTurn(u,us){if(window.__march)return window.__march.autoTurn(u,us);",1)
 rep("for(const u of us)moveStep(u);","for(const u of us)moveStep(u);if(window.__march)window.__march.after(us);",1)
 rep("const base={inf:600,cav:130,art:60}[u.type];","const base=window.__march?window.__march.men(u):{inf:600,cav:130,art:60}[u.type];",1)
 rep("u.mor=u.side==='A'?76:86;","u.mor=(u.side==='A'?76:86)+(window.__march?window.__march.mor(u):0);",1)

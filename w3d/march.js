@@ -175,6 +175,32 @@ export function install() {
       }
       for (const u of L) { u.e = Math.max(-TER.w / 2, Math.min(TER.w / 2, u.e)); u.n = Math.max(-TER.h / 2, Math.min(TER.h / 2, u.n)); }
     },
+    // a unit without a move order faces its danger: a line keeps its front for anything within 60° of it (its fire reaches
+    // there), changes front by wheeling for a threat on its flank or rear, and otherwise dresses on the battalions beside
+    // it, so the line stays a line; horse turn quickly but only beyond 30°; guns traverse
+    autoTurn(u, us) {
+      if (!alive(u) || u.st === 'routing' || (u.ord && u.ord.dest)) return;
+      let bn = null, bd = 1e9;
+      for (const t of us) { if (t.side === u.side || !alive(t) || t.st === 'gone') continue; const d = dist(u, t); if (d < 500 && d < bd && sees(u, t)) { bn = t; bd = d; } }
+      const isLine = (u.form || 'line') === 'line' && u.type !== 'art', W = dims(u).w, wheelMax = Math.min(10, SPEED[u.type][u.form || 'line'] * .5 * K(u).speed / Math.max(20, W) / RAD);
+      const turn = (want, rate) => { const df = rel(want, u.facing); u.facing = (u.facing + Math.max(-rate, Math.min(rate, df)) + 360) % 360; };
+      if (bn) {
+        const want = ang(u, bn), df = Math.abs(rel(want, u.facing));
+        if (u.type === 'art') { turn(want, 10); return; }
+        if (u.type === 'cav') { if (df > 30) turn(want, 30); return; }
+        if (!isLine) { turn(want, 25); return; }
+        if (df > 60) { const w2 = wheel(u, want, W, wheelMax); u.e = w2.e; u.n = w2.n; u.facing = w2.facing; return; }
+      }
+      if (!isLine || (u.ord && u.ord.facing != null)) return;
+      // dress: the mean facing of friendly lines beside this one (within 450 m along the front, 80 m in depth, 45° of facing)
+      const f = u.facing * RAD, fx = Math.sin(f), fy = Math.cos(f); let sx = 0, sy = 0, k = 0;
+      for (const t of us) { if (t === u || t.side !== u.side || !alive(t) || t.st === 'routing' || t.type !== u.type || (t.form || 'line') !== 'line') continue;
+        const de = t.e - u.e, dn = t.n - u.n, along = Math.abs(de * fy - dn * fx), depth = Math.abs(de * fx + dn * fy);
+        if (along > 450 || depth > 80 || Math.abs(rel(t.facing, u.facing)) > 45) continue; sx += Math.sin(t.facing * RAD); sy += Math.cos(t.facing * RAD); k++; }
+      if (!k) return;
+      const mean = bearing(sx + Math.sin(f), sy + Math.cos(f)), d = rel(mean, u.facing);
+      if (Math.abs(d) > .5) { const w2 = wheel(u, mean, W, Math.min(2, Math.abs(d))); u.e = w2.e; u.n = w2.n; u.facing = w2.facing; }
+    },
     men: u => K(u).men,
     mor: u => K(u).mor,
     sight: u => K(u).sight,
