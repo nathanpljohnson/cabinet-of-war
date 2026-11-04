@@ -11,26 +11,25 @@ def rep(a,b,n=None):
 rep('</head>','<link rel="stylesheet" href="w3d/w3d.css">\n</head>',1)
 rep('</body></html>','<script type="importmap">{"imports":{"three":"./w3d/vendor/three/three.module.js","three/addons/":"./w3d/vendor/three/addons/"}}</script>\n<script type="module" src="w3d/main.js"></script>\n</body></html>',1)
 # deployment on open ground: each army keeps its formation but is moved clear of villages, woods and water
-# (found by search over src/battle_terrain.json; Imperial centre otherwise stood inside Mollwitz). Offsets in metres.
+# (found by search over the Mollwitz ground, w3d/grounds/mollwitz.json, north-up since game-v13; the smallest common
+# move north that clears both armies is 660 m). Offsets in metres; DN is that move, applied to the fixed views below.
 import json,re
-SHIFT={'A':(360,-690),'B':(300,-360)}
+DN=660
+SHIFT={'A':(360,-690+DN),'B':(300,-360+DN)}
 m=re.search(r'(<script type="application/json" id="initial-state">)(.*?)(</script>)',t,flags=re.S)
 st=json.loads(m[2].replace('\\u003c','<'));bd=st['battleDemo']
 for u in bd['units']: de,dn=SHIFT[u['side']]; u['e']+=de; u['n']+=dn
 for o in bd['options']:
     for a in o.get('arrows',[]): de,dn=SHIFT[a['side']]; a['from']=[a['from'][0]+de,a['from'][1]+dn]; a['to']=[a['to'][0]+de,a['to'][1]+dn]
-bd['deployment']='Armies moved as whole formations to open ground (A +360 E −690 N, B +300 E −360 N).'
-# user decision: no village between the lines. Mollwitz and the hamlets inside the ground the armies fight over become
-# farmland, in the terrain the 3D page's battle engine reads (rows ~45–108, cols ~25–140 of the 30 m grid); flank villages stay
+bd['deployment']=f'Armies moved as whole formations to open ground (A +360 E {-690+DN:+} N, B +300 E {-360+DN:+} N).'
+# user decision: no village between the lines. Mollwitz and the hamlets inside the ground the armies fight over are
+# farmland in the Mollwitz ground (src/ground_build.py clears them); the inline grid the desk's battle engine reads first
+# is that ground's grid, so the sim, the desk and the 3D field start on the same, correctly oriented ground
 bd['place']=bd['place'].split(' —')[0]+' — the village between the lines is removed'
+bd['ground']='mollwitz'
 tm=re.search(r'(<script type="application/json" id="terrain">)(.*?)(</script>)',t,flags=re.S)
-TERj=json.loads(tm[2]); cleared=0
-for r in range(45,109):
-    row=list(TERj['rows_str'][r])
-    for c in range(25,141):
-        if row[c]=='3': row[c]='0'; cleared+=1
-    TERj['rows_str'][r]=''.join(row)
-assert cleared>300,cleared
+GR=json.loads((O/'w3d'/'grounds'/'mollwitz.json').read_text())
+TERj={k:GR[k] for k in ('cell','cols','rows','w','h','rows_str','legend')}; TERj['id']='mollwitz'
 t=t[:tm.start(2)]+json.dumps(TERj,separators=(',',':'))+t[tm.end(2):]
 payload=json.dumps(st,ensure_ascii=False,separators=(',',':')).replace('<','\\u003c')
 t=t[:m.start(2)]+payload+t[m.end(2):]

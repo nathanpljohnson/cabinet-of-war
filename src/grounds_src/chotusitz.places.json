@@ -1,0 +1,285 @@
+{
+"source": "Overture Maps Foundation, divisions, release 2026-10-21.0 (ODbL; includes OpenStreetMap data)",
+"points": [
+{
+"name": "Chedrbí",
+"de": null,
+"class": "village",
+"lat": 49.8752,
+"lon": 15.33178
+},
+{
+"name": "Souňov",
+"de": null,
+"class": "village",
+"lat": 49.88002,
+"lon": 15.31556
+},
+{
+"name": "Žáky",
+"de": null,
+"class": "village",
+"lat": 49.88528,
+"lon": 15.3683
+},
+{
+"name": "Krchleby",
+"de": null,
+"class": "village",
+"lat": 49.88889,
+"lon": 15.3503
+},
+{
+"name": "Drobovice",
+"de": null,
+"class": "village",
+"lat": 49.88953,
+"lon": 15.41342
+},
+{
+"name": "Žleby",
+"de": null,
+"class": "village",
+"lat": 49.88959,
+"lon": 15.48853
+},
+{
+"name": "Vodranty",
+"de": null,
+"class": "village",
+"lat": 49.89036,
+"lon": 15.3363
+},
+{
+"name": "Markovice",
+"de": null,
+"class": "hamlet",
+"lat": 49.89414,
+"lon": 15.45197
+},
+{
+"name": "Filipov",
+"de": null,
+"class": "village",
+"lat": 49.89748,
+"lon": 15.4227
+},
+{
+"name": "Skovice",
+"de": null,
+"class": "hamlet",
+"lat": 49.90362,
+"lon": 15.45019
+},
+{
+"name": "Močovice",
+"de": null,
+"class": "village",
+"lat": 49.90631,
+"lon": 15.34819
+},
+{
+"name": "Kluky",
+"de": null,
+"class": "village",
+"lat": 49.90804,
+"lon": 15.32417
+},
+{
+"name": "Pucheř",
+"de": null,
+"class": "hamlet",
+"lat": 49.91048,
+"lon": 15.31538
+},
+{
+"name": "Čáslav",
+"de": "Tschaslau",
+"class": "town",
+"lat": 49.91092,
+"lon": 15.39132
+},
+{
+"name": "Vinice",
+"de": null,
+"class": "village",
+"lat": 49.91985,
+"lon": 15.4908
+},
+{
+"name": "Vrdy",
+"de": null,
+"class": "village",
+"lat": 49.92154,
+"lon": 15.47243
+},
+{
+"name": "Lochy",
+"de": null,
+"class": "hamlet",
+"lat": 49.92449,
+"lon": 15.354
+},
+{
+"name": "Dolní Bučice",
+"de": null,
+"class": "village",
+"lat": 49.92526,
+"lon": 15.46337
+},
+{
+"name": "Horní Bučice",
+"de": null,
+"class": "village",
+"lat": 49.92599,
+"lon": 15.44821
+},
+{
+"name": "Lochy",
+"de": null,
+"class": "hamlet",
+"lat": 49.92671,
+"lon": 15.35673
+},
+{
+"name": "Třebešice",
+"de": null,
+"class": "village",
+"lat": 49.92785,
+"lon": 15.3378
+},
+{
+"name": "Kalabousek",
+"de": null,
+"class": "hamlet",
+"lat": 49.92998,
+"lon": 15.3689
+},
+{
+"name": "Zbyslav",
+"de": null,
+"class": "village",
+"lat": 49.94139,
+"lon": 15.47398
+},
+{
+"name": "Vlačice",
+"de": null,
+"class": "village",
+"lat": 49.94305,
+"lon": 15.43749
+},
+{
+"name": "Výčapy",
+"de": null,
+"class": "village",
+"lat": 49.94357,
+"lon": 15.44736
+},
+{
+"name": "Církvice",
+"de": null,
+"class": "village",
+"lat": 49.9456,
+"lon": 15.33505
+},
+{
+"name": "Druhanice",
+"de": null,
+"class": "hamlet",
+"lat": 49.94608,
+"lon": 15.41176
+},
+{
+"name": "Chotusice",
+"de": "Chotusitz",
+"class": "village",
+"lat": 49.94935,
+"lon": 15.39445
+},
+{
+"name": "Bílé Podolí",
+"de": "Weißpodol",
+"class": "village",
+"lat": 49.95648,
+"lon": 15.49102
+},
+{
+"name": "Zaříčany",
+"de": null,
+"class": "village",
+"lat": 49.95754,
+"lon": 15.46312
+},
+{
+"name": "Bojmany",
+"de": null,
+"class": "village",
+"lat": 49.95944,
+"lon": 15.43697
+},
+{
+"name": "Ovčáry",
+"de": null,
+"class": "village",
+"lat": 49.96137,
+"lon": 15.3297
+},
+{
+"name": "Nové Dvory",
+"de": null,
+"class": "village",
+"lat": 49.96859,
+"lon": 15.32771
+},
+{
+"name": "Žehušice",
+"de": "Sehuschitz",
+"class": "village",
+"lat": 49.96991,
+"lon": 15.40675
+},
+{
+"name": "Rohozec",
+"de": "Rohozetz",
+"class": "village",
+"lat": 49.97602,
+"lon": 15.38464
+},
+{
+"name": "Brambory",
+"de": "Brambor",
+"class": "village",
+"lat": 49.97813,
+"lon": 15.46976
+},
+{
+"name": "Svobodná Ves",
+"de": "Josefsdorf",
+"class": "village",
+"lat": 49.98135,
+"lon": 15.44833
+},
+{
+"name": "Borek",
+"de": "Franzdorf",
+"class": "village",
+"lat": 49.9814,
+"lon": 15.42315
+},
+{
+"name": "Horka I",
+"de": "Horka",
+"class": "village",
+"lat": 49.9827,
+"lon": 15.43994
+},
+{
+"name": "Svatý Mikuláš",
+"de": null,
+"class": "village",
+"lat": 49.99092,
+"lon": 15.35049
+}
+]
+}

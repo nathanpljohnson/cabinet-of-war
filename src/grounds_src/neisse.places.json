@@ -1,0 +1,201 @@
+{
+"source": "Overture Maps Foundation, divisions, release 2026-10-21.0 (ODbL; includes OpenStreetMap data)",
+"points": [
+{
+"name": "Czarkowice",
+"de": "Buschmühle",
+"class": "hamlet",
+"lat": 50.41314,
+"lon": 17.37363
+},
+{
+"name": "Kępnica",
+"de": "Deutsch Kamitz",
+"class": "village",
+"lat": 50.41687,
+"lon": 17.3926
+},
+{
+"name": "Morów",
+"de": "Mohrau",
+"class": "village",
+"lat": 50.41732,
+"lon": 17.29475
+},
+{
+"name": "Kwiatków",
+"de": "Blumenthal",
+"class": "village",
+"lat": 50.42685,
+"lon": 17.25536
+},
+{
+"name": "Hajduki Nyskie",
+"de": "Heidau",
+"class": "village",
+"lat": 50.42719,
+"lon": 17.36275
+},
+{
+"name": "Siestrzechowice",
+"de": "Grunau",
+"class": "village",
+"lat": 50.43197,
+"lon": 17.27479
+},
+{
+"name": "Podkamień",
+"de": "Steinhübel",
+"class": "village",
+"lat": 50.43357,
+"lon": 17.341
+},
+{
+"name": "Biała Nyska",
+"de": "Bielau",
+"class": "village",
+"lat": 50.43597,
+"lon": 17.30616
+},
+{
+"name": "Niwnica",
+"de": "Neunz",
+"class": "village",
+"lat": 50.44992,
+"lon": 17.38897
+},
+{
+"name": "Głębinów",
+"de": "Glumpenau",
+"class": "village",
+"lat": 50.46431,
+"lon": 17.27121
+},
+{
+"name": "Wyszków Śląski",
+"de": "Wischke",
+"class": "village",
+"lat": 50.46846,
+"lon": 17.39499
+},
+{
+"name": "Nysa",
+"de": "Neiße",
+"class": "town",
+"lat": 50.4738,
+"lon": 17.33247
+},
+{
+"name": "Skorochów",
+"de": "Kohlsdorf",
+"class": "village",
+"lat": 50.47436,
+"lon": 17.28821
+},
+{
+"name": "Konradowa",
+"de": "Konradsdorf",
+"class": "village",
+"lat": 50.47653,
+"lon": 17.36352
+},
+{
+"name": "Goświnowice",
+"de": null,
+"class": "village",
+"lat": 50.48778,
+"lon": 17.25222
+},
+{
+"name": "Jędrzychów",
+"de": "Heidersdorf",
+"class": "village",
+"lat": 50.48844,
+"lon": 17.30401
+},
+{
+"name": "Rochów",
+"de": null,
+"class": "hamlet",
+"lat": 50.48932,
+"lon": 17.37692
+},
+{
+"name": "Rusocin",
+"de": "Riemertsheide",
+"class": "village",
+"lat": 50.5036,
+"lon": 17.42215
+},
+{
+"name": "Górka",
+"de": null,
+"class": "hamlet",
+"lat": 50.50568,
+"lon": 17.34772
+},
+{
+"name": "Złotogłowice",
+"de": "Groß Neundorf",
+"class": "village",
+"lat": 50.50973,
+"lon": 17.37381
+},
+{
+"name": "Radzikowice",
+"de": null,
+"class": "village",
+"lat": 50.51112,
+"lon": 17.27759
+},
+{
+"name": "Regulice",
+"de": null,
+"class": "village",
+"lat": 50.51202,
+"lon": 17.33494
+},
+{
+"name": "Sękowice",
+"de": null,
+"class": "village",
+"lat": 50.5145,
+"lon": 17.30719
+},
+{
+"name": "Hanuszów",
+"de": null,
+"class": "village",
+"lat": 50.51585,
+"lon": 17.35516
+},
+{
+"name": "Bykowice",
+"de": null,
+"class": "village",
+"lat": 50.52818,
+"lon": 17.32927
+},
+{
+"name": "Strobice",
+"de": null,
+"class": "village",
+"lat": 50.52924,
+"lon": 17.36441
+},
+{
+"name": "Nowaki",
+"de": null,
+"class": "village",
+"lat": 50.52941,
+"lon": 17.26504
+},
+{
+"name": "Korzękwice",
+"de": null,
+"class": "village",
+"lat": 50.53195,
+"lon": 17.30111
+}
+]
+}
