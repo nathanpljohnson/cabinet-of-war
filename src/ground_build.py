@@ -289,7 +289,7 @@ def build(gid):
     h = at13(P_lat, P_lon); wcp = worldcover(P_lat, P_lon)
     # buildings: an opening of 150 m over anywhere with built-up cells near (keeps castle hills, drops blocks and halls)
     urb = blur((wcp == 50).astype(float), 6) > .04
-    h = np.where(urb, h * (1 - blur(urb.astype(float), 3)) + grey_open(blur(h, .7), 7) * blur(urb.astype(float), 3), h)
+    h = np.where(urb, h * (1 - blur(urb.astype(float), 3)) + blur(grey_open(blur(h, .7), 7), 4) * blur(urb.astype(float), 3), h)
     mask = blur((wcp == 10).astype(float), 2) > .25
     A = G.get('atlas') and json.loads((SRC / G['atlas']).read_text())
     if A:

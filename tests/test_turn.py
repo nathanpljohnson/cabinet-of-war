@@ -196,16 +196,19 @@ def test_new_battle_replaces_the_field(run):
 
 def test_ground_is_drawn_from_the_reply(run):
     b = run["battle"]
-    assert b["cells"] == {"village": 3, "hamlet": 3, "wood": 1, "stream": 2, "bridge": 0, "ford": 0}
+    c = b["cells"]
+    assert (c["village"], c["hamlet"], c["wood"], c["stream"]) == (3, 3, 1, 2)
+    assert c["bridge"] != 2 and c["ford"] != 2  # the crossings are dry
+    # the field is cleared where the armies stand (the blank test field is all wood)
     assert b["unitCells"] == [0]
-    assert b["same"] and b["relief"] == 5.5 and b["size"] == [198, 132, 132, 198]
+    assert b["same"] and b["kind"] == "wooded hills" and b["rivers"] >= 1 and b["size"] == [198, 132, 132, 198]
     assert {"Neudorf", "Lindenau", "the Fasanerie", "the Mühlbach", "the windmill hill"} <= set(b["names"])
-    assert b["mollwitz"] is None and b["keyChanges"] and b["packet"] == "ground"
+    assert b["packet"] == "ground"
 
 
 def test_bad_battle_is_made_safe(run):
     bad = run["battle"]["bad"]
-    assert bad["kind"] == "farmland" and bad["villages"] == ["Ok:village"]
+    assert bad["kind"] == "marsh" and bad["villages"] == ["Ok:village"]
     assert bad["units"] == ["X3:0"]
     assert any("both sides" in w for w in bad["warns"])
 
@@ -226,3 +229,28 @@ def test_movements_need_a_line_and_known_status(run):
 def test_preview_field_never_goes_as_the_live_battle(run):
     # campaigning makes a battle possible, but the opening's Mollwitz preview must not be sent as if it were one
     assert run["preview"] == {"units": False, "note": True, "title": None}
+
+
+def test_grounds_library_matches_rules(run):
+    g = run["grounds"]
+    assert g["ids"] == g["index"] and g["kinds"] == g["indexKinds"]
+    # the opening preview goes to the adjudicator as a note only (no ground, no units): see test_preview_field_never_goes_as_the_live_battle
+    assert g["opening"] == "mollwitz" and g.get("live") is None and g["inlineIsMollwitz"]
+    assert g["packetHasIds"]
+
+
+def test_grounds_files_are_whole(run):
+    for f in run["grounds"]["files"]:
+        assert (f["cols"], f["cell"], f["w"], f["h"], f["rows"]) == (198, 30, 5940, 3960, 132), f["id"]
+        assert f["len"] == [198] and set(f["chars"]) <= set("012345"), f["id"]
+        assert f["relief"] and f["outer"] and f["sources"] and f["notes"], f["id"]
+
+
+def test_ground_choice_is_checked(run):
+    g = run["grounds"]
+    assert g["lib"]["warns"] == [] and g["lib"]["ground"] == "prague"
+    assert g["kind"]["warns"] == [] and g["kind"]["ground"] == {"kind": "marsh"}
+    assert any("Unknown battle ground" in w for w in g["unknownId"]["warns"]) and g["unknownId"]["ground"] == {"kind": "open plain", "asked": "atlantis"}
+    assert g["unknownKind"]["ground"] == {"kind": "open plain", "asked": "tundra"}
+    assert g["aliasKind"]["ground"] == {"kind": "marsh"}
+    assert any("no ground was given" in w for w in g["noGround"])

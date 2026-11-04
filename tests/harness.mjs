@@ -1,8 +1,8 @@
 // Runs the reply pipeline (w3d/turn.js, w3d/continuity.js) on the opening state and the mock replies; prints JSON for pytest.
 import { readFileSync } from 'node:fs';
-import { replyFormat, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue } from '../w3d/turn.js';
+import { replyFormat, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS } from '../w3d/turn.js';
 import { checkContinuity } from '../w3d/continuity.js';
-import { makeGround, groundKey } from '../w3d/ground.js';
+import { stampFeatures, FIELD } from '../w3d/groundspec.js';
 const root = new URL('../', import.meta.url), read = p => readFileSync(new URL(p, root), 'utf8');
 const html = read('cabinet-of-war.html'), m = html.match(/id="initial-state">([\s\S]*?)<\/script>/);
 const opening = JSON.parse(m[1].replace(/\\u003c/g, '<')), almanac = JSON.parse(read('w3d/almanac.json')), contract = read('w3d/contract.md');
@@ -51,12 +51,12 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
   out.opening = { briefing: opening.briefing, scene: opening.scene, movements: opening.movements.length, wallis: opening.cast.find(c => c.id === 'wallis').place, early: opening.hidden.threads.filter(t => t.next_check && t.next_check < opening.date).length, demoCast: opening.cast.filter(c => c.claim === 'demo').length }; }
 // a new battle replaces the field whole; its ground is drawn from what the reply described, the same way every time
 { const mk = JSON.parse(read('w3d/mocks/battle.json')).changes, r = reply(opening, mk); checkReply(opening, r, {}); const { next } = mergeTurn(opening, r), bd = next.battleDemo;
-  const g = makeGround(bd), g2 = makeGround(JSON.parse(JSON.stringify(bd))), at = (e, n) => { const c = Math.floor((e + g.w / 2) / g.cell), rr = Math.floor((g.h / 2 - n) / g.cell); return +g.rows_str[rr][c]; };
+  const blank = Array.from({ length: FIELD.rows }, () => '1'.repeat(FIELD.cols)), stamp = b => stampFeatures(blank, b.ground, b.units, b.id), g = { ...FIELD, ...stamp(bd) }, g2 = stamp(JSON.parse(JSON.stringify(bd))), at = (e, n) => { const c = Math.floor((e + g.w / 2) / g.cell), rr = Math.floor((g.h / 2 - n) / g.cell); return +g.rows_str[rr][c]; };
   const G = bd.ground, s = G.streams[0];
   out.battle = { ids: bd.units.map(u => u.id).sort(), mockIds: mk.battleDemo.units.map(u => u.id).sort(), options: (bd.options || []).map(o => o.id), aftermath: bd.aftermath || null,
     cells: { village: at(G.villages[0].e, G.villages[0].n), hamlet: at(G.villages[1].e, G.villages[1].n), wood: at(G.woods[0].e, G.woods[0].n), stream: at(s.path[2][0], s.path[2][1]), bridge: at(...s.crossings[0]), ford: at(...s.crossings[1]) },
-    unitCells: [...new Set(bd.units.map(u => at(u.e, u.n)))], same: JSON.stringify(g) === JSON.stringify(g2), relief: g.relief, names: g.names.map(x => x.name),
-    mollwitz: makeGround(opening.battleDemo), keyChanges: groundKey(opening.battleDemo) !== groundKey(bd), size: [g.cols, g.rows, g.rows_str.length, g.rows_str[0].length],
+    unitCells: [...new Set(bd.units.map(u => at(u.e, u.n)))], same: JSON.stringify(stamp(bd)) === JSON.stringify(g2), kind: G.kind, rivers: g.rivers.length, names: g.names.map(x => x.name),
+    size: [g.cols, g.rows, g.rows_str.length, g.rows_str[0].length],
     packet: (liveState(next).battleDemo || {}).ground ? 'ground' : 'none' };
   const sameId = reply(next, { date: '1740-12-23', title: 't', briefing: 'b', reports: [], battleDemo: { units: [{ id: 'GA1', e: -880 }, { id: 'GB7', _remove: true }] } });
   out.battle.sameId = mergeTurn(next, sameId).next.battleDemo.units.length;
@@ -68,4 +68,14 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
 { const mv = reply(opening, { date: '1740-12-11', title: 't', briefing: 'b', reports: [], movements: [{ id: 'm1', label: 'Prussian regiments towards Crossen', side: 'prussia', status: 'heard', pts: [[52.52, 13.40], [52.05, 15.10]] }, { id: 'm2', label: 'bad', pts: [[52, 13]] }] });
   const mc = checkReply(opening, mv, {}); out.moves = { ids: mv.changes.movements.map(m => m.id + ':' + m.status + ':' + m.reported), fixes: mc.fixes.filter(f => /Movement/.test(f)).length, fmt: replyFormat(opening).includes('"status":"confirmed"|"reported"|"rumour"') }; }
 { const camp = JSON.parse(JSON.stringify(opening)); camp.world = { ...(camp.world || {}), tempo: 'campaigning' }; const bd = liveState(camp).battleDemo; out.preview = { units: !!bd.units, note: /preview field/.test(bd.note || ''), title: bd.title || null }; }
+// battle grounds: library ids and kinds pass, anything else is laid out as open plain with a warning
+{ const g = ground => { const r = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], battleDemo: { center: [50.1, 14.4], ground }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } }); const c = checkReply(opening, r, {}); return { warns: c.warns, ground: r.changes.battleDemo.ground }; };
+  const r0 = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], battleDemo: { center: [50.1, 14.4] }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } });
+  const index = JSON.parse(read('w3d/grounds/index.json'));
+  out.grounds = { lib: g('prague'), kind: g({ kind: 'marsh' }), unknownId: g('atlantis'), unknownKind: g({ kind: 'tundra' }), aliasKind: g({ kind: 'swamp' }), noGround: checkReply(opening, r0, {}).warns, ids: GROUNDS, kinds: GROUND_KINDS, index: index.grounds.map(x => x.id), indexKinds: Object.keys(index.kinds), opening: opening.battleDemo.ground,
+    packetHasIds: GROUNDS.every(id => packet.includes(id)), live: liveState(opening).battleDemo.ground,
+    files: index.grounds.map(x => { const f = JSON.parse(read('w3d/grounds/' + x.id + '.json')); return { id: x.id, cols: f.cols, rows: f.rows, cell: f.cell, w: f.w, h: f.h, rows: f.rows_str.length, len: new Set(f.rows_str.map(r => r.length)), chars: [...new Set(f.rows_str.join(''))].sort().join(''), relief: atob(f.relief.b64).length === 2 * f.relief.cols * f.relief.rows, outer: atob(f.outer.b64).length === 2 * f.outer.cols * f.outer.rows, sources: f.sources.length, notes: f.notes.length }; }) };
+  out.grounds.files.forEach(f => f.len = [...f.len]);
+  const T = JSON.parse(html.match(/id="terrain">([\s\S]*?)<\/script>/)[1]), M = JSON.parse(read('w3d/grounds/mollwitz.json'));
+  out.grounds.inlineIsMollwitz = JSON.stringify(T.rows_str) === JSON.stringify(M.rows_str); }
 console.log(JSON.stringify(out));
