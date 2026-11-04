@@ -1,0 +1,278 @@
+{
+"source": "Overture Maps Foundation, divisions, release 2026-10-21.0 (ODbL; includes OpenStreetMap data)",
+"points": [
+{
+"name": "Grębocice",
+"de": "Gramschütz",
+"class": "village",
+"lat": 51.59815,
+"lon": 16.16758
+},
+{
+"name": "Maniów Górny",
+"de": null,
+"class": "hamlet",
+"lat": 51.60334,
+"lon": 16.01944
+},
+{
+"name": "Ogorzelec",
+"de": null,
+"class": "village",
+"lat": 51.60515,
+"lon": 16.13297
+},
+{
+"name": "Maniów",
+"de": null,
+"class": "village",
+"lat": 51.60571,
+"lon": 16.0264
+},
+{
+"name": "Jakubów",
+"de": "Jakobskirch",
+"class": "village",
+"lat": 51.6076,
+"lon": 15.99913
+},
+{
+"name": "Smardzów",
+"de": null,
+"class": "village",
+"lat": 51.61403,
+"lon": 16.06983
+},
+{
+"name": "Turów",
+"de": null,
+"class": "village",
+"lat": 51.61554,
+"lon": 16.11831
+},
+{
+"name": "Łagoszów Mały",
+"de": "Klein Logisch",
+"class": "village",
+"lat": 51.6159,
+"lon": 16.02558
+},
+{
+"name": "Przedmoście",
+"de": null,
+"class": "village",
+"lat": 51.62681,
+"lon": 16.16312
+},
+{
+"name": "Jaczów",
+"de": "Jätschau",
+"class": "village",
+"lat": 51.62692,
+"lon": 16.07394
+},
+{
+"name": "Szczyglice",
+"de": "Sieglitz",
+"class": "village",
+"lat": 51.63009,
+"lon": 16.12551
+},
+{
+"name": "Modła",
+"de": null,
+"class": "village",
+"lat": 51.63037,
+"lon": 16.0406
+},
+{
+"name": "Kurowice",
+"de": "Gusteutschel",
+"class": "village",
+"lat": 51.63803,
+"lon": 16.03613
+},
+{
+"name": "Bytnik",
+"de": null,
+"class": "village",
+"lat": 51.64012,
+"lon": 16.15454
+},
+{
+"name": "Ruszowice",
+"de": "Rauschwitz",
+"class": "village",
+"lat": 51.64367,
+"lon": 16.07973
+},
+{
+"name": "Borek",
+"de": null,
+"class": "village",
+"lat": 51.64518,
+"lon": 16.17394
+},
+{
+"name": "Paulinów",
+"de": null,
+"class": null,
+"lat": 51.6454,
+"lon": 16.07274
+},
+{
+"name": "Krzepów",
+"de": null,
+"class": null,
+"lat": 51.64763,
+"lon": 16.14219
+},
+{
+"name": "Żarków",
+"de": null,
+"class": null,
+"lat": 51.64993,
+"lon": 16.10963
+},
+{
+"name": "Nosocice",
+"de": null,
+"class": null,
+"lat": 51.65277,
+"lon": 16.12861
+},
+{
+"name": "Zabornia",
+"de": null,
+"class": "village",
+"lat": 51.65753,
+"lon": 16.16015
+},
+{
+"name": "Brzostów",
+"de": null,
+"class": null,
+"lat": 51.65763,
+"lon": 16.05832
+},
+{
+"name": "Kamiona",
+"de": null,
+"class": "village",
+"lat": 51.65811,
+"lon": 16.00375
+},
+{
+"name": "Słone",
+"de": null,
+"class": "village",
+"lat": 51.65914,
+"lon": 16.02354
+},
+{
+"name": "Widziszów",
+"de": null,
+"class": null,
+"lat": 51.66101,
+"lon": 16.12336
+},
+{
+"name": "Głogów",
+"de": "Glogau",
+"class": "town",
+"lat": 51.66341,
+"lon": 16.08608
+},
+{
+"name": "Głogów",
+"de": null,
+"class": null,
+"lat": 51.66579,
+"lon": 16.15359
+},
+{
+"name": "Biechów",
+"de": null,
+"class": null,
+"lat": 51.675,
+"lon": 16.03306
+},
+{
+"name": "Klucze",
+"de": null,
+"class": "village",
+"lat": 51.68213,
+"lon": 16.1604
+},
+{
+"name": "Serby",
+"de": "Zerbau",
+"class": "village",
+"lat": 51.68364,
+"lon": 16.11133
+},
+{
+"name": "Stare Serby",
+"de": null,
+"class": "village",
+"lat": 51.68556,
+"lon": 16.13833
+},
+{
+"name": "Grodziec Mały",
+"de": "Klein Gräditz",
+"class": "village",
+"lat": 51.68782,
+"lon": 16.07593
+},
+{
+"name": "Sobczyce",
+"de": "Tschopitz",
+"class": "village",
+"lat": 51.70404,
+"lon": 16.07282
+},
+{
+"name": "Krzekotów",
+"de": null,
+"class": "village",
+"lat": 51.70487,
+"lon": 16.1577
+},
+{
+"name": "Nowe Zabiele",
+"de": null,
+"class": "hamlet",
+"lat": 51.70778,
+"lon": 16.03333
+},
+{
+"name": "Zabiele",
+"de": null,
+"class": "village",
+"lat": 51.70982,
+"lon": 16.0329
+},
+{
+"name": "Krzekotówek",
+"de": null,
+"class": "village",
+"lat": 51.71325,
+"lon": 16.1012
+},
+{
+"name": "Stare Zabiele",
+"de": null,
+"class": "hamlet",
+"lat": 51.71356,
+"lon": 16.03311
+},
+{
+"name": "Ceber",
+"de": null,
+"class": "village",
+"lat": 51.71382,
+"lon": 16.00308
+}
+]
+}
