@@ -37,3 +37,23 @@
 - [x] 11 Winter quarters / campaigning / truce
 - [x] 13 Ride over the field afterwards
 - [x] Tests (21) and browser check
+
+# game-v13: each battle on its own ground (plan, 4 Nov 2026)
+
+**Problem.** Every battle uses one baked 30 m land-cover grid of Mollwitz (`<script id="terrain">`, read as `TER` by the sim in `src/battle.js`, the desk map and `w3d/battle3d.js`). Relief is noise (`height()` in battle3d.js). `battleDemo.center` moves the units' lat/lon, not the ground.
+
+**What battle-atlas gives us.** Real relief from AWS Terrarium tiles (CORS open, reachable), stored as uint16 (elev−min)×10 base64; scenery authored per battle from period maps (woods as ellipses, rivers as polylines, villages as points, roads); season tint; phase-keyed unit moves (lines keep formation, columns snake along roads, contact push). Leuthen (Breslau, 1757) and Rossbach are already authored.
+
+## Plan
+- [ ] 1 Ground file format `w3d/grounds/<id>.json`: bbox, relief grid (atlas encoding), 30 m land-cover rows (open/wood/water/village + new: marsh, vineyard, hill-steep), rivers, roads, villages with names.
+- [ ] 2 Build tool `src/ground_build.py` (port of atlas `terrain.py` + `battlekit` scenery rasteriser): DEM fetch → relief; authored scenery → land-cover grid.
+- [ ] 3 Library of likely fields for 1740–45, scenery from period sources: Mollwitz (re-cut from today's grid), Breslau/Leuthen ground (from atlas), Brieg, Neisse, Glogau, Chotusitz, Prague, Linz/Danube. List in the packet as vocabulary.
+- [ ] 4 `battleDemo.ground`: Claude picks a library id, or gives `ground: {kind}` (river crossing, vineyards, marsh, wooded hills, open plain) for a field not in the library; the page then fetches real relief for `center` at runtime and lays land cover from the kind. Reply check warns on unknown ids. Contract + `replyFormat()` + tests together.
+- [ ] 5 Page: swap `TER` in place on load (sim, desk map and 3D see the same ground); battle3d uses real relief instead of noise; vineyards/marsh get their own paint and props.
+- [ ] 6 Sim: ridges block sight (relief in `blocked()`), uphill slows a march. Small, in `src/battle.js`.
+- [ ] 7 Replay a battle account phase by phase (atlas `setPhase`): Claude gives positions per phase; "See the ground as described" steps through them.
+- [ ] 8 Atlas-style marching in the table battle: lines keep formation, columns follow roads, contact push.
+- [ ] 9 Atlas camera (orbit) + clock rail (←/→, Play) for both the replay and the commanded battle; in the commanded battle a rail step = one phase of orders then moves.
+
+Decisions (Nathan, 4 Nov): library + live fallback; replay accounts; atlas marching; atlas camera + clock rail everywhere.
+- [ ] Verify: pytest, mock reply per ground kind, screenshots of 3+ grounds, lightCheck, sound off, separate profile.
