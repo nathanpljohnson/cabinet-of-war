@@ -256,3 +256,12 @@ def test_slopes_slow_a_march(run):
     assert p["level"] == 1 and p["down4"] == 1
     assert p["up10cav"] < p["up10"] < 1 and p["up10art"] < p["up10cav"]
     assert p["up10"] < p["up10road"] < 1 and p["down15"] < 1 and p["cliff"] == pytest.approx(.35)
+
+
+def test_towns_have_works_and_bridges(run):
+    f = {x["id"]: x for x in run["grounds"]["files"]}
+    assert [t[1] for t in f["brieg"]["towns"]] == ["bastioned"] and f["brieg"]["towns"][0][2] >= 6
+    assert [t[0] for t in f["prague"]["towns"]] == ["Old and New Town", "Lesser Town and Hradschin"]
+    assert [t[1] for t in f["linz"]["towns"]] == ["walled"]  # Urfahr was an open market
+    assert "Charles Bridge" in f["prague"]["named"] and "The Danube bridge" in f["linz"]["named"]
+    assert f["mollwitz"]["towns"] == [] and f["brieg"]["bridges"] > 0

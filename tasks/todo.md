@@ -93,3 +93,10 @@ Decisions (Nathan, 4 Nov): library + live fallback; replay accounts; atlas march
 
 ### Stage 6 result (5 Nov)
 `crestBetween` and `slopePace` in `w3d/march.js`, hooked into `blocked()` and the march step. A crest must stand 1.5 m clear of the line of sight (the relief is good to a metre or two). Share of random unit pairs 300–1500 m apart hidden by a crest: Mollwitz 1%, Leuthen 2%, Brieg 6%, Chotusitz 6%, Neisse 9%, Glogau 9%, Linz 28%, Prague 42%. Share of 30 m steps slowed by 5% or more: 0–5% on the plains, 16% Linz, 26% Prague.
+
+## Towns and names (5 Nov)
+- Ground files carry `towns` (wall trace in metres, `works`: bastioned | walled; open towns such as Urfahr have none; all inferred and marked) and `bridges` (named ones from the config: Charles Bridge, the Linz Danube bridge; others wherever a road crosses broad water for 15–700 m, including today's crossings in towns).
+- Field: bastioned towns get an earth rampart, an arrowhead bastion at every salient corner, a wet ditch and a glacis; walled towns a curtain wall with towers every 60 m; gate towers where roads cross the trace; town cells build up close (two larger houses a cell) with a church about every 260 m; bridges as stone decks on piers with parapets.
+- Village, town and hill names stand over the field in small capitals, fading with distance (under the formations' labels).
+- Not found: Glogau's Oder bridge (the river there is under the grid's water threshold where the road crosses); no bridge drawn rather than a guessed one.
+

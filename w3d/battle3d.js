@@ -66,6 +66,11 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     ctx.putImageData(img, 0, 0); ctx.filter = 'blur(2px)'; ctx.drawImage(cvs, 0, 0); ctx.filter = 'none'; // soft edges to woods, water and hamlets
     for (const [x, y, w, h] of [[0, 0, CW, 4], [0, CH - 4, CW, 4], [0, 0, 4, CH], [CW - 4, 0, 4, CH]]) ctx.putImageData(img, 0, 0, x, y, w, h); // the blur fades the rim
     const mpp = W / CW, px = ([e, n]) => [(e + W / 2) / mpp, (H / 2 - n) / mpp]; ctx.lineJoin = ctx.lineCap = 'round';
+    // before a town's works: a ditch (wet-looking for a fortress) and, for a fortress, a glacis of open, mown ground
+    for (const t of (G && G.towns) || []) { const P = t.poly, n = P.length, ce = P.reduce((a, p) => a + p[0], 0) / n, cn = P.reduce((a, p) => a + p[1], 0) / n, bast = t.works === 'bastioned';
+      const out = d => P.map(([e, n2]) => { const l = Math.hypot(e - ce, n2 - cn) || 1; return [e + (e - ce) / l * d, n2 + (n2 - cn) / l * d]; });
+      for (const [d, col, wd] of bast ? [[70, winter ? 'rgba(232,234,232,.5)' : 'rgba(190,184,128,.45)', 80], [34, winter ? 'rgba(180,196,204,.85)' : 'rgba(76,96,86,.85)', 26]] : [[10, winter ? 'rgba(170,180,186,.7)' : 'rgba(86,96,72,.7)', 10]]) {
+        ctx.strokeStyle = col; ctx.lineWidth = wd / mpp; ctx.beginPath(); out(d).forEach((q, i) => { const [a, b] = px(q); i ? ctx.lineTo(a, b) : ctx.moveTo(a, b); }); ctx.closePath(); ctx.stroke(); } }
     // roads and tracks: worn earth, ~7 m with softer verges (ground roads, w3d/grounds)
     for (const rd of (G && G.roads) || []) for (const [col, wd] of [[winter ? 'rgba(170,160,140,.35)' : 'rgba(112,94,62,.35)', 11 / mpp], [winter ? 'rgba(214,206,190,.85)' : 'rgba(178,154,108,.88)', Math.max(1.4, 6 / mpp)]]) {
       ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.beginPath(); rd.p.forEach((q, i) => { const [a, b] = px(q); i ? ctx.lineTo(a, b) : ctx.moveTo(a, b); }); ctx.stroke(); }
@@ -151,17 +156,71 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   const houseG = [merge([box(9, 4.5, 6, 0xeee6d2), place(tint(new THREE.CylinderGeometry(0, 1, 1, 4, 1), 0x8e4a34, .06), 0, 6.3, 0, Math.PI / 4, 7.4, 3.6, 5.2)]),
     merge([box(11, 3.8, 6.5, 0xd9c49a), box(.4, 3.8, 6.6, 0x5a4030, -3, 0, 0), box(.4, 3.8, 6.6, 0x5a4030, 3, 0, 0), place(tint(new THREE.CylinderGeometry(0, 1, 1, 4, 1), 0x8a7a52, .06), 0, 5.6, 0, Math.PI / 4, 8.8, 3.6, 5.6)])];
   const houses = [[], []], seen = new Set();
-  for (const [r, c, x, z] of vill) if (rnd() < .45) { const hx = x + (rnd() - .5) * 26, hz = z + (rnd() - .5) * 26; if (landAt(hx, hz) === 3) houses[rnd() < .55 ? 0 : 1].push([hx, hz, rnd() < .5 ? 0 : Math.PI / 2]); }
+  // towns (the ground's wall traces, metres e/n): cells inside them build up close, two larger houses a cell
+  const TOWNS = ((G && G.towns) || []).map(t => ({ ...t, xz: t.poly.map(([e, n]) => [e, -n]) }));
+  const inPoly = (x, z, P) => { let hit = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const a = P[i], b = P[j]; if ((a[1] > z) !== (b[1] > z) && x < (b[0] - a[0]) * (z - a[1]) / (b[1] - a[1]) + a[0]) hit = !hit; } return hit; };
+  const inTown = (x, z) => TOWNS.some(t => inPoly(x, z, t.xz));
+  for (const [r, c, x, z] of vill) if (inTown(x, z)) for (let k = 0; k < 2; k++) { if (rnd() > .85) continue; const hx = x + (rnd() - .5) * 24, hz = z + (rnd() - .5) * 24; if (landAt(hx, hz) === 3) houses[0].push([hx, hz, rnd() < .5 ? 0 : Math.PI / 2, 1.3 + rnd() * .25]); }
+  for (const [r, c, x, z] of vill) if (!inTown(x, z) && rnd() < .45) { const hx = x + (rnd() - .5) * 26, hz = z + (rnd() - .5) * 26; if (landAt(hx, hz) === 3) houses[rnd() < .55 ? 0 : 1].push([hx, hz, rnd() < .5 ? 0 : Math.PI / 2]); }
   const dm = new THREE.Object3D(), propMat = stdMat();
-  houseG.forEach((geo, i) => { const im = new THREE.InstancedMesh(geo, propMat, houses[i].length); houses[i].forEach(([x, z, ry], k) => { dm.position.set(x, hAt(x, z) - .2, z); dm.rotation.set(0, ry, 0); dm.scale.setScalar(1); dm.updateMatrix(); im.setMatrixAt(k, dm.matrix); }); im.castShadow = im.receiveShadow = true; scene.add(im); });
+  houseG.forEach((geo, i) => { const im = new THREE.InstancedMesh(geo, propMat, houses[i].length); houses[i].forEach(([x, z, ry, sc], k) => { dm.position.set(x, hAt(x, z) - .2, z); dm.rotation.set(0, ry, 0); dm.scale.setScalar(sc || 1); dm.updateMatrix(); im.setMatrixAt(k, dm.matrix); }); im.castShadow = im.receiveShadow = true; scene.add(im); });
   const key = (r, c) => r * 1000 + c, vs = new Set(vill.filter(v => !v[4]).map(([r, c]) => key(r, c)));
   for (const [r0, c0, , , edge] of vill) { if (edge) continue; // flood-fill village clusters; a church tower marks the larger ones
     if (seen.has(key(r0, c0))) continue; const q = [[r0, c0]], cl = []; seen.add(key(r0, c0));
     while (q.length) { const [r, c] = q.pop(); cl.push([r, c]); for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const k = key(r + dr, c + dc); if (vs.has(k) && !seen.has(k)) { seen.add(k); q.push([r + dr, c + dc]); } } }
     if (cl.length < 40) continue;
     const mr = cl.reduce((s, a) => s + a[0], 0) / cl.length, mc = cl.reduce((s, a) => s + a[1], 0) / cl.length, x = -W / 2 + (mc + .5) * cell, z = -(H / 2 - (mr + .5) * cell);
+    church(x, z);
+  }
+  function church(x, z) {
     const ch = new THREE.Mesh(merge([box(12, 9, 24, 0xf0e8d6), place(tint(new THREE.CylinderGeometry(0, 1, 1, 4, 1), 0x8e4a34), 0, 12.5, 0, Math.PI / 4, 9.5, 7, 18), box(6, 26, 6, 0xf0e8d6, 0, 0, -14), place(tint(new THREE.CylinderGeometry(0, 1, 1, 4, 1), 0x3e4a44), 0, 31, -14, Math.PI / 4, 4.6, 10, 4.6)]), propMat);
     ch.position.set(x, hAt(x, z) - .3, z); ch.castShadow = ch.receiveShadow = true; scene.add(ch);
+  }
+  for (const t of TOWNS) { const xs = t.xz.map(p => p[0]), zs = t.xz.map(p => p[1]);
+    for (let x = Math.min(...xs) + 130; x < Math.max(...xs); x += 260) for (let z = Math.min(...zs) + 130; z < Math.max(...zs); z += 260) { const cx = x + (rnd() - .5) * 120, cz = z + (rnd() - .5) * 120; if (inPoly(cx, cz, t.xz) && landAt(cx, cz) === 3 && rnd() < .5) church(cx, cz); } }
+
+  /* ---------- walls and bastions, gates and bridges (the ground's towns and bridges; all inferred, see the ground file) ---------- */
+  { const parts = [], STONE = 0xcdc2a5, EARTH = 0x8b8a5d, ROOF = 0x6f4a38;
+    // a straight piece of work between two points, sunk into the ground and cut every 40 m to follow it
+    const run = (a, b, w, h, col) => { const L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.ceil(L / 40));
+      for (let i = 0; i < n; i++) { const p = [a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n], q = [a[0] + (b[0] - a[0]) * (i + 1) / n, a[1] + (b[1] - a[1]) * (i + 1) / n], l = L / n;
+        const y = Math.min(hAt(p[0], p[1]), hAt(q[0], q[1])) - 1.5; parts.push(box(l + .4, h + 1.5, w, col, (p[0] + q[0]) / 2, y, (p[1] + q[1]) / 2, -Math.atan2(q[1] - p[1], q[0] - p[0]))); } };
+    // a prism standing on a convex outline (x, z), top at y1
+    const prism = (pts, y0, y1, col) => { const pos = [];
+      // wound so the top faces up (positive signed area in x, z)
+      let ar = 0; for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; ar += a[0] * b[1] - b[0] * a[1]; } if (ar < 0) pts = [...pts].reverse();
+      for (let i = 1; i < pts.length - 1; i++) pos.push(pts[0][0], y1, pts[0][1], pts[i + 1][0], y1, pts[i + 1][1], pts[i][0], y1, pts[i][1]);
+      for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; pos.push(a[0], y0, a[1], b[0], y0, b[1], b[0], y1, b[1], a[0], y0, a[1], b[0], y1, b[1], a[0], y1, a[1]); }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals(); parts.push(tint(g, col)); };
+    const cross = (a, b, c, d) => { const r = [b[0] - a[0], b[1] - a[1]], s2 = [d[0] - c[0], d[1] - c[1]], den = r[0] * s2[1] - r[1] * s2[0]; if (Math.abs(den) < 1e-9) return null;
+      const t = ((c[0] - a[0]) * s2[1] - (c[1] - a[1]) * s2[0]) / den, u = ((c[0] - a[0]) * r[1] - (c[1] - a[1]) * r[0]) / den; return t >= 0 && t <= 1 && u >= 0 && u <= 1 ? [a[0] + r[0] * t, a[1] + r[1] * t, Math.atan2(r[1], r[0])] : null; };
+    const roadsXZ = ((G && G.roads) || []).map(rd => rd.p.map(([e, n]) => [e, -n]));
+    for (const t of TOWNS) {
+      const P = t.xz, n = P.length, cx = P.reduce((a, p) => a + p[0], 0) / n, cz = P.reduce((a, p) => a + p[1], 0) / n, bast = t.works === 'bastioned';
+      const gates = []; for (let i = 0; i < n; i++) for (const R2 of roadsXZ) for (let k = 1; k < R2.length; k++) { const g = cross(P[i], P[(i + 1) % n], R2[k - 1], R2[k]); if (g && !gates.some(o => Math.hypot(o[0] - g[0], o[1] - g[1]) < 70)) gates.push(g); }
+      for (let i = 0; i < n; i++) {
+        const a = P[i], b = P[(i + 1) % n];
+        run(a, b, bast ? 16 : 2.6, bast ? 7 : 9, bast ? EARTH : STONE);
+        if (!bast) { const L = Math.hypot(b[0] - a[0], b[1] - a[1]); for (let s3 = 0; s3 < L; s3 += 60) { const x = a[0] + (b[0] - a[0]) * s3 / L, z = a[1] + (b[1] - a[1]) * s3 / L; if (gates.some(g => Math.hypot(g[0] - x, g[1] - z) < 30)) continue; parts.push(box(7, 13, 7, STONE, x, hAt(x, z) - 1.5, z, -Math.atan2(b[1] - a[1], b[0] - a[0]))); } }
+        else { // a bastion at each salient corner: two flanks, two faces and the point, thrown forward of the curtain
+          const pv = P[(i - 1 + n) % n], len = q => Math.hypot(q[0], q[1]) || 1, u1 = [(pv[0] - a[0]) / len([pv[0] - a[0], pv[1] - a[1]]), (pv[1] - a[1]) / len([pv[0] - a[0], pv[1] - a[1]])], u2 = [(b[0] - a[0]) / len([b[0] - a[0], b[1] - a[1]]), (b[1] - a[1]) / len([b[0] - a[0], b[1] - a[1]])];
+          let o = [-(u1[0] + u2[0]), -(u1[1] + u2[1])]; const ol = len(o); o = [o[0] / ol, o[1] / ol];
+          if ((a[0] - cx) * o[0] + (a[1] - cz) * o[1] <= 0) continue; // a re-entrant corner: no bastion
+          const F1 = [a[0] + u1[0] * 42, a[1] + u1[1] * 42], F2 = [a[0] + u2[0] * 42, a[1] + u2[1] * 42], S1 = [F1[0] + o[0] * 38, F1[1] + o[1] * 38], S2 = [F2[0] + o[0] * 38, F2[1] + o[1] * 38], Pt = [a[0] + o[0] * 100, a[1] + o[1] * 100];
+          const y0 = Math.min(...[F1, S1, Pt, S2, F2].map(q => hAt(q[0], q[1]))) - 1.5; prism([F1, S1, Pt, S2, F2], y0, y0 + 8.5, EARTH);
+        }
+      }
+      for (const [x, z, ang] of gates) { const y = hAt(x, z) - 1.5; parts.push(box(bast ? 15 : 11, bast ? 11 : 17, bast ? 18 : 11, STONE, x, y, z, -ang)); parts.push(place(tint(new THREE.CylinderGeometry(0, 1, 1, 4, 1), ROOF), x, y + (bast ? 14 : 20.5), z, Math.PI / 4 - ang, bast ? 11 : 8.5, 6, bast ? 12 : 8.5)); }
+    }
+    // bridges: a stone deck at the height of the higher bank, piers every ~28 m, low parapets
+    for (const bd of (G && G.bridges) || []) {
+      const [a, b] = bd.p.map(([e, n]) => [e, -n]), L = Math.hypot(b[0] - a[0], b[1] - a[1]), ang = -Math.atan2(b[1] - a[1], b[0] - a[0]), wide = bd.name ? 10 : 6.5;
+      const y = Math.max(hAt(a[0], a[1]), hAt(b[0], b[1])) + .6, mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2, rx = -(b[1] - a[1]) / L, rz = (b[0] - a[0]) / L;
+      parts.push(box(L + 6, 1.6, wide, STONE, mx, y - 1.6, mz, ang));
+      for (const sd of [-1, 1]) parts.push(box(L + 6, 1, .6, STONE, mx + rx * sd * (wide / 2 - .3), y, mz + rz * sd * (wide / 2 - .3), ang));
+      const k = Math.max(1, Math.round(L / 28)); for (let i = 1; i < k; i++) { const x = a[0] + (b[0] - a[0]) * i / k, z = a[1] + (b[1] - a[1]) * i / k, g = Math.min(hAt(x, z), y - 6) - 3; parts.push(box(4.5, y - 1.6 - g, wide + 2, 0xb4a88c, x, g, z, ang)); }
+    }
+    if (parts.length) { const m = new THREE.Mesh(merge(parts), stdMat()); m.castShadow = m.receiveShadow = true; scene.add(m); }
   }
 
   /* ---------- formations ---------- */
@@ -179,6 +238,16 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
 
   const plateGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), edgeGeo = new THREE.EdgesGeometry(plateGeo);
   const vis = {}, labels = document.createElement('div'); labels.className = 'w3d-blabels'; document.getElementById('w3d').append(labels);
+  // the names of villages, towns and hills, standing over them in small capitals; they fade with distance
+  const plabels = document.createElement('div'); plabels.className = 'w3d-plabels'; labels.before(plabels); // under the formations' own labels
+  const names = ((G && G.places) || []).map(p => { const el = document.createElement('span'); el.className = 'w3d-pname' + (p.town ? ' town' : p.hill ? ' hill' : ''); el.textContent = p.name; plabels.append(el); return { el, x: p.e, z: -p.n, up: p.hill ? 18 : p.town ? 60 : 36 }; });
+  function placeNames() {
+    const W2 = innerWidth / 2, H2 = innerHeight / 2;
+    for (const p of names) { tv.set(p.x, hAt(p.x, p.z) + p.up, p.z); const d = camera.position.distanceTo(tv); tv.project(camera);
+      const show = !aftermathOn && tv.z < 1 && Math.abs(tv.x) < 1.05 && Math.abs(tv.y) < 1.05 && d < 7000;
+      p.el.style.display = show ? '' : 'none'; if (!show) continue;
+      p.el.style.left = (tv.x * W2 + W2) + 'px'; p.el.style.top = (-tv.y * H2 + H2) + 'px'; p.el.style.opacity = Math.max(.3, Math.min(.92, 1.15 - d / 5500)).toFixed(2); }
+  }
   const card = document.createElement('div'); card.className = 'w3d-bcard'; card.hidden = true; document.getElementById('w3d').append(card);
   const shortName = u => u.name.split(' (')[0].replace(/^(Imperial|Opposing) /, '').replace('infantry battalion', 'Battalion').replace('cavalry squadron group', 'Horse').replace('battery', 'Battery').replace(/^./, c => c.toUpperCase());
   function visFor(u) {
@@ -531,8 +600,8 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   return {
     camera,
     setShadows: n => { lights.setShadows(n); },
-    enter() { prevBattleOn = battleOn; if (!battleOn) showBattle(true); initSim(); resize(); placeCamera(); camSig = ''; controls.enabled = true; renderCard(); card.hidden = false; labels.hidden = false; rail.show(true); },
-    leave() { controls.enabled = false; rail.show(false); rail.stop(); card.hidden = true; labels.hidden = true; if (armyTool) setArmyTool(armyTool); if (!prevBattleOn) showBattle(false); },
+    enter() { plabels.hidden = false; prevBattleOn = battleOn; if (!battleOn) showBattle(true); initSim(); resize(); placeCamera(); camSig = ''; controls.enabled = true; renderCard(); card.hidden = false; labels.hidden = false; rail.show(true); },
+    leave() { plabels.hidden = true; controls.enabled = false; rail.show(false); rail.stop(); card.hidden = true; labels.hidden = true; if (armyTool) setArmyTool(armyTool); if (!prevBattleOn) showBattle(false); },
     refresh() { lastCardKey = ''; arrowKey = ''; },
     setReadOnly(b) { readOnly = b; inspected = null; lastCardKey = ''; if (b) selectUnits([]); },
     // ride over the ground the day after: the dead, the guns, the burial parties; the camera low, among them
@@ -554,7 +623,7 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
         cam.tx = Math.max(-W / 2, Math.min(W / 2, tg.x)); cam.tz = Math.max(-H / 2, Math.min(H / 2, tg.z)); placeCamera(); controls.target.set(cam.tx, hAt(cam.tx, cam.tz), cam.tz); }
       else placeCamera();
       camSig = sigOf();
-      rail.tick(dt); draw(dt, t);
+      rail.tick(dt); draw(dt, t); placeNames();
       // the shadow map (thousands of figures) is redrawn when the view moves and a few times a second while men move
       const ck = [cam.tx, cam.tz, cam.dist, cam.yaw, cam.pitch].map(v => Math.round(v * 10)).join();
       if (ck !== shadowView || ++shadowTick % (BS.running ? 2 : 6) === 0) { shadowView = ck; renderer.shadowMap.needsUpdate = true; }
@@ -584,7 +653,7 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     wheel(e) { if (e.deltaY > 0 && cam.dist >= 5900 && onRise) onRise(cam.tx, cam.tz); }, // the orbit zooms
     debug: { cam, vis, pools, guns, get inspected() { return inspected; }, ground: G, exag: EXAG, controls, rail, get accArrows() { return accG.children.length; } },
     // the field's own geometry and painted textures; materials are shared with the rest of the world (nature.js, props.js)
-    dispose() { controls.dispose(); rail.remove(); labels.remove(); card.remove(); scene.traverse(o => { if (o.geometry) o.geometry.dispose(); }); groundTex.dispose(); grainTex.dispose(); },
+    dispose() { controls.dispose(); rail.remove(); plabels.remove(); labels.remove(); card.remove(); scene.traverse(o => { if (o.geometry) o.geometry.dispose(); }); groundTex.dispose(); grainTex.dispose(); },
   };
   function resize() { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
 }

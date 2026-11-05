@@ -393,7 +393,7 @@ body.w3d-on dialog h2{font:400 26px var(--display)!important}
 
 /* the clock rail over the field (battle-atlas): ◀ ▶ ▶| and a stop a phase */
 .w3d-rail{position:absolute;left:50%;bottom:180px;transform:translateX(-50%);width:min(620px,calc(100vw - 32px));display:flex;align-items:center;gap:8px;padding:8px 14px 22px;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--edge);border-radius:14px;box-shadow:var(--shadow);font-family:var(--read);color:var(--bone);z-index:3}
-body:not(.w3d-field) .w3d-rail{display:none}
+body:not(.w3d-field) .w3d-rail,.w3d-rail[hidden]{display:none}
 body.w3d-account .w3d-rail{bottom:104px}
 .w3d-rail .rb{flex:none;width:34px;height:30px;border:1px solid var(--edge-2);border-radius:8px;background:none;color:var(--bone);cursor:pointer;font:13px var(--display)}
 .w3d-rail .rb:hover{background:var(--glass-3)}.w3d-rail .rb.play{width:40px}
@@ -407,3 +407,10 @@ body.w3d-account .w3d-rail{bottom:104px}
 @keyframes w3d-rail-pulse{to{background:var(--bone-2)}}
 .w3d-rail .lab{position:absolute;left:0;right:0;bottom:4px;text-align:center;font:13px var(--display);font-variant-caps:all-small-caps;letter-spacing:.05em;color:var(--bone-2)}
 .w3d-rail button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
+
+/* names of places over the field: engraved small capitals, as on a period plan */
+.w3d-plabels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+body:not(.w3d-field) .w3d-plabels{display:none}
+.w3d-pname{position:absolute;transform:translate(-50%,-100%);white-space:nowrap;font:15px var(--display);font-variant-caps:all-small-caps;letter-spacing:.12em;color:#f3ecdc;text-shadow:0 1px 2px rgba(20,16,10,.85),0 0 10px rgba(20,16,10,.5)}
+.w3d-pname.town{font-size:19px;letter-spacing:.16em}
+.w3d-pname.hill{font-style:italic;font-variant-caps:normal;letter-spacing:.02em;font-size:14px;color:#e6dcc6}

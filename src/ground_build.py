@@ -37,37 +37,39 @@ GROUNDS = {
                    base='mollwitz'),
   'brieg': dict(title='Brieg', place='Brieg (Brzeg) on the Oder, Silesia: the fortress town and its approaches', center=[50.858, 17.468],
                 about='fortress town on the south bank of the Oder; flat ground to the south and west; the river and its meadows to the north',
-                towns=[dict(name='Brieg', lat=50.8615, lon=17.4705, r=480, why='walled and bastioned town, about 1 km across')]),
+                towns=[dict(name='Brieg', lat=50.8615, lon=17.4705, r=480, works='bastioned', why='walled and bastioned town, about 1 km across')]),
   'neisse': dict(title='Neisse', place='Neisse (Nysa) on the Glatzer Neisse, Silesia: the fortress and the river', center=[50.472, 17.333],
                  about='fortress town on the Neisse; river meadows; rising ground to the south and west',
-                 towns=[dict(name='Neisse', lat=50.4738, lon=17.3325, r=560, why='walled town with bastions, about 1.1 km across')],
+                 towns=[dict(name='Neisse', lat=50.4738, lon=17.3325, r=560, works='bastioned', why='walled town with bastions, about 1.1 km across')],
                  drop_water=[dict(poly=[[-2970, 200], [-1700, 200], [-1700, -1980], [-2970, -1980]], why='The Nysa reservoir, dammed in 1971')]),
   'glogau': dict(title='Glogau', place='Glogau (Głogów) on the Oder, Lower Silesia: the fortress and the cathedral island', center=[51.658, 16.086],
                  about='fortress town on the south bank of the Oder; marshy river meadows; flat ground to the south',
-                 towns=[dict(name='Glogau', lat=51.6634, lon=16.0861, r=460, why='walled town, about 0.9 km across'),
-                        dict(name='Dom (cathedral island)', lat=51.6686, lon=16.0900, r=180, why='cathedral precinct across the river')]),
+                 towns=[dict(name='Glogau', lat=51.6634, lon=16.0861, r=460, works='bastioned', why='walled town, about 0.9 km across'),
+                        dict(name='Dom (cathedral island)', lat=51.6686, lon=16.0900, r=180, works='none', why='cathedral precinct across the river')]),
   'chotusitz': dict(title='Chotusitz', place='Chotusitz (Chotusice), 5 km north of Czaslau (Čáslav), Bohemia', center=[49.954, 15.405],
                     about='open, gently rolling Bohemian farmland round Chotusitz; Sehuschitz and its park to the north; brooks and ponds; Czaslau 5 km south, off the field',
-                    towns=[dict(name='Czaslau', lat=49.9109, lon=15.3913, r=380, why='small walled town, about 0.7 km across')]),
+                    towns=[dict(name='Czaslau', lat=49.9109, lon=15.3913, r=380, works='walled', why='small walled town, about 0.7 km across')]),
   'prague': dict(title='Prague', place='Prague (Praha): the walled city on both banks of the Vltava', center=[50.083, 14.418],
                  about='a great walled city astride the Vltava; the castle hill and Petřín above the left bank; vineyards east of the New Town',
-                 town_polys=[dict(name='Old and New Town', why='Baroque walls of the right-bank city, approximate',
+                 town_polys=[dict(name='Old and New Town', works='bastioned', why='Baroque walls of the right-bank city, approximate',
                                   poly=[[50.0925, 14.4245], [50.0918, 14.4335], [50.0890, 14.4375], [50.0840, 14.4385], [50.0775, 14.4375],
                                         [50.0715, 14.4300], [50.0650, 14.4215], [50.0640, 14.4175], [50.0700, 14.4140], [50.0800, 14.4130],
                                         [50.0870, 14.4140], [50.0915, 14.4175]]),
-                             dict(name='Lesser Town and Hradschin', why='Baroque walls of the left-bank city, approximate',
+                             dict(name='Lesser Town and Hradschin', works='bastioned', why='Baroque walls of the left-bank city, approximate',
                                   poly=[[50.0930, 14.4105], [50.0945, 14.4010], [50.0910, 14.3920], [50.0870, 14.3885], [50.0820, 14.3940],
                                         [50.0790, 14.3990], [50.0790, 14.4060], [50.0830, 14.4085], [50.0880, 14.4095]])],
                  vineyards=[dict(poly=[[50.0830, 14.4400], [50.0800, 14.4620], [50.0700, 14.4640], [50.0680, 14.4420], [50.0740, 14.4390]],
                                  why='the Royal Vineyards (Vinohrady) east of the New Town wall, approximate')],
-                 gardens_inside=True),
+                 gardens_inside=True,
+                 bridges=[dict(name='Charles Bridge', p=[[50.0864, 14.4137], [50.0862, 14.4068]], why='the stone bridge of 1357, on the line it still keeps')]),
   'leuthen': dict(title='Leuthen', place='Leuthen (Lutynia), 15 km west of Breslau, Silesia', center=[51.127, 16.770],
                   about='low rolling farmland west of Breslau; long villages; low rises (Butterberg, Sophienberg) and small woods; ponds at Gohlau',
                   atlas='leuthen_atlas.json'),
   'linz': dict(title='Linz', place='Linz on the Danube, Upper Austria: the town, the bridge and Urfahr', center=[48.302, 14.288],
                about='walled town on the south bank of the Danube under the castle hill; wooded heights north of the river; flat ground south and east',
-               towns=[dict(name='Linz', lat=48.3053, lon=14.2862, r=330, why='walled town under the castle, about 0.6 km across'),
-                      dict(name='Urfahr', lat=48.3098, lon=14.2855, r=170, why='market at the north end of the bridge')],
+               towns=[dict(name='Linz', lat=48.3053, lon=14.2862, r=330, works='walled', why='walled town under the castle, about 0.6 km across'),
+                      dict(name='Urfahr', lat=48.3098, lon=14.2855, r=170, works='none', why='market at the north end of the bridge')],
+               bridges=[dict(name='The Danube bridge', p=[[48.3070, 14.2863], [48.3100, 14.2857]], why='the bridge of 1497 from the town square to Urfahr, approximate')],
                drop_water=[dict(poly=[[1200, 600], [2970, 600], [2970, 1600], [1200, 1600]], why='The Linz harbour basins, 19th and 20th century')]),
 }
 
@@ -208,7 +210,7 @@ def overture_roads(gid, c):
             if st('bbox.xmin').min > lon0 + RL or st('bbox.xmax').max < lon0 - RL or st('bbox.ymin').min > lat0 + R_ or st('bbox.ymax').max < lat0 - R_: continue
             for r in pf.read_row_group(g, columns=['subtype', 'class', 'geometry', 'bbox']).to_pylist():
                 b = r['bbox']
-                if r['subtype'] != 'road' or r['class'] not in ROAD_CLASSES: continue
+                if r['subtype'] != 'road' or r['class'] not in ROAD_CLASSES | {'trunk'}: continue   # trunk roads: their bridges only
                 if b['xmin'] > lon0 + RL or b['xmax'] < lon0 - RL or b['ymin'] > lat0 + R_ or b['ymax'] < lat0 - R_: continue
                 w = r['geometry']; bo = '<' if w[0] == 1 else '>'; typ, n = struct.unpack(bo + 'II', w[1:9])
                 if typ != 2: continue
@@ -497,6 +499,7 @@ def build(gid):
     if not A:
         rs = overture_roads(gid, c); urban_c = blur(built, 6) > .3; kept = 0
         for cls, pts in rs['segments']:
+            if cls not in ROAD_CLASSES: continue
             P = [to_en(la, lo) for la, lo in pts]; run = []
             for q in P + [None]:
                 e, n = q if q else (None, None)
@@ -508,12 +511,48 @@ def build(gid):
                 run = []
         if kept: notes.append('Roads: today\'s country roads (Overture Maps), left out inside today\'s towns; most follow the old ways between the same villages, but none is mapped from 1740.')
         places_src = (places_src or '') + '; roads: ' + rs['source']
+    # wall traces: Prague's outlines as given; a polygon round each other town's circle (a few bastions' worth of sides),
+    # each corner drawn in to the bank where it would stand in the river
+    wet = lambda e, n: grid[int(np.clip((H_M / 2 - n) // CELL, 0, ROWS - 1)), int(np.clip((e + W_M / 2) // CELL, 0, COLS - 1))] == '2'
+    town_out = []
+    for t in towns + tpolys:
+        if t.get('works', 'walled') == 'none': continue
+        if 'en' in t: P = [list(q) for q in t['en']]
+        else:
+            k = int(np.clip(round(2 * math.pi * t['r'] / (260 if t.get('works') == 'bastioned' else 120)), 6, 14))
+            P = [[t['e'] + t['r'] * math.cos(2 * math.pi * i / k + .3), t['n'] + t['r'] * math.sin(2 * math.pi * i / k + .3)] for i in range(k)]
+        for q in P:
+            ce, cn = (t['e'], t['n']) if 'e' in t else (np.mean([a for a, b in t['en']]), np.mean([b for a, b in t['en']]))
+            for _ in range(40):
+                if not wet(*q): break
+                q[0] += (ce - q[0]) * .06; q[1] += (cn - q[1]) * .06
+        if any(abs(e) < W_M / 2 + 400 and abs(n) < H_M / 2 + 400 for e, n in P):
+            town_out.append({'name': t['name'], 'works': t.get('works', 'walled'), 'poly': [[round(a, 1), round(b, 1)] for a, b in P], 'src': 'inferred: ' + t['why']})
+    # bridges: named ones from the config; then wherever a road runs over broad water for 15-700 m
+    bridges = []
+    for b in G.get('bridges', []):
+        P = [to_en(*q) for q in b['p']]; bridges.append({'name': b['name'], 'p': [[round(a, 1), round(c, 1)] for a, c in P], 'src': 'inferred: ' + b['why']})
+        roads.append({'p': [[round(a, 1), round(c, 1)] for a, c in P], 'cls': 'bridge'})
+    lines = [r['p'] for r in roads] + ([[to_en(la, lo) for la, lo in seg] for cls, seg in rs['segments']] if not A else [])
+    for P in lines:
+        for (x1, y1), (x2, y2) in zip(P[:-1], P[1:]):
+            L = math.hypot(x2 - x1, y2 - y1); k = max(1, int(L / 8)); run = None
+            for i in range(k + 1):
+                x, y = x1 + (x2 - x1) * i / k, y1 + (y2 - y1) * i / k
+                inside = abs(x) < W_M / 2 and abs(y) < H_M / 2
+                if inside and wet(x, y): run = run or [(x, y)]; run.append((x, y)) if run[-1] != (x, y) else None
+                elif run:
+                    a, b = run[0], (x, y); span = math.hypot(b[0] - a[0], b[1] - a[1])
+                    if 15 <= span <= 700 and not any(math.hypot((a[0] + b[0]) / 2 - (q['p'][0][0] + q['p'][-1][0]) / 2, (a[1] + b[1]) / 2 - (q['p'][0][1] + q['p'][-1][1]) / 2) < 80 for q in bridges):
+                        ux, uy = (b[0] - a[0]) / span, (b[1] - a[1]) / span
+                        bridges.append({'p': [[round(a[0] - ux * 8, 1), round(a[1] - uy * 8, 1)], [round(b[0] + ux * 4, 1), round(b[1] + uy * 4, 1)]], 'src': 'where a road crosses the water' + ('' if A else ' (today\'s crossing)')})
+                    run = None
     imn, ib64 = enc16(inner); omn, ob64 = enc16(hO)
     g = {'id': gid, 'title': G['title'], 'place': G['place'], 'center': c, 'about': G['about'],
          'cell': CELL, 'cols': COLS, 'rows': ROWS, 'w': W_M, 'h': H_M, 'legend': LEGEND, 'rows_str': [''.join(r) for r in grid],
          'relief': {'cols': COLS + 1, 'rows': ROWS + 1, 'step': CELL, 'min': round(imn, 2), 'max': round(float(inner.max()), 2), 'b64': ib64},
          'outer': {'half': OUTER_HALF, 'step': OUTER_STEP, 'cols': len(oe), 'rows': len(on), 'min': round(omn, 2), 'b64': ob64, 'cover': [''.join(r) for r in ocover]},
-         'rivers': rivers, 'roads': roads, 'places': villages, 'notes': notes,
+         'rivers': rivers, 'roads': roads, 'places': villages, 'towns': town_out, 'bridges': bridges, 'notes': notes,
          'sources': ['Relief: AWS Terrain Tiles (Terrarium; Mapzen, EU-DEM, SRTM)', 'Land cover: ESA WorldCover 10 m 2021 v200 (CC BY 4.0)', 'Places: ' + (places_src or '')] + (['Scenery: ' + A['from']] if A else [])}
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / f'{gid}.json').write_text(json.dumps(g, ensure_ascii=False, separators=(',', ':')))
@@ -544,6 +583,8 @@ def preview(g):
     px = lambda e, n: ((e + W_M / 2) / CELL * 5, (H_M / 2 - n) / CELL * 5)
     for rv in g['rivers']: d.line([px(*q) for q in rv['p']], fill=(40, 80, 200), width=2)
     for rd in g['roads']: d.line([px(*q) for q in rd['p']], fill=(120, 80, 40), width=1)
+    for t in g.get('towns', []): d.line([px(*q) for q in t['poly'] + t['poly'][:1]], fill=(60, 20, 10) if t['works'] == 'bastioned' else (120, 60, 30), width=3)
+    for b in g.get('bridges', []): d.line([px(*q) for q in b['p']], fill=(250, 240, 200), width=4)
     for p in g['places']: x, y = px(p['e'], p['n']); d.text((x + 3, y - 5), p['name'], fill=(0, 0, 0)); d.ellipse((x - 2, y - 2, x + 2, y + 2), fill=(0, 0, 0))
     for k in range(-5, 6):
         x, _ = px(k * 500, 0); _, y = px(0, k * 500)
