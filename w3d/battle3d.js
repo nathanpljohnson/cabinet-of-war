@@ -1,14 +1,16 @@
 import * as THREE from 'three';
-import { makeNoise, rngFrom, smooth, lerp, stdMat, tint, merge, place, box, setWindTime } from './lib.js';
+import { makeNoise, rngFrom, smooth, lerp, stdMat, tint, merge, place, box, setWindTime, disposeTree } from './lib.js';
 import { axis, buildTerrain } from './terrain.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { buildForest, AUTUMN, FIRS } from './nature.js';
 import * as P from './props.js';
 import { infantryFrames, cavalryFrames, tinyFrames, tinyCavalryFrames, FramePool } from './figures.js';
 
 /* The table battle in 3D. Everything shown comes from state.battleDemo and the desk's battle engine
    (battle.js / army.js): orders go through armyOrders()/selectUnits()/armyMapClick(), time through runPhase().
-   World axes: x = east (e), z = −north (−n). Relief is illustrative; land cover is the project's OSM grid (TER). */
-export async function createBattle({ renderer, actors, quality, makeSky, makeLights, toast, onRise, winter }) {
+   World axes: x = east (e), z = −north (−n). The ground is state.battleDemo.ground (w3d/ground.js): its land cover is
+   TER, its relief real (metres above the field's lowest point; level country is raised up to 2× so it reads). */
+export async function createBattle({ renderer, actors, quality, makeSky, makeLights, toast, onRise, winter, ground }) {
   const N = makeNoise(1741), rnd = rngFrom(41), scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 2, 30000);
   const sunDir = new THREE.Vector3(-.55, .42, .5).normalize();
@@ -23,23 +25,35 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   const landAt = (x, z) => cellAt(x + 18 * N(x / 95, z / 95), z + 18 * N(x / 95 + 31, z / 95 - 17));
   const near = (r, c, t) => { for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) { const row = TER.rows_str[r + dr]; if (row && +row[c + dc] === t) return true; } return false; };
   const outside = (x, z) => Math.hypot(Math.max(0, Math.abs(x) - W / 2), Math.max(0, Math.abs(z) - H / 2));
-  const frac = (x, z, t) => { let k = 0; for (const [dx, dz] of [[-12, -12], [12, -12], [-12, 12], [12, 12], [0, 0]]) if (landAt(x + dx, z + dz) === t) k++; return k / 5; };
-  const height = (x, z) => {
-    let h = 7 + 5 * N.fbm(x / 1100, z / 1100, 3) + 1.6 * N.fbm(x / 300 + 3, z / 300, 3);
-    const o = outside(x, z); h += smooth(200, 3500, o) * (35 + 90 * Math.max(0, N.fbm(x / 1500, z / 1500, 3) + .3));
-    h -= frac(x, z, 2) * 9;
-    return h;
-  };
+  // relief: metres above the field's lowest point, × EXAG (1 for hilly ground, up to 2 for a plain of a few metres)
+  const G = ground || window.__ground;
+  let lo = 0, hi = 0; if (G) { lo = Infinity; hi = -Infinity; for (const v of G.inner) { if (v < lo) lo = v; if (v > hi) hi = v; } }
+  const EXAG = Math.min(2, Math.max(1, 30 / Math.max(1, hi - lo)));
+  const elevAt = G ? (x, z) => (G.elev(x, -z) - lo) * EXAG : (x, z) => 7 + 5 * N.fbm(x / 1100, z / 1100, 3);
+  // brooks narrower than a cell are water to the sim but drawn at their own width; broad water (rivers, ponds) fills cells
+  const brook = new Set(), rivers = (G && G.rivers) || [];
+  for (const rv of rivers) { if (rv.w >= 20) continue; const p = rv.p;
+    for (let i = 1; i < p.length; i++) { const [x1, y1] = p[i - 1], [x2, y2] = p[i], k = Math.max(1, Math.ceil(Math.hypot(x2 - x1, y2 - y1) / 10));
+      for (let j = 0; j <= k; j++) { const c = Math.floor((x1 + (x2 - x1) * j / k + W / 2) / cell), r = Math.floor((H / 2 - (y1 + (y2 - y1) * j / k)) / cell); brook.add(r * 1000 + c); } } }
+  const isBrook = (x, z) => brook.has(Math.floor((H / 2 + z) / cell) * 1000 + Math.floor((x + W / 2) / cell));
+  const drawnAt = (x, z) => { const t = landAt(x, z); return t === 2 && isBrook(x + 18 * N(x / 95, z / 95), z + 18 * N(x / 95 + 31, z / 95 - 17)) ? 0 : t; };
+  const frac = (x, z, t) => { let k = 0; for (const [dx, dz] of [[-12, -12], [12, -12], [-12, 12], [12, 12], [0, 0]]) if (drawnAt(x + dx, z + dz) === t) k++; return k / 5; };
+  const height = (x, z) => elevAt(x, z) + .35 * N.fbm(x / 60, z / 60, 2) - (outside(x, z) > 0 ? 0 : frac(x, z, 2) * 3.5);
   // the battlefield's land cover is painted into a texture (~4.6 m per pixel) so edges are smooth whatever the mesh
   // resolution; vertex colours carry only the countryside outside the battle map
   const CW = 1600, CH = Math.round(CW * H / W), cvs = document.createElement('canvas'); cvs.width = CW; cvs.height = CH;
   { const ctx = cvs.getContext('2d'), img = ctx.createImageData(CW, CH), D = img.data;
     const hex = h => [h >> 16 & 255, h >> 8 & 255, h & 255], mix = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
     const PASTURE = hex(0x7f9645), STUBBLE = hex(0xb7a463), FALLOW = hex(0x96974f), PLOUGH = hex(0x8a6e4c), WOOD = hex(0x4e6532), VILLAGE = hex(0x9c9670), WATER = hex(0x5c716a);
+    const MARSH = hex(0x7d8752), REED = hex(0x9a8f5a), POOL = hex(0x66786c), SOIL = hex(0x8b7254), VINE = hex(0x6f7434);
     const ss = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
     for (let j = 0; j < CH; j++) for (let i = 0; i < CW; i++) {
-      const x = -W / 2 + (i + .5) / CW * W, z = -H / 2 + (j + .5) / CH * H, lt = landAt(x, z); let c;
+      const x = -W / 2 + (i + .5) / CW * W, z = -H / 2 + (j + .5) / CH * H, lt = drawnAt(x, z); let c;
       if (lt === 1) c = WOOD; else if (lt === 2) c = WATER; else if (lt === 3) c = VILLAGE;
+      else if (lt === 4) { const a = N(x / 40, z / 40), b = N.fbm(x / 150 + 4, z / 150, 2); c = mix(MARSH, REED, ss(-.2, .5, a)); if (b > .35) c = mix(c, POOL, ss(.35, .55, b)); }
+      else if (lt === 5) { // vines in rows along the contour, ~11 m apart in the painting
+        const gx = elevAt(x + 6, z) - elevAt(x - 6, z), gz = elevAt(x, z + 6) - elevAt(x, z - 6), gl = Math.hypot(gx, gz) || 1, s = gl > .02 ? (x * gx + z * gz) / gl : x;
+        c = mix(SOIL, VINE, .5 + .5 * Math.sin(s / 11 * Math.PI * 2)); }
       else { // open country after harvest: pasture, stubble, fallow and a little ploughland in soft irregular patches, no straight lines
         const a = N.fbm(x / 900, z / 900, 3), b = N.fbm(x / 340 + 7, z / 340 - 3, 3), d = N(x / 140 - 11, z / 140 + 5);
         c = mix(PASTURE, STUBBLE, ss(-.1, .25, a + b * .35));
@@ -50,7 +64,21 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
       const k = 1 + N.fbm(x / 45, z / 45, 2) * .07, o = (j * CW + i) * 4; D[o] = c[0] * k; D[o + 1] = c[1] * k; D[o + 2] = c[2] * k; D[o + 3] = 255;
     }
     ctx.putImageData(img, 0, 0); ctx.filter = 'blur(2px)'; ctx.drawImage(cvs, 0, 0); ctx.filter = 'none'; // soft edges to woods, water and hamlets
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.strokeRect(0, 0, CW, CH); } // white rim: outside the map the texture clamps to white
+    for (const [x, y, w, h] of [[0, 0, CW, 4], [0, CH - 4, CW, 4], [0, 0, 4, CH], [CW - 4, 0, 4, CH]]) ctx.putImageData(img, 0, 0, x, y, w, h); // the blur fades the rim
+    const mpp = W / CW, px = ([e, n]) => [(e + W / 2) / mpp, (H / 2 - n) / mpp]; ctx.lineJoin = ctx.lineCap = 'round';
+    // before a town's works: a ditch (wet-looking for a fortress) and, for a fortress, a glacis of open, mown ground
+    for (const t of (G && G.towns) || []) { const P = t.poly, n = P.length, ce = P.reduce((a, p) => a + p[0], 0) / n, cn = P.reduce((a, p) => a + p[1], 0) / n, bast = t.works === 'bastioned';
+      const out = d => P.map(([e, n2]) => { const l = Math.hypot(e - ce, n2 - cn) || 1; return [e + (e - ce) / l * d, n2 + (n2 - cn) / l * d]; });
+      for (const [d, col, wd] of bast ? [[70, winter ? 'rgba(232,234,232,.5)' : 'rgba(190,184,128,.45)', 80], [34, winter ? 'rgba(180,196,204,.85)' : 'rgba(76,96,86,.85)', 26]] : [[10, winter ? 'rgba(170,180,186,.7)' : 'rgba(86,96,72,.7)', 10]]) {
+        ctx.strokeStyle = col; ctx.lineWidth = wd / mpp; ctx.beginPath(); out(d).forEach((q, i) => { const [a, b] = px(q); i ? ctx.lineTo(a, b) : ctx.moveTo(a, b); }); ctx.closePath(); ctx.stroke(); } }
+    // roads and tracks: worn earth, ~7 m with softer verges (ground roads, w3d/grounds)
+    for (const rd of (G && G.roads) || []) for (const [col, wd] of [[winter ? 'rgba(170,160,140,.35)' : 'rgba(112,94,62,.35)', 11 / mpp], [winter ? 'rgba(214,206,190,.85)' : 'rgba(178,154,108,.88)', Math.max(1.4, 6 / mpp)]]) {
+      ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.beginPath(); rd.p.forEach((q, i) => { const [a, b] = px(q); i ? ctx.lineTo(a, b) : ctx.moveTo(a, b); }); ctx.stroke(); }
+    // brooks and ditches at their own width, a darker bank either side
+    for (const rv of rivers) { if (rv.w >= 20) continue;
+      for (const [col, wd] of [[winter ? 'rgba(120,120,110,.45)' : 'rgba(70,84,52,.55)', (rv.w + 5) / mpp], [winter ? 'rgba(206,218,224,.95)' : 'rgba(84,112,118,.95)', Math.max(1.2, rv.w / mpp)]]) {
+        ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.beginPath(); rv.p.forEach((q, i) => { const [a, b] = px(q); i ? ctx.lineTo(a, b) : ctx.moveTo(a, b); }); ctx.stroke(); } }
+  } // outside the field the shader leaves the texture out; vertex colours carry the country there
   const groundTex = new THREE.CanvasTexture(cvs); groundTex.colorSpace = THREE.SRGBColorSpace; groundTex.anisotropy = 8;
   // close-up grain: a tiling noise multiplied over the painted cover so the ground never shows its texels
   const grain = document.createElement('canvas'); grain.width = grain.height = 256;
@@ -61,22 +89,55 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     gx.putImageData(gi, 0, 0); }
   const grainTex = new THREE.CanvasTexture(grain); grainTex.wrapS = grainTex.wrapT = THREE.RepeatWrapping; grainTex.anisotropy = 8;
   const MEAD = new THREE.Color(0x7d9442), tmp = new THREE.Color();
-  const color = (x, z, h, out) => {
-    const o = outside(x, z);
-    if (o > 0) { out.copy(MEAD).lerp(tmp.set(0x5a7438), smooth(0, 3000, o) * .6); if (winter) out.lerp(tmp.set(0xeef1f4), .78); return; }
-    out.setRGB(1, 1, 1);
+  // the country round the field: the same patchwork of pasture, stubble and fallow, with its real woods, towns and water
+  // (the 200 m cover of the ground, softened over four samples)
+  const C_PAST = new THREE.Color(0x7f9645), C_STUB = new THREE.Color(0xb7a463), C_FALL = new THREE.Color(0x96974f), C_WOOD = new THREE.Color(0x4a6230), C_TOWN = new THREE.Color(0xa09878), C_WATER = new THREE.Color(0x5c716a), C_SNOW = new THREE.Color(0xeef1f4);
+  const coverFrac = (x, z, t) => { if (!G) return 0; const r = outside(x, z) > 2900 ? 300 : 100; let k = 0; for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + .3; if (G.outerCover(x + Math.cos(a) * r, -(z + Math.sin(a) * r)) === t) k++; } return k / 8; };
+  const country = (x, z, out) => {
+    { const ss = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
+      const a = N.fbm(x / 900, z / 900, 3), b = N.fbm(x / 340 + 7, z / 340 - 3, 3);
+      out.copy(C_PAST).lerp(C_STUB, ss(-.1, .25, a + b * .35)).lerp(C_FALL, ss(.15, .45, b) * .7);
+      const fw = coverFrac(x, z, 1), ft = coverFrac(x, z, 3), fa = coverFrac(x, z, 2);
+      out.lerp(C_WOOD, fw * .9).lerp(C_TOWN, ft * .6).lerp(C_WATER, fa);
+      if (winter && fa < .5) out.lerp(C_SNOW, .78 - fw * .38);
+      return out; }
   };
+  const color = (x, z, h, out) => out.setRGB(1, 1, 1);
+  // mesh posts: fine over the field, 80 m for 3 km around it, coarse out to 12 km
+  const axis3 = (lo, hi, fine) => { const a = []; for (let x = -12000; x < lo - 3000; x += 320) a.push(x); for (let x = lo - 3000; x < lo; x += 80) a.push(x);
+    for (let x = lo; x < hi; x += fine) a.push(x); for (let x = hi; x < hi + 3000; x += 80) a.push(x); for (let x = hi + 3000; x <= 12000; x += 320) a.push(x); return a; };
   const g = quality.terrain <= 2.5 ? 18 : quality.terrain <= 3 ? 22 : 30;
-  const T = buildTerrain({ xs: axis(-W / 2 - 60, W / 2 + 60, g, 12000, 320), zs: axis(-H / 2 - 60, H / 2 + 60, g, 12000, 320), height, color, steep: 0x7a7458, seed: 9, jitter: 0 });
+  const T = buildTerrain({ xs: axis3(-W / 2 - 60, W / 2 + 60, g), zs: axis3(-H / 2 - 60, H / 2 + 60, g), height, color, steep: 0x7a7458, seed: 9, jitter: 0 });
   { const pos = T.mesh.geometry.attributes.position, uv = new Float32Array(pos.count * 2);
     for (let i = 0; i < pos.count; i++) { uv[i * 2] = (pos.getX(i) + W / 2) / W; uv[i * 2 + 1] = 1 - (pos.getZ(i) + H / 2) / H; }
     T.mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); groundTex.wrapS = groundTex.wrapT = THREE.ClampToEdgeWrapping; T.mesh.material.map = groundTex;
+    // the country colour of each corner, with the same steep-slope tint buildTerrain gives the vertex colours
+    const cc = new Float32Array(pos.count * 3), steepC = new THREE.Color(0x7a7458), cv = new THREE.Color(), na = new THREE.Vector3(), nb = new THREE.Vector3(), nc = new THREE.Vector3();
+    for (let i = 0; i < pos.count; i += 3) {
+      na.fromBufferAttribute(pos, i); nb.fromBufferAttribute(pos, i + 1); nc.fromBufferAttribute(pos, i + 2); nb.sub(na); nc.sub(na); nb.cross(nc).normalize();
+      const st = Math.min(1, Math.max(0, (.86 - Math.abs(nb.y)) / .22));
+      for (let k = 0; k < 3; k++) { const x = pos.getX(i + k), z = pos.getZ(i + k);
+        if (outside(x, z) > 0 || Math.abs(x) > W / 2 - 200 || Math.abs(z) > H / 2 - 200) country(x, z, cv); else cv.setRGB(1, 1, 1);
+        cv.lerp(steepC, st); cc[(i + k) * 3] = cv.r; cc[(i + k) * 3 + 1] = cv.g; cc[(i + k) * 3 + 2] = cv.b; } }
+    T.mesh.geometry.setAttribute('country', new THREE.BufferAttribute(cc, 3));
     T.mesh.material.onBeforeCompile = sh => { sh.uniforms.grain = { value: grainTex }; sh.uniforms.grainRep = { value: new THREE.Vector2(W / 14, H / 14) };
-      sh.fragmentShader = 'uniform sampler2D grain; uniform vec2 grainRep;\n' + sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n diffuseColor.rgb *= .8 + .4 * texture2D(grain, vMapUv * grainRep).r * (.6 + .4 * texture2D(grain, vMapUv * grainRep * .23).r);'); };
+      sh.vertexShader = 'attribute vec3 country; varying vec3 vCountry;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vCountry = country;');
+      // on the painted field: texture × vertex colour (white, or the steep tint); off it: the country colour
+      sh.fragmentShader = 'varying vec3 vCountry;\n' + sh.fragmentShader.replace('#include <color_fragment>', '#if defined( USE_COLOR )\n diffuseColor.rgb *= mix(vCountry, vColor, inField);\n#endif');
+      sh.fragmentShader = 'uniform sampler2D grain; uniform vec2 grainRep;\n' + sh.fragmentShader.replace('#include <map_fragment>', 'vec4 sampledDiffuseColor = texture2D(map, vMapUv); float inField = step(.002, vMapUv.x) * step(vMapUv.x, .998) * step(.002, vMapUv.y) * step(vMapUv.y, .998);\n diffuseColor *= mix(vec4(1.), sampledDiffuseColor, inField);\n diffuseColor.rgb *= .8 + .4 * texture2D(grain, vMapUv * grainRep).r * (.6 + .4 * texture2D(grain, vMapUv * grainRep * .23).r);'); };
     T.mesh.material.needsUpdate = true; }
   scene.add(T.mesh); const hAt = T.heightAt;
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(W, H).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x78a8b4, roughness: .1, metalness: .1, transparent: true, opacity: .85 }));
-  water.position.y = 2.2; scene.add(water);
+  // water: one surface over the broad-water cells, each corner at the relief there (the tiles give the water's own level)
+  // quads over the water cells and one cell beyond, so the shore is where the banks rise through the surface
+  { const wet = (r, c) => r >= 0 && c >= 0 && r < TER.rows && c < TER.cols && +TER.rows_str[r][c] === 2 && !brook.has(r * 1000 + c);
+    const L = new Map(), lvl = new Map(), pos = [], cells = new Set();
+    for (let r = 0; r < TER.rows; r++) for (let c = 0; c < TER.cols; c++) if (wet(r, c)) { L.set(r * 1000 + c, elevAt(-W / 2 + (c + .5) * cell, -(H / 2 - (r + .5) * cell)) - 1.2); for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) cells.add((r + dr) * 1000 + c + dc); }
+    const node = (r, c) => { const k = r * 1000 + c; if (!lvl.has(k)) { let m = Infinity; for (let dr = -3; dr <= 2; dr++) for (let dc = -3; dc <= 2; dc++) { const v = L.get((r + dr) * 1000 + c + dc); if (v !== undefined && v < m) m = v; } lvl.set(k, m); } return lvl.get(k); };
+    const P = (r, c) => [-W / 2 + c * cell, node(r, c), -(H / 2 - r * cell)];
+    for (const k of cells) { const r = Math.floor(k / 1000), c = k - r * 1000; if (r < 0 || c < 0 || r >= TER.rows || c >= TER.cols) continue;
+      const a = P(r, c), b = P(r, c + 1), d = P(r + 1, c), e = P(r + 1, c + 1); pos.push(...a, ...d, ...b, ...b, ...d, ...e); }
+    if (pos.length) { const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.computeVertexNormals();
+      scene.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: winter ? 0xc9d6dc : 0x78a8b4, roughness: winter ? .5 : .1, metalness: .1, transparent: true, opacity: .85 }))); } }
 
   // woods, villages and a church per large village (land cover from TER)
   const trees = { broadleaf: [], fir: [], poplar: [], bush: [] }, per = quality.trees >= 1 ? 3 : quality.trees >= .8 ? 2 : 1, vill = [];
@@ -87,22 +148,79 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     else if (near(r, c, 3)) vill.push([r, c, x, z, true]);
   }
   for (let i = 0; i < 900; i++) { const x = -W / 2 + rnd() * W, z = -H / 2 + rnd() * H; if (cellAt(x, z) === 0 && N(x / 400, z / 400) > .35) trees.broadleaf.push({ x, y: hAt(x, z), z, ry: rnd() * 6, s: 1 + rnd() * .5, col: winter ? 0x6e5e4e : AUTUMN[Math.floor(rnd() * AUTUMN.length)] }); }
-  for (let i = 0; i < 2500; i++) { const a = rnd() * 6.28, d = Math.max(W, H) * .55 + rnd() * 5000, x = Math.cos(a) * d, z = Math.sin(a) * d * .8; if (N.fbm(x / 1500, z / 1500, 2) > -.05) trees[rnd() < .4 ? 'fir' : 'broadleaf'].push({ x, y: hAt(x, z), z, ry: rnd() * 6, s: 1.6 + rnd(), col: rnd() < .4 ? FIRS[0] : winter ? 0x6e5e4e : AUTUMN[Math.floor(rnd() * AUTUMN.length)] }); }
+  for (const [r, c] of [].concat(...TER.rows_str.map((row, r) => [...row].map((t, c) => t === '4' || t === '5' ? [r, c] : null).filter(Boolean)))) {
+    const t = TER.rows_str[r][c]; if (rnd() > (t === '5' ? .5 : .25)) continue; const x = -W / 2 + (c + rnd()) * cell, z = -(H / 2 - (r + rnd()) * cell); if (drawnAt(x, z) + '' !== t) continue;
+    trees.bush.push({ x, y: hAt(x, z), z, ry: rnd() * 6, s: t === '5' ? .45 + rnd() * .2 : .35 + rnd() * .3, col: t === '5' ? (winter ? 0x6e5e4e : 0x7d7a2e) : (winter ? 0x9a8f72 : 0x8f8a4a) }); }
+  for (let i = 0, n = 0; i < 9000 && n < 2600; i++) { const a = rnd() * 6.28, d = Math.max(W, H) * .55 + rnd() * 6500, x = Math.cos(a) * d, z = Math.sin(a) * d * .8; if (G ? G.outerCover(x, -z) === 1 : N.fbm(x / 1500, z / 1500, 2) > -.05) { n++; trees[rnd() < .4 ? 'fir' : 'broadleaf'].push({ x, y: hAt(x, z), z, ry: rnd() * 6, s: 1.6 + rnd(), col: rnd() < .4 ? FIRS[0] : winter ? 0x6e5e4e : AUTUMN[Math.floor(rnd() * AUTUMN.length)] }); } }
   scene.add(buildForest(trees, { variants: 2, seed: 8, lod: true, shadows: quality.shadows >= 2048 }));
   const houseG = [merge([box(9, 4.5, 6, 0xeee6d2), place(tint(new THREE.CylinderGeometry(0, 1, 1, 4, 1), 0x8e4a34, .06), 0, 6.3, 0, Math.PI / 4, 7.4, 3.6, 5.2)]),
     merge([box(11, 3.8, 6.5, 0xd9c49a), box(.4, 3.8, 6.6, 0x5a4030, -3, 0, 0), box(.4, 3.8, 6.6, 0x5a4030, 3, 0, 0), place(tint(new THREE.CylinderGeometry(0, 1, 1, 4, 1), 0x8a7a52, .06), 0, 5.6, 0, Math.PI / 4, 8.8, 3.6, 5.6)])];
   const houses = [[], []], seen = new Set();
-  for (const [r, c, x, z] of vill) if (rnd() < .45) { const hx = x + (rnd() - .5) * 26, hz = z + (rnd() - .5) * 26; if (landAt(hx, hz) === 3) houses[rnd() < .55 ? 0 : 1].push([hx, hz, rnd() < .5 ? 0 : Math.PI / 2]); }
+  // towns (the ground's wall traces, metres e/n): cells inside them build up close, two larger houses a cell
+  const TOWNS = ((G && G.towns) || []).map(t => ({ ...t, xz: t.poly.map(([e, n]) => [e, -n]) }));
+  const inPoly = (x, z, P) => { let hit = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const a = P[i], b = P[j]; if ((a[1] > z) !== (b[1] > z) && x < (b[0] - a[0]) * (z - a[1]) / (b[1] - a[1]) + a[0]) hit = !hit; } return hit; };
+  const inTown = (x, z) => TOWNS.some(t => inPoly(x, z, t.xz));
+  for (const [r, c, x, z] of vill) if (inTown(x, z)) for (let k = 0; k < 2; k++) { if (rnd() > .85) continue; const hx = x + (rnd() - .5) * 24, hz = z + (rnd() - .5) * 24; if (landAt(hx, hz) === 3) houses[0].push([hx, hz, rnd() < .5 ? 0 : Math.PI / 2, 1.3 + rnd() * .25]); }
+  for (const [r, c, x, z] of vill) if (!inTown(x, z) && rnd() < .45) { const hx = x + (rnd() - .5) * 26, hz = z + (rnd() - .5) * 26; if (landAt(hx, hz) === 3) houses[rnd() < .55 ? 0 : 1].push([hx, hz, rnd() < .5 ? 0 : Math.PI / 2]); }
   const dm = new THREE.Object3D(), propMat = stdMat();
-  houseG.forEach((geo, i) => { const im = new THREE.InstancedMesh(geo, propMat, houses[i].length); houses[i].forEach(([x, z, ry], k) => { dm.position.set(x, hAt(x, z) - .2, z); dm.rotation.set(0, ry, 0); dm.scale.setScalar(1); dm.updateMatrix(); im.setMatrixAt(k, dm.matrix); }); im.castShadow = im.receiveShadow = true; scene.add(im); });
+  houseG.forEach((geo, i) => { const im = new THREE.InstancedMesh(geo, propMat, houses[i].length); houses[i].forEach(([x, z, ry, sc], k) => { dm.position.set(x, hAt(x, z) - .2, z); dm.rotation.set(0, ry, 0); dm.scale.setScalar(sc || 1); dm.updateMatrix(); im.setMatrixAt(k, dm.matrix); }); im.castShadow = im.receiveShadow = true; scene.add(im); });
   const key = (r, c) => r * 1000 + c, vs = new Set(vill.filter(v => !v[4]).map(([r, c]) => key(r, c)));
   for (const [r0, c0, , , edge] of vill) { if (edge) continue; // flood-fill village clusters; a church tower marks the larger ones
     if (seen.has(key(r0, c0))) continue; const q = [[r0, c0]], cl = []; seen.add(key(r0, c0));
     while (q.length) { const [r, c] = q.pop(); cl.push([r, c]); for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const k = key(r + dr, c + dc); if (vs.has(k) && !seen.has(k)) { seen.add(k); q.push([r + dr, c + dc]); } } }
     if (cl.length < 40) continue;
     const mr = cl.reduce((s, a) => s + a[0], 0) / cl.length, mc = cl.reduce((s, a) => s + a[1], 0) / cl.length, x = -W / 2 + (mc + .5) * cell, z = -(H / 2 - (mr + .5) * cell);
+    church(x, z);
+  }
+  function church(x, z) {
     const ch = new THREE.Mesh(merge([box(12, 9, 24, 0xf0e8d6), place(tint(new THREE.CylinderGeometry(0, 1, 1, 4, 1), 0x8e4a34), 0, 12.5, 0, Math.PI / 4, 9.5, 7, 18), box(6, 26, 6, 0xf0e8d6, 0, 0, -14), place(tint(new THREE.CylinderGeometry(0, 1, 1, 4, 1), 0x3e4a44), 0, 31, -14, Math.PI / 4, 4.6, 10, 4.6)]), propMat);
     ch.position.set(x, hAt(x, z) - .3, z); ch.castShadow = ch.receiveShadow = true; scene.add(ch);
+  }
+  for (const t of TOWNS) { const xs = t.xz.map(p => p[0]), zs = t.xz.map(p => p[1]);
+    for (let x = Math.min(...xs) + 130; x < Math.max(...xs); x += 260) for (let z = Math.min(...zs) + 130; z < Math.max(...zs); z += 260) { const cx = x + (rnd() - .5) * 120, cz = z + (rnd() - .5) * 120; if (inPoly(cx, cz, t.xz) && landAt(cx, cz) === 3 && rnd() < .5) church(cx, cz); } }
+
+  /* ---------- walls and bastions, gates and bridges (the ground's towns and bridges; all inferred, see the ground file) ---------- */
+  { const parts = [], STONE = 0xcdc2a5, EARTH = 0x8b8a5d, ROOF = 0x6f4a38;
+    // a straight piece of work between two points, sunk into the ground and cut every 40 m to follow it
+    const run = (a, b, w, h, col) => { const L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.ceil(L / 40));
+      for (let i = 0; i < n; i++) { const p = [a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n], q = [a[0] + (b[0] - a[0]) * (i + 1) / n, a[1] + (b[1] - a[1]) * (i + 1) / n], l = L / n;
+        const y = Math.min(hAt(p[0], p[1]), hAt(q[0], q[1])) - 1.5; parts.push(box(l + .4, h + 1.5, w, col, (p[0] + q[0]) / 2, y, (p[1] + q[1]) / 2, -Math.atan2(q[1] - p[1], q[0] - p[0]))); } };
+    // a prism standing on a convex outline (x, z), top at y1
+    const prism = (pts, y0, y1, col) => { const pos = [];
+      // wound so the top faces up (positive signed area in x, z)
+      let ar = 0; for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; ar += a[0] * b[1] - b[0] * a[1]; } if (ar < 0) pts = [...pts].reverse();
+      for (let i = 1; i < pts.length - 1; i++) pos.push(pts[0][0], y1, pts[0][1], pts[i + 1][0], y1, pts[i + 1][1], pts[i][0], y1, pts[i][1]);
+      for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; pos.push(a[0], y0, a[1], b[0], y0, b[1], b[0], y1, b[1], a[0], y0, a[1], b[0], y1, b[1], a[0], y1, a[1]); }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals(); parts.push(tint(g, col)); };
+    const cross = (a, b, c, d) => { const r = [b[0] - a[0], b[1] - a[1]], s2 = [d[0] - c[0], d[1] - c[1]], den = r[0] * s2[1] - r[1] * s2[0]; if (Math.abs(den) < 1e-9) return null;
+      const t = ((c[0] - a[0]) * s2[1] - (c[1] - a[1]) * s2[0]) / den, u = ((c[0] - a[0]) * r[1] - (c[1] - a[1]) * r[0]) / den; return t >= 0 && t <= 1 && u >= 0 && u <= 1 ? [a[0] + r[0] * t, a[1] + r[1] * t, Math.atan2(r[1], r[0])] : null; };
+    const roadsXZ = ((G && G.roads) || []).map(rd => rd.p.map(([e, n]) => [e, -n]));
+    for (const t of TOWNS) {
+      const P = t.xz, n = P.length, cx = P.reduce((a, p) => a + p[0], 0) / n, cz = P.reduce((a, p) => a + p[1], 0) / n, bast = t.works === 'bastioned';
+      const gates = []; for (let i = 0; i < n; i++) for (const R2 of roadsXZ) for (let k = 1; k < R2.length; k++) { const g = cross(P[i], P[(i + 1) % n], R2[k - 1], R2[k]); if (g && !gates.some(o => Math.hypot(o[0] - g[0], o[1] - g[1]) < 70)) gates.push(g); }
+      for (let i = 0; i < n; i++) {
+        const a = P[i], b = P[(i + 1) % n];
+        run(a, b, bast ? 16 : 2.6, bast ? 7 : 9, bast ? EARTH : STONE);
+        if (!bast) { const L = Math.hypot(b[0] - a[0], b[1] - a[1]); for (let s3 = 0; s3 < L; s3 += 60) { const x = a[0] + (b[0] - a[0]) * s3 / L, z = a[1] + (b[1] - a[1]) * s3 / L; if (gates.some(g => Math.hypot(g[0] - x, g[1] - z) < 30)) continue; parts.push(box(7, 13, 7, STONE, x, hAt(x, z) - 1.5, z, -Math.atan2(b[1] - a[1], b[0] - a[0]))); } }
+        else { // a bastion at each salient corner: two flanks, two faces and the point, thrown forward of the curtain
+          const pv = P[(i - 1 + n) % n], len = q => Math.hypot(q[0], q[1]) || 1, u1 = [(pv[0] - a[0]) / len([pv[0] - a[0], pv[1] - a[1]]), (pv[1] - a[1]) / len([pv[0] - a[0], pv[1] - a[1]])], u2 = [(b[0] - a[0]) / len([b[0] - a[0], b[1] - a[1]]), (b[1] - a[1]) / len([b[0] - a[0], b[1] - a[1]])];
+          let o = [-(u1[0] + u2[0]), -(u1[1] + u2[1])]; const ol = len(o); o = [o[0] / ol, o[1] / ol];
+          if ((a[0] - cx) * o[0] + (a[1] - cz) * o[1] <= 0) continue; // a re-entrant corner: no bastion
+          const F1 = [a[0] + u1[0] * 42, a[1] + u1[1] * 42], F2 = [a[0] + u2[0] * 42, a[1] + u2[1] * 42], S1 = [F1[0] + o[0] * 38, F1[1] + o[1] * 38], S2 = [F2[0] + o[0] * 38, F2[1] + o[1] * 38], Pt = [a[0] + o[0] * 100, a[1] + o[1] * 100];
+          const y0 = Math.min(...[F1, S1, Pt, S2, F2].map(q => hAt(q[0], q[1]))) - 1.5; prism([F1, S1, Pt, S2, F2], y0, y0 + 8.5, EARTH);
+        }
+      }
+      for (const [x, z, ang] of gates) { const y = hAt(x, z) - 1.5; parts.push(box(bast ? 15 : 11, bast ? 11 : 17, bast ? 18 : 11, STONE, x, y, z, -ang)); parts.push(place(tint(new THREE.CylinderGeometry(0, 1, 1, 4, 1), ROOF), x, y + (bast ? 14 : 20.5), z, Math.PI / 4 - ang, bast ? 11 : 8.5, 6, bast ? 12 : 8.5)); }
+    }
+    // bridges: a stone deck at the height of the higher bank, piers every ~28 m, low parapets
+    for (const bd of (G && G.bridges) || []) {
+      const [a, b] = bd.p.map(([e, n]) => [e, -n]), L = Math.hypot(b[0] - a[0], b[1] - a[1]), ang = -Math.atan2(b[1] - a[1], b[0] - a[0]), wide = bd.name ? 10 : 6.5;
+      const y = Math.max(hAt(a[0], a[1]), hAt(b[0], b[1])) + .6, mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2, rx = -(b[1] - a[1]) / L, rz = (b[0] - a[0]) / L;
+      parts.push(box(L + 6, 1.6, wide, STONE, mx, y - 1.6, mz, ang));
+      for (const sd of [-1, 1]) parts.push(box(L + 6, 1, .6, STONE, mx + rx * sd * (wide / 2 - .3), y, mz + rz * sd * (wide / 2 - .3), ang));
+      const k = Math.max(1, Math.round(L / 28)); for (let i = 1; i < k; i++) { const x = a[0] + (b[0] - a[0]) * i / k, z = a[1] + (b[1] - a[1]) * i / k, g = Math.min(hAt(x, z), y - 6) - 3; parts.push(box(4.5, y - 1.6 - g, wide + 2, 0xb4a88c, x, g, z, ang)); }
+    }
+    if (parts.length) { const m = new THREE.Mesh(merge(parts), stdMat()); m.castShadow = m.receiveShadow = true; scene.add(m); }
   }
 
   /* ---------- formations ---------- */
@@ -113,13 +231,23 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   for (const s of 'AB') pools[s] = { near: mkPool(infantryFrames(s), 5000, true), mid: mkPool(infantryFrames(s, true), 16000, false), far: mkPool(tinyFrames(s), 16000, false), cavNear: mkPool(cavalryFrames(s === 'A' ? actors.hb : actors.hw, s), 900, true), cavFar: mkPool(tinyCavalryFrames(s), 1600, false) };
   const guns = mkPool([P.cannon(), P.limber()], 80, true);
   const layout = (u, d, n) => { // [ranks, files] for n men on the sim's footprint
-    if (u.type === 'inf') { if (u.form === 'column') { const f = Math.max(4, Math.round(d.w / .8)); return [Math.ceil(n / f), f]; } return [3, Math.ceil(n / 3)]; }
+    if (u.type === 'inf') { if (u.form === 'column') { const f = Math.max(4, Math.round(d.w / .8)); return [Math.ceil(n / f), f]; } return u.kind === 'lt' ? [2, Math.ceil(n / 2)] : [3, Math.ceil(n / 3)]; }
     if (u.form === 'column') { const f = Math.max(3, Math.round(d.w / 1.5)); return [Math.ceil(n / f), f]; }
     return [2, Math.ceil(n / 2)];
   };
 
   const plateGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), edgeGeo = new THREE.EdgesGeometry(plateGeo);
   const vis = {}, labels = document.createElement('div'); labels.className = 'w3d-blabels'; document.getElementById('w3d').append(labels);
+  // the names of villages, towns and hills, standing over them in small capitals; they fade with distance
+  const plabels = document.createElement('div'); plabels.className = 'w3d-plabels'; labels.before(plabels); // under the formations' own labels
+  const names = ((G && G.places) || []).map(p => { const el = document.createElement('span'); el.className = 'w3d-pname' + (p.town ? ' town' : p.hill ? ' hill' : ''); el.textContent = p.name; plabels.append(el); return { el, x: p.e, z: -p.n, up: p.hill ? 18 : p.town ? 60 : 36 }; });
+  function placeNames() {
+    const W2 = innerWidth / 2, H2 = innerHeight / 2;
+    for (const p of names) { tv.set(p.x, hAt(p.x, p.z) + p.up, p.z); const d = camera.position.distanceTo(tv); tv.project(camera);
+      const show = !aftermathOn && tv.z < 1 && Math.abs(tv.x) < 1.05 && Math.abs(tv.y) < 1.05 && d < 7000;
+      p.el.style.display = show ? '' : 'none'; if (!show) continue;
+      p.el.style.left = (tv.x * W2 + W2) + 'px'; p.el.style.top = (-tv.y * H2 + H2) + 'px'; p.el.style.opacity = Math.max(.3, Math.min(.92, 1.15 - d / 5500)).toFixed(2); }
+  }
   const card = document.createElement('div'); card.className = 'w3d-bcard'; card.hidden = true; document.getElementById('w3d').append(card);
   const shortName = u => u.name.split(' (')[0].replace(/^(Imperial|Opposing) /, '').replace('infantry battalion', 'Battalion').replace('cavalry squadron group', 'Horse').replace('battery', 'Battery').replace(/^./, c => c.toUpperCase());
   function visFor(u) {
@@ -142,6 +270,27 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
 
   // order arrows and destination ghosts
   const arrowG = new THREE.Group(); scene.add(arrowG); let arrowKey = '';
+  const accG = new THREE.Group(); scene.add(accG); let accArrowKey = '';
+  const ARROW = { move: [32, 70, 80, false], charge: [46, 92, 100, false], retreat: [26, 60, 70, true], fire: [12, 34, 40, true] }; // width, head width, head length (m), dashed
+  function buildAccountArrows(list) {
+    for (const c of [...accG.children]) { c.geometry.dispose(); c.material.dispose(); accG.remove(c); }
+    for (const a of list || []) {
+      const [w, hw, hl, dash] = ARROW[a.kind] || ARROW.move, P = a.p.map(([e, n]) => [e, -n]);
+      const cum = [0]; for (let i = 1; i < P.length; i++) cum.push(cum[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]));
+      const L = cum[cum.length - 1]; if (L < 20) continue;
+      const at = s => { let i = 1; while (i < cum.length - 1 && cum[i] < s) i++; const A = P[i - 1], B = P[i], g = (cum[i] - cum[i - 1]) || 1, q = Math.min(1, Math.max(0, (s - cum[i - 1]) / g)); return [A[0] + (B[0] - A[0]) * q, A[1] + (B[1] - A[1]) * q, (B[0] - A[0]) / g, (B[1] - A[1]) / g]; };
+      const pos = [], body = Math.max(0, L - hl), step = 12, lift = 2.2;
+      for (let s = 0; s < body; s += step) { const s2 = Math.min(body, s + step); if (dash && Math.floor(s / 36) % 2) continue;
+        const [x1, z1, dx1, dz1] = at(s), [x2, z2, dx2, dz2] = at(s2), h = w / 2;
+        const a1 = [x1 - dz1 * h, z1 + dx1 * h], b1 = [x1 + dz1 * h, z1 - dx1 * h], a2 = [x2 - dz2 * h, z2 + dx2 * h], b2 = [x2 + dz2 * h, z2 - dx2 * h], y = q => hAt(q[0], q[1]) + lift;
+        pos.push(a1[0], y(a1), a1[1], b1[0], y(b1), b1[1], a2[0], y(a2), a2[1], b1[0], y(b1), b1[1], b2[0], y(b2), b2[1], a2[0], y(a2), a2[1]); }
+      { const [x, z, dx, dz] = at(body), [tx, tz] = at(L), l = [x - dz * hw / 2, z + dx * hw / 2], r = [x + dz * hw / 2, z - dx * hw / 2];
+        pos.push(l[0], hAt(l[0], l[1]) + lift, l[1], r[0], hAt(r[0], r[1]) + lift, r[1], tx, hAt(tx, tz) + lift, tz); }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      const m = new THREE.MeshBasicMaterial({ color: a.side === 'A' ? 0xf2e6c8 : 0x7fa6ee, transparent: true, opacity: a.kind === 'fire' ? .55 : .78, side: THREE.DoubleSide, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 });
+      const mesh = new THREE.Mesh(g, m); mesh.renderOrder = 3; accG.add(mesh);
+    }
+  }
   function buildArrows(scale) {
     while (arrowG.children.length) { const c = arrowG.children.pop(); c.geometry.dispose(); c.material.dispose(); }
     const ord = armyOrders();
@@ -193,6 +342,13 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   const tmpM = new THREE.Matrix4(), tq = new THREE.Quaternion(), tv = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1), up = new THREE.Vector3(0, 1, 0);
   let shadowView = '', shadowTick = 0;
   const keys = new Set(); let hover = null, inspected = null, prevBattleOn = false, lastCardKey = '', readOnly = false; // readOnly: an account of a battle he was not at
+  // the camera (as in battle-atlas): an orbit with damping, left-drag to turn, right- or shift-drag to pan, wheel or pinch to
+  // zoom. cam {tx, tz, dist, yaw, pitch} stays the shared state: anything that sets it (arrival, the ride, keys) moves the orbit.
+  const controls = new OrbitControls(camera, renderer.domElement);
+  Object.assign(controls, { enabled: false, enableDamping: true, dampingFactor: .08, screenSpacePanning: false, minDistance: 50, maxDistance: 6000, minPolarAngle: Math.PI / 2 - 1.45, maxPolarAngle: Math.PI / 2 - .12, zoomSpeed: 1.2 });
+  controls.addEventListener('start', () => { cam.tw = null; });
+  let camSig = '';
+  const sigOf = () => [cam.tx, cam.tz, cam.dist, cam.yaw, cam.pitch].map(v => v.toFixed(3)).join();
   function placeCamera() {
     const ty = hAt(cam.tx, cam.tz), o = tv.set(Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch));
     camera.position.set(cam.tx + o.x * cam.dist, ty + o.y * cam.dist, cam.tz + o.z * cam.dist);
@@ -204,8 +360,22 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   }
 
   /* ---------- per-frame drawing of the authoritative state ---------- */
+  // a point s metres ahead of a column's centre (straight on) or behind it (back along its trail), and the way it faces there
+  const alongOut = { x: 0, z: 0, dx: 0, dz: 0 };
+  function along(v, s, fx, fz) {
+    const o = alongOut;
+    if (s >= 0) { o.x = v.x + fx * s; o.z = v.z + fz * s; o.dx = fx; o.dz = fz; return o; }
+    let x = v.x, z = v.z, rem = -s, dx = fx, dz = fz; const T = v.trail;
+    for (let i = T.length - 1; i >= 0; i--) {
+      const px = T[i][0], pz = T[i][1], L = Math.hypot(x - px, z - pz); if (L < 1e-6) continue;
+      dx = (x - px) / L; dz = (z - pz) / L;
+      if (L >= rem) { o.x = x - dx * rem; o.z = z - dz * rem; o.dx = dx; o.dz = dz; return o; }
+      rem -= L; x = px; z = pz;
+    }
+    o.x = x - dx * rem; o.z = z - dz * rem; o.dx = dx; o.dz = dz; return o;
+  }
   function draw(dt, t) {
-    const bd = state.battleDemo, us = bd.units, k = 1 - Math.exp(-dt * 5), figScale = 1; // true scale at every distance, so men, guns and houses keep their proportions
+    const bd = state.battleDemo, us = rail.units() || bd.units, replay = rail.replaying(), k = 1 - Math.exp(-dt * 5), figScale = 1; // true scale at every distance, so men, guns and houses keep their proportions
     for (const s of 'AB') for (const k in pools[s]) pools[s][k].begin(); guns.begin();
     const shown = new Set();
     if (aftermathOn) { const k = JSON.stringify(bd.aftermath || {}); if (k !== afterKey) { afterKey = k; buildAftermath(); } }
@@ -220,11 +390,30 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
         v.x = u.e; v.z = -u.n; v.f = u.facing; v.ammo = u.ammo; continue;
       }
       shown.add(u.id);
-      const tx = u.e, tz = -u.n, mv = Math.hypot(tx - v.x, tz - v.z); if (mv > 1.5 || u.moved) v.moveT = .6; v.moveT -= dt;
-      if (mv > 400) { v.x = tx; v.z = tz; } else { v.x += (tx - v.x) * k; v.z += (tz - v.z) * k; }
-      let df = ((u.facing - v.f + 540) % 360) - 180; v.f = (v.f + df * k + 360) % 360;
-      if (u.ammo < v.ammo - .5) { v.fireT = .7; v.fired = true; } v.ammo = u.ammo; v.fireT -= dt;
+      const tx = u.e, tz = -u.n, mv = Math.hypot(tx - v.x, tz - v.z);
+      if (replay) { // stepping through stops: each formation marches to its next place over ~3 s, a column by its route
+        const key = Math.round(tx) + ',' + Math.round(tz);
+        if (v.goal !== key) { v.goal = key; if (mv > 2) { const col = u.form === 'column', from = [v.x, -v.z];
+          const pts = col && window.__march ? [from, ...window.__march.route({ ...u, e: from[0], n: from[1], form: 'column' }, [u.e, u.n])] : [from, [u.e, u.n]];
+          const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+          v.mv = { pts, cum, L: cum[cum.length - 1], t: 0, dur: Math.min(3.2, 1.2 + cum[cum.length - 1] / 600), col, f0: v.f }; } }
+        if (v.mv) { const M = v.mv; M.t = Math.min(1, M.t + dt / M.dur); const e = M.t < .5 ? 2 * M.t * M.t : 1 - Math.pow(-2 * M.t + 2, 2) / 2, s = e * M.L;
+          let i = 1; while (i < M.cum.length - 1 && M.cum[i] < s) i++; const a = M.pts[i - 1], b = M.pts[i], seg = (M.cum[i] - M.cum[i - 1]) || 1, q = Math.min(1, (s - M.cum[i - 1]) / seg);
+          v.x = a[0] + (b[0] - a[0]) * q; v.z = -(a[1] + (b[1] - a[1]) * q); v.moveT = .6;
+          const head = M.col && M.t < .97 ? (Math.atan2(b[0] - a[0], b[1] - a[1]) * 180 / Math.PI + 360) % 360 : u.facing;
+          let df = ((head - v.f + 540) % 360) - 180; v.f = (v.f + df * Math.min(1, dt * 4) + 360) % 360; if (M.t >= 1) v.mv = null; }
+        else { v.x = tx; v.z = tz; let df = ((u.facing - v.f + 540) % 360) - 180; v.f = (v.f + df * k + 360) % 360; }
+        if (u.firing && Math.random() < dt * .7) { v.fireT = .7; v.fired = true; }
+      } else {
+        v.goal = null; v.mv = null; if (mv > 1.5 || u.moved) v.moveT = .6;
+        if (mv > 400) { v.x = tx; v.z = tz; } else { v.x += (tx - v.x) * k; v.z += (tz - v.z) * k; }
+        let df = ((u.facing - v.f + 540) % 360) - 180; v.f = (v.f + df * k + 360) % 360; }
+      v.moveT -= dt;
+      if (!replay && u.ammo < v.ammo - .5) { v.fireT = .7; v.fired = true; } v.ammo = u.ammo; v.fireT -= dt;
       const d = dims(u), f = v.f * Math.PI / 180, fx = Math.sin(f), fz = -Math.cos(f), rx = Math.cos(f), rz = Math.sin(f), cy = hAt(v.x, v.z);
+      if (u.form === 'column') { const T = v.trail || (v.trail = [[v.x, v.z]]), last = T[T.length - 1];
+        if (Math.hypot(v.x - last[0], v.z - last[1]) > 4) { T.push([v.x, v.z]); let L = 0; for (let i = T.length - 1; i > 0; i--) { L += Math.hypot(T[i][0] - T[i - 1][0], T[i][1] - T[i - 1][1]); if (L > d.d + 40) { T.splice(0, i - 1); break; } } } }
+      else v.trail = null;
       v.plate.position.set(v.x, cy + .6, v.z); v.plate.scale.set(d.w, 1, d.d); v.plate.rotation.y = -f;
       const sel = selUnits.has(u.id) || inspected === u.id, rout = u.st === 'routing', wav = u.st === 'wavering';
       v.plate.material.opacity = sel ? .42 : hover === u.id ? .3 : .1; v.plate.material.color.set(sel ? 0xffd45e : rout ? 0xd06040 : A ? 0xf2e6c8 : 0x7fa6ee); v.edge.material.color.set(sel ? 0xffd45e : rout ? 0xd06040 : wav ? 0xe8c46a : A ? 0xf2e6c8 : 0x7fa6ee);
@@ -237,14 +426,17 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
       const yc = Math.cos(yaw), ys = Math.sin(yaw), put = (pl, frame, lx, lz) => pl.put(frame, v.x + rx * lx + fx * lz, cy + gx * lx + gz * lz, v.z + rz * lx + fz * lz, yc, ys, S);
       const cyc = t * (u.type === 'cav' ? (u.mode === 'charge' ? 2.2 : 1.4) : 1.6) + (u.id.charCodeAt(1) % 7) * .13, spread = rout ? 2.4 : wav ? 1.25 : 1;
       if (u.type === 'inf' || u.type === 'cav') {
-        const inf = u.type === 'inf', [ranks, files] = layout(u, d, n), sx = d.w / files, sz = u.form === 'column' ? d.d / ranks : inf ? 1.1 : 3.2;
+        const inf = u.type === 'inf', [ranks, files] = layout(u, d, n), sx = d.w / files, open = u.kind === 'lt' && u.form !== 'column' ? 1 : 0, sz = u.form === 'column' ? d.d / ranks : open ? 6 : inf ? 1.1 : u.kind === 'lc' ? 4.2 : 3.2;
+        // a column keeps to its track: the ranks behind the centre walk where the head has been (v.trail)
+        const snake = u.form === 'column' && v.trail && v.trail.length > 1;
         const pl = inf ? (lod === 0 ? pool.near : lod === 1 ? pool.mid : pool.far) : (lod === 0 ? pool.cavNear : pool.cavFar);
         for (let i = 0; i < n; i++) {
-          const fi = i % files, ri = (i / files) | 0, lx = (fi - (files - 1) / 2) * sx * spread + jit(i) * sx * (rout ? 4 : .25), lz = ((ranks - 1) / 2 - ri) * sz * spread + jit(i + 7) * (rout ? 24 : .3);
+          const fi = i % files, ri = (i / files) | 0, lx = (fi - (files - 1) / 2) * sx * spread + jit(i) * sx * (rout ? 4 : open ? .8 : .25), lz = ((ranks - 1) / 2 - ri) * sz * spread + jit(i + 7) * (rout ? 24 : open ? 3 : .3);
           let frame;
           if (inf) frame = lod === 2 ? (moving ? ((Math.floor(cyc * 4) + i) & 1) : 0) : rout ? 8 + Math.floor((cyc * 1.6 + i * .3) * 4) % 4 : moving ? 1 + Math.floor((cyc + (i % 2) * .04) * 6) % 6 : (v.fireT > 0 && ri === 0 ? 7 : 0);
           else frame = lod === 0 ? (moving ? (u.mode === 'charge' || rout ? 7 + Math.floor((cyc + i * .07) * 6) % 6 : 1 + Math.floor((cyc + i * .05) * 6) % 6) : 0) : (moving ? 1 + ((Math.floor(cyc * 5) + i) & 1) : 0);
-          put(pl, frame, lx, lz);
+          if (snake && !rout) { const q = along(v, lz, fx, fz), yw = Math.PI - Math.atan2(q.dx, -q.dz), x = q.x - q.dz * lx, z = q.z + q.dx * lx; pl.put(frame, x, hAt(x, z), z, Math.cos(yw), Math.sin(yw), S); }
+          else put(pl, frame, lx, lz);
         }
         if (v.flag) { v.flag.visible = !rout; v.flag.position.set(v.x - fx * 2, cy + 3.4 * S, v.z - fz * 2); v.flag.rotation.y = yaw + Math.PI / 2; v.flag.scale.setScalar(Math.min(1.8, S * .7)); }
         if (v.fired && inf) { v.fired = false; for (let i = 0; i < 6; i++) { const lx = (rnd() - .5) * d.w, x = v.x + rx * lx + fx * 3, z = v.z + rz * lx + fz * 3; puff(x, hAt(x, z) + 1.6 * S, z, 6 * S, 2.6); } }
@@ -272,6 +464,8 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
       v.lab.style.display = ''; v.lab.style.left = (tv.x * W2 + W2) + 'px'; v.lab.style.top = (-tv.y * H2 + H2) + 'px';
     }
     for (const id in vis) if (!shown.has(id)) { vis[id].lab.style.display = 'none'; if (aftermathOn) { vis[id].plate.visible = false; vis[id].ghost.visible = false; if (vis[id].flag) vis[id].flag.visible = false; } }
+    arrowG.visible = !aftermathOn && !rail.viewing() && !readOnly;
+    { const st = rail.stopShown(), key = st ? st.phase + '|' + JSON.stringify(st.arrows).length : ''; if (key !== accArrowKey) { accArrowKey = key; buildAccountArrows(st && st.arrows); } accG.visible = !!st && !aftermathOn; }
     const ak = JSON.stringify(armyOrders()) + Math.round(figScale * 4) + (BS.running ? Math.floor(t * 2) : '');
     if (ak !== arrowKey) { arrowKey = ak; buildArrows(figScale); }
     renderCard();
@@ -281,8 +475,14 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   function renderCard() {
     const bd = state.battleDemo, id = inspected || [...selUnits][0], u = id && unitById(id), mA = armyMorale('A'), mB = armyMorale('B'), seen = bd.units.some(x => x.side === 'B' && x.vis);
     const k = [id, u && Math.round(u.men), u && u.st, u && u.form, u && Math.round(u.mor), selUnits.size, BS.phase, BS.running, BS.result, JSON.stringify(u && armyOrders()[u.id] || ''), seen, Math.round(mA * 100), Math.round(mB * 20)].join('|');
-    if (k + readOnly === lastCardKey) return; lastCardKey = k + readOnly; card.hidden = false;
+    const ck = k + readOnly + rail.at() + rail.viewing() + inspected + (rail.stopShown() || {}).label; if (ck === lastCardKey) return; lastCardKey = ck; card.hidden = false;
+    if (rail.viewing() && !aftermathOn) { const p = rail.at(); card.innerHTML = '<h3>' + (p ? 'After ' + p * 15 + ' minutes' : 'The deployment') + '</h3><div class="m">The field as it stood ' + (p ? 'at the end of phase ' + p : 'before the first order') + '. Nothing can be ordered from here; <kbd>→</kbd> or ▶| goes on, and from the last phase runs the next.</div>'; return; }
     if (aftermathOn) { const af = bd.aftermath || {}; card.innerHTML = '<h3>The field, afterwards</h3><div class="m">' + (af.held_by === 'B' ? 'The enemy holds the ground; your officers ride over it under a flag of truce.' : 'Your army holds the ground.') + (af.date ? ' ' + new Date(af.date + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) + '.' : '') + '</div>' + (af.note ? '<div class="m">' + af.note.replace(/[<>&]/g, '') + '</div>' : '') + '<div class="m">WASD or right-drag to ride over it · drag to look · wheel to rise.</div><div class="row"><button data-b="leave">Ride back</button></div>'; return; }
+    const sp = rail.stopShown();
+    if (sp) { const iu = inspected && (rail.units() || []).find(x => x.id === inspected);
+      card.innerHTML = '<h3>' + (sp.t ? sp.t + ' · ' : '') + sp.label + '</h3>' + (sp.text ? '<div class="m">' + sp.text + '</div>' : '')
+        + (iu ? '<h3 style="margin-top:10px">' + shortName(iu) + '</h3><div class="m">' + (iu.st === 'routing' ? 'In flight' : iu.st === 'gone' ? 'Broken' : iu.form === 'column' ? 'In column' : 'In line') + '</div>' : '')
+        + '<div class="m" style="margin-top:8px">You were not there; this is the ground as the account gives it. <kbd>←</kbd> <kbd>→</kbd> or Play step through the hours.</div>'; return; }
     if (readOnly) { card.innerHTML = '<h3>The ground, as your staff describe it</h3><div class="m">You were not there. The positions are those given in the account; click a formation to read what is known of it.</div>' + (u ? '<h3>' + shortName(u) + '</h3><div class="m">' + ({ inf: 'Infantry', cav: 'Cavalry', art: 'Artillery' }[u.type]) + ' · ' + (u.form || 'line') + ' · about ' + Math.round(u.men / 50) * 50 + ' men · ' + moraleWord(u) + '</div>' : '') + '<div class="row"><button data-b="leave">Put the account down</button></div>'; return; }
     const h = []; const pct = x => Math.round(x * 100);
     h.push('<div class="m">Phase ' + BS.phase + ' of ' + BS.max + ' · ' + BS.phase * 15 + ' min' + (BS.running ? ' · <b>running…</b>' : '') + '</div>');
@@ -302,13 +502,94 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   }
   card.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const a = b.dataset.b; if (a === 'run') runPhase(1); else if (a === 'withdraw') withdrawBattle(); else if (a === 'again') newBattle(); else if (a === 'army') window.__w3d.act('notebook'); else if (a === 'sheet') window.__w3d.act('orders'); else if (a === 'leave') window.__w3d.act('room'); else if (a === 'after') window.__w3d.act('aftermathTable'); });
 
+  /* ---------- the clock rail (battle-atlas): a stop at the start and after every phase; ◀ ▶ or ← → step back and on,
+     Play runs on. Looking back shows the field as it stood, read-only. In the battle he commands, a step past the last stop
+     is the next phase: his orders, then the moves. Stops are kept in the draft with the battle they belong to. ---------- */
+  const rail = (() => {
+    const el = document.createElement('div'); el.className = 'w3d-rail'; el.hidden = true; el.setAttribute('role', 'group'); el.setAttribute('aria-label', 'The battle, phase by phase');
+    document.getElementById('w3d').append(el);
+    const KEEP = ['id', 'side', 'type', 'kind', 'name', 'strength', 'e', 'n', 'facing', 'form', 'men', 'max', 'mor', 'coh', 'ammo', 'st', 'vis', 'seenE', 'seenN', 'seenT', 'guns', 'gunLost', 'mode', 'w', 'd'];
+    const snap = () => ({ phase: BS.phase, units: state.battleDemo.units.map(u => Object.fromEntries(KEEP.filter(k => u[k] !== undefined).map(k => [k, u[k]]))) });
+    let view = null, playing = false, wait = 0, shown = false, domKey = '', recAt = 0;
+    const track = () => { const d = draft, id = state.battleDemo.id + '|' + (typeof state.battleDemo.ground === 'string' ? state.battleDemo.ground : JSON.stringify(state.battleDemo.ground || ''));
+      if (!d.battleTrack || d.battleTrack.id !== id) d.battleTrack = { id, stops: [] }; return d.battleTrack; };
+    const record = () => {
+      if (BS.running) return; const T = track(), last = T.stops[T.stops.length - 1];
+      if (!last || BS.phase === 0 || last.phase > BS.phase) { const fresh = !last || last.phase !== 0 || T.stops.length > 1; T.stops = [snap()]; view = null; if (fresh) saveDraft(); }
+      else if (last.phase < BS.phase) { T.stops.push(snap()); saveDraft(); }
+    };
+    const canRun = () => !readOnly && !aftermathOn && !BS.result && !BS.running;
+    // an account he was not at, phase by phase (state.battleDemo.phases): each stop is the field after that phase's moves,
+    // the formations it names carried forward from where they stood before
+    let accKey = '', acc = null;
+    const LOSS = { light: .85, heavy: .55, destroyed: 0 };
+    const account = () => {
+      const bd = state.battleDemo; if (!readOnly || aftermathOn || !Array.isArray(bd.phases) || !bd.phases.length) return null;
+      const key = bd.id + '|' + JSON.stringify(bd.phases).length + '|' + bd.units.length; if (key === accKey) return acc; accKey = key; view = 0;
+      const cur = bd.units.map(u => Object.assign(Object.fromEntries(KEEP.filter(k => u[k] !== undefined).map(k => [k, u[k]])), { vis: true, st: 'ok', men: u.max || u.men, max: u.max || u.men }));
+      acc = bd.phases.map((ph, i) => {
+        for (const p of ph.units || []) { const u = cur.find(x => x.id === p.id); if (!u) continue;
+          for (const k of ['e', 'n', 'facing']) if (Number.isFinite(p[k])) u[k] = p[k];
+          if (p.form) { u.firing = p.form === 'firing'; u.st = p.form === 'routing' ? 'routing' : 'ok'; u.form = p.form === 'column' || p.form === 'camp' ? 'column' : 'line'; }
+          if (p.losses) { u.men = Math.round(u.max * LOSS[p.losses]); if (p.losses === 'destroyed') u.st = 'gone'; } }
+        return { phase: i, t: ph.t || '', label: ph.label || '', text: ph.text || '', arrows: ph.arrows || [], units: cur.map(u => ({ ...u })) };
+      });
+      return acc;
+    };
+    const stops = () => account() || track().stops;
+    function step(d) {
+      const n = stops().length, cur = view == null ? n - 1 : view;
+      if (account()) { view = Math.max(0, Math.min(n - 1, cur + d)); lastCardKey = ''; arrowKey = ''; return; }
+      if (d < 0) { view = Math.max(0, cur - 1); if (view >= n - 1) view = null; }
+      else if (view != null) { view = cur + 1 >= n - 1 ? null : cur + 1; }
+      else if (canRun()) runPhase(1);
+      lastCardKey = ''; arrowKey = '';
+    }
+    function render() {
+      const S = stops(), n = S.length, cur = view == null ? n - 1 : view, more = canRun() || BS.running;
+      const k = [n, view, playing, BS.phase, BS.running, BS.result, readOnly, aftermathOn].join('|'); if (k === domKey) return; domKey = k;
+      const A = account(), at = view != null ? S[view].phase : BS.phase, slots = n + (more ? 1 : 0);
+      const dot = (i, cls, lab) => '<button class="stop ' + cls + '" data-i="' + i + '" style="left:' + (slots > 1 ? i / (slots - 1) * 100 : 50) + '%" aria-label="' + lab + '"><span></span></button>';
+      el.innerHTML = '<button class="rb" data-a="prev" aria-label="Back one phase">◀</button>'
+        + '<button class="rb play" data-a="play" aria-label="' + (playing ? 'Pause' : 'Play') + '">' + (playing ? '❚❚' : '▶') + '</button>'
+        + '<button class="rb" data-a="next" aria-label="' + (view == null && more ? 'Run the next 15 minutes' : 'On one phase') + '">▶|</button>'
+        + '<div class="track"><i style="width:' + (slots > 1 ? cur / (slots - 1) * 100 : 0) + '%"></i>'
+        + S.map((st, i) => dot(i, (i === cur ? 'on' : '') + (i < cur ? ' past' : ''), A ? st.t + ' ' + st.label : st.phase ? 'Phase ' + st.phase + ', ' + st.phase * 15 + ' minutes' : 'The deployment')).join('')
+        + (more ? dot(n, 'next' + (BS.running ? ' running' : ''), 'The next 15 minutes') : '') + '</div>'
+        + '<div class="lab">' + (A ? (S[cur].t ? S[cur].t + ' · ' : '') + S[cur].label : BS.running && view == null ? 'Phase ' + BS.phase + ' · on the march…' : (at ? 'Phase ' + at + ' · ' + Math.floor(at * 15 / 60) + ':' + String(at * 15 % 60).padStart(2, '0') : 'The deployment') + (view != null ? ' · looking back' : BS.result ? ' · the end' : '')) + '</div>';
+    }
+    el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; e.stopPropagation();
+      if (b.dataset.a === 'prev') { stop(); step(-1); } else if (b.dataset.a === 'next') { stop(); step(1); } else if (b.dataset.a === 'play') { playing = !playing; wait = 1e9; }
+      else if (b.dataset.i != null) { stop(); const i = +b.dataset.i, n = stops().length; if (i >= n) step(1); else { view = i >= n - 1 && !account() ? null : i; lastCardKey = ''; arrowKey = ''; } }
+      domKey = ''; });
+    function stop() { playing = false; domKey = ''; }
+    return {
+      step, stop, show(b) { shown = b; domKey = ''; },
+      viewing: () => view != null && !account(), at: () => view != null ? stops()[view].phase : BS.phase,
+      units: () => { const S = stops(); return account() ? S[Math.min(view ?? 0, S.length - 1)].units : view != null ? S[view].units : null; },
+      // the account's stop on show: its time, label, text and arrows
+      stopShown: () => { const A = account(); return A ? A[Math.min(view ?? 0, A.length - 1)] : null; },
+      replaying: () => !!account() || view != null,
+      tick(dt) {
+        // a stop as soon as a phase ends; while still deploying, the first stop follows the deployment (once a second)
+        const S = track().stops, last = S[S.length - 1], now = performance.now();
+        if (!account() && !BS.running && (!last || last.phase !== BS.phase || (BS.phase === 0 && now - recAt > 1000))) { record(); recAt = now; }
+        const A = account();
+        if (playing) { if (BS.running) wait = 0; else if ((wait += dt) > (A ? 4 : 1.8)) { wait = 0; if (A ? (view ?? 0) < A.length - 1 : view != null || canRun()) step(1); else stop(); } }
+        el.hidden = !shown || aftermathOn || (!A && stops().length < 2 && !canRun() && !BS.running);
+        if (!el.hidden) render();
+      },
+      remove() { el.remove(); },
+    };
+  })();
+
   /* ---------- input ---------- */
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
   const setRay = e => { const r = renderer.domElement.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); ray.setFromCamera(ndc, camera); };
   const pickUnit = e => { setRay(e); const plates = Object.values(vis).filter(v => v.plate.visible).map(v => v.plate); const h = ray.intersectObjects(plates, false)[0]; return h ? h.object.userData.id : null; };
   const pickGround = e => { setRay(e); const h = ray.intersectObject(T.mesh, false)[0]; return h ? h.point : null; };
   function click(e) {
-    if (readOnly) { inspected = pickUnit(e); lastCardKey = ''; return; }
+    if (readOnly || rail.viewing()) { inspected = pickUnit(e); lastCardKey = ''; return; }
     if (armyTool) { const p = pickGround(e); if (p) armyMapClick({ latlng: L.latLng(...lo(state.battleDemo.center, p.x, -p.z)) }); return; }
     const id = pickUnit(e);
     if (id) { const u = unitById(id); if (u.side === 'A') { inspected = null; selectUnits([id], e.shiftKey || e.metaKey); } else { inspected = id; } }
@@ -319,8 +600,8 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   return {
     camera,
     setShadows: n => { lights.setShadows(n); },
-    enter() { prevBattleOn = battleOn; if (!battleOn) showBattle(true); initSim(); resize(); placeCamera(); renderCard(); card.hidden = false; labels.hidden = false; },
-    leave() { card.hidden = true; labels.hidden = true; if (armyTool) setArmyTool(armyTool); if (!prevBattleOn) showBattle(false); },
+    enter() { plabels.hidden = false; prevBattleOn = battleOn; if (!battleOn) showBattle(true); initSim(); resize(); placeCamera(); camSig = ''; controls.enabled = true; renderCard(); card.hidden = false; labels.hidden = false; rail.show(true); },
+    leave() { plabels.hidden = true; controls.enabled = false; rail.show(false); rail.stop(); card.hidden = true; labels.hidden = true; if (armyTool) setArmyTool(armyTool); if (!prevBattleOn) showBattle(false); },
     refresh() { lastCardKey = ''; arrowKey = ''; },
     setReadOnly(b) { readOnly = b; inspected = null; lastCardKey = ''; if (b) selectUnits([]); },
     // ride over the ground the day after: the dead, the guns, the burial parties; the camera low, among them
@@ -332,10 +613,17 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
       if (cam.tw) { const w = cam.tw; w.t = Math.min(1, w.t + dt / 1.4); const e = 1 - Math.pow(1 - w.t, 3); cam.dist = w.d0 + (w.d1 - w.d0) * e; cam.pitch = w.p0 + (w.p1 - w.p0) * e; if (w.t >= 1) cam.tw = null; }
       const sp = cam.dist * .7 * dt, s = Math.sin(cam.yaw), c = Math.cos(cam.yaw);
       if (keys.has('KeyW') || keys.has('ArrowUp')) { cam.tx -= s * sp; cam.tz -= c * sp; } if (keys.has('KeyS') || keys.has('ArrowDown')) { cam.tx += s * sp; cam.tz += c * sp; }
-      if (keys.has('KeyA') || keys.has('ArrowLeft')) { cam.tx -= c * sp; cam.tz += s * sp; } if (keys.has('KeyD') || keys.has('ArrowRight')) { cam.tx += c * sp; cam.tz -= s * sp; }
+      if (keys.has('KeyA')) { cam.tx -= c * sp; cam.tz += s * sp; } if (keys.has('KeyD')) { cam.tx += c * sp; cam.tz -= s * sp; }
       if (keys.has('KeyQ')) cam.yaw += dt * 1.1; if (keys.has('KeyE')) cam.yaw -= dt * 1.1;
-      cam.tx = Math.max(-W / 2, Math.min(W / 2, cam.tx)); cam.tz = Math.max(-H / 2, Math.min(H / 2, cam.tz));
-      placeCamera(); draw(dt, t);
+      if (sigOf() !== camSig) { // set from outside: put the orbit there
+        cam.tx = Math.max(-W / 2, Math.min(W / 2, cam.tx)); cam.tz = Math.max(-H / 2, Math.min(H / 2, cam.tz)); placeCamera(); controls.target.set(cam.tx, hAt(cam.tx, cam.tz), cam.tz); controls.update(); }
+      else if (controls.enabled) { // the orbit moved (or glides on): read it back, keep it over the field and above the ground
+        controls.update(); const tg = controls.target, ox = camera.position.x - tg.x, oy = camera.position.y - tg.y, oz = camera.position.z - tg.z;
+        cam.dist = Math.hypot(ox, oy, oz); cam.pitch = Math.asin(Math.max(-1, Math.min(1, oy / cam.dist))); cam.yaw = Math.atan2(ox, oz);
+        cam.tx = Math.max(-W / 2, Math.min(W / 2, tg.x)); cam.tz = Math.max(-H / 2, Math.min(H / 2, tg.z)); placeCamera(); controls.target.set(cam.tx, hAt(cam.tx, cam.tz), cam.tz); }
+      else placeCamera();
+      camSig = sigOf();
+      rail.tick(dt); draw(dt, t); placeNames();
       // the shadow map (thousands of figures) is redrawn when the view moves and a few times a second while men move
       const ck = [cam.tx, cam.tz, cam.dist, cam.yaw, cam.pitch].map(v => Math.round(v * 10)).join();
       if (ck !== shadowView || ++shadowTick % (BS.running ? 2 : 6) === 0) { shadowView = ck; renderer.shadowMap.needsUpdate = true; }
@@ -343,7 +631,8 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     },
     key(e) {
       const k = e.code;
-      if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(k)) { keys.add(k); return true; }
+      if (k === 'ArrowLeft' || k === 'ArrowRight') { rail.stop(); rail.step(k === 'ArrowLeft' ? -1 : 1); return true; }
+      if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'ArrowUp', 'ArrowDown'].includes(k)) { keys.add(k); return true; }
       if (readOnly && ['KeyM', 'KeyF', 'KeyC', 'KeyH', 'Enter'].includes(k)) return true;
       if (k === 'KeyM') { setArmyTool('move'); return true; } if (k === 'KeyF') { setArmyTool('face'); return true; }
       if (k === 'KeyC') { armyForm(); return true; } if (k === 'KeyH') { armyHold(); return true; }
@@ -357,16 +646,14 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     keyUp(e) { keys.delete(e.code); },
     pointerDown() { },
     pointerMove(e, drag) {
-      if (drag && (Math.abs(e.movementX) + Math.abs(e.movementY) > 0) && (drag.moved > 4 || Math.abs(e.movementX) + Math.abs(e.movementY) > 4)) {
-        if (drag.b === 2 || e.shiftKey) { const sp = cam.dist / 900, s = Math.sin(cam.yaw), c = Math.cos(cam.yaw); cam.tx += (-c * e.movementX - s * e.movementY) * sp; cam.tz += (s * e.movementX - c * e.movementY) * sp; }
-        else { cam.yaw -= e.movementX * .005; cam.pitch = Math.min(1.45, Math.max(.12, cam.pitch + e.movementY * .004)); }
-        return;
-      }
-      if (!drag) { const id = pickUnit(e); if (id !== hover) { hover = id; renderer.domElement.style.cursor = armyTool ? 'crosshair' : id ? 'pointer' : 'default'; } else if (armyTool) renderer.domElement.style.cursor = 'crosshair'; }
+      if (drag) return; // the orbit turns and pans
+      const id = pickUnit(e); if (id !== hover) { hover = id; renderer.domElement.style.cursor = armyTool ? 'crosshair' : id ? 'pointer' : 'default'; } else if (armyTool) renderer.domElement.style.cursor = 'crosshair';
     },
     pointerUp(e, drag) { if (drag && drag.moved < 6 && drag.b === 0) click(e); },
-    wheel(e) { if (e.deltaY > 0 && cam.dist >= 5900 && onRise) { onRise(cam.tx, cam.tz); return; } cam.tw = null; cam.dist = Math.min(6000, Math.max(50, cam.dist * (1 + Math.sign(e.deltaY) * .12))); },
-    debug: { cam, vis, pools, guns, get inspected() { return inspected; } },
+    wheel(e) { if (e.deltaY > 0 && cam.dist >= 5900 && onRise) onRise(cam.tx, cam.tz); }, // the orbit zooms
+    debug: { cam, vis, pools, guns, get inspected() { return inspected; }, ground: G, exag: EXAG, controls, rail, get accArrows() { return accG.children.length; } },
+    // the field's own geometry and painted textures; materials are shared with the rest of the world (nature.js, props.js)
+    dispose() { controls.dispose(); rail.remove(); plabels.remove(); labels.remove(); card.remove(); scene.traverse(o => { if (o.geometry) o.geometry.dispose(); }); groundTex.dispose(); grainTex.dispose(); },
   };
   function resize() { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
 }

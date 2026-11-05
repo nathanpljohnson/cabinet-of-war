@@ -1,17 +1,18 @@
 // Runs the reply pipeline (w3d/turn.js, w3d/continuity.js) on the opening state and the mock replies; prints JSON for pytest.
 import { readFileSync } from 'node:fs';
-import { parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue } from '../w3d/turn.js';
+import { parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS } from '../w3d/turn.js';
 import { checkContinuity } from '../w3d/continuity.js';
+import { wheel, separation, findRoute, rasterize, normalizeUnit, TROOPS, bearing, crestBetween, slopePace } from '../w3d/march.js';
 const root = new URL('../', import.meta.url), read = p => readFileSync(new URL(p, root), 'utf8');
 const html = read('cabinet-of-war.html'), m = html.match(/id="initial-state">([\s\S]*?)<\/script>/);
 const opening = JSON.parse(m[1].replace(/\\u003c/g, '<')), almanac = JSON.parse(read('w3d/almanac.json')), contract = read('w3d/contract.md');
 const out = { mocks: {} };
 const reply = (state, changes) => ({ kind: 'turn', schemaVersion: 3, campaignId: state.campaignId, turn: state.turn + 1, parentTurn: state.turn, seal: sealOf(state), changes: JSON.parse(JSON.stringify(changes)) });
-for (const name of ['answers', 'winter', 'dismissed', 'backwards', 'contradiction', 'living', 'ending']) {
+for (const name of ['answers', 'winter', 'dismissed', 'backwards', 'contradiction', 'living', 'ending', 'account']) {
   const mk = JSON.parse(read('w3d/mocks/' + name + '.json')), r = reply(opening, mk.changes);
   const chk = checkReply(opening, r, { orderRefs: ['T0-1', 'T0-2', 'T0-3'], fortune: rollFortune(opening.campaignId, 0), seal: sealOf(opening) });
   const res = { errors: chk.errors, warns: chk.warns, fixes: chk.fixes };
-  if (!chk.errors.length) { const { next } = mergeTurn(opening, r); res.next = { turn: next.turn, date: next.date, reports: next.reports.length, canon: next.hidden.canon.length, cast: next.cast.length, threads: next.hidden.threads.length, decision: next.decision, world: next.world, ended: next.ended || null, kessler: next.cast.find(c => c.id === 'kessler') || null, thread: next.hidden.threads.find(t => t.id === 'pol_prussian_invasion'), standingOrders: !!next.hidden.standingOrders, forces: next.forces.length, enemy: (next.battleDemo || {}).enemy || null, urgent: (next.reports.find(x => x.urgent) || {}).urgent || null, gazette: next.gazette, household: next.household, aftermath: (next.battleDemo || {}).aftermath || null, purse: next.hidden.purse || null };
+  if (!chk.errors.length) { const { next } = mergeTurn(opening, r); res.next = { turn: next.turn, date: next.date, reports: next.reports.length, canon: next.hidden.canon.length, cast: next.cast.length, threads: next.hidden.threads.length, decision: next.decision, world: next.world, ended: next.ended || null, kessler: next.cast.find(c => c.id === 'kessler') || null, thread: next.hidden.threads.find(t => t.id === 'pol_prussian_invasion'), standingOrders: !!next.hidden.standingOrders, forces: next.forces.length, enemy: (next.battleDemo || {}).enemy || null, urgent: (next.reports.find(x => x.urgent) || {}).urgent || null, gazette: next.gazette, household: next.household, aftermath: (next.battleDemo || {}).aftermath || null, phases: ((next.battleDemo || {}).phases || []).map(p => [p.t, (p.units || []).length, (p.arrows || []).length]), ground: (next.battleDemo || {}).ground, purse: next.hidden.purse || null };
     res.continuity = checkContinuity(opening, next); }
   out.mocks[name] = res;
 }
@@ -47,4 +48,37 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
   const rc = checkReply(opening, rt, {}); out.route = { fixes: rc.fixes, route: rt.changes.player.route };
   out.salt = [rollFortune('c', 1, 8, 'aa'), rollFortune('c', 1, 8, 'aa'), rollFortune('c', 1, 8, 'bb'), rollFortune('c', 1)];
   out.opening = { briefing: opening.briefing, scene: opening.scene, movements: opening.movements.length, wallis: opening.cast.find(c => c.id === 'wallis').place, early: opening.hidden.threads.filter(t => t.next_check && t.next_check < opening.date).length, demoCast: opening.cast.filter(c => c.claim === 'demo').length }; }
+// battle grounds: library ids and kinds pass, anything else is laid out as open plain with a warning
+{ const g = ground => { const r = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], battleDemo: { center: [50.1, 14.4], ground }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } }); const c = checkReply(opening, r, {}); return { warns: c.warns, ground: r.changes.battleDemo.ground }; };
+  const r0 = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], battleDemo: { center: [50.1, 14.4] }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } });
+  const index = JSON.parse(read('w3d/grounds/index.json'));
+  out.grounds = { lib: g('prague'), kind: g({ kind: 'marsh' }), unknownId: g('atlantis'), unknownKind: g({ kind: 'swamp' }), noGround: checkReply(opening, r0, {}).warns, ids: GROUNDS, kinds: GROUND_KINDS, index: index.grounds.map(x => x.id), indexKinds: Object.keys(index.kinds), opening: opening.battleDemo.ground,
+    packetHasIds: GROUNDS.every(id => packet.includes(id)), live: liveState(opening).battleDemo.ground,
+    files: index.grounds.map(x => { const f = JSON.parse(read('w3d/grounds/' + x.id + '.json')); return { id: x.id, towns: (f.towns || []).map(t => [t.name, t.works, t.poly.length]), bridges: (f.bridges || []).filter(b => b.p.length === 2).length, named: (f.bridges || []).filter(b => b.name).map(b => b.name), cols: f.cols, rows: f.rows, cell: f.cell, w: f.w, h: f.h, rows: f.rows_str.length, len: new Set(f.rows_str.map(r => r.length)), chars: [...new Set(f.rows_str.join(''))].sort().join(''), relief: atob(f.relief.b64).length === 2 * f.relief.cols * f.relief.rows, outer: atob(f.outer.b64).length === 2 * f.outer.cols * f.outer.rows, sources: f.sources.length, notes: f.notes.length }; }) };
+  out.grounds.files.forEach(f => f.len = [...f.len]);
+  const T = JSON.parse(html.match(/id="terrain">([\s\S]*?)<\/script>/)[1]), M = JSON.parse(read('w3d/grounds/mollwitz.json'));
+  { const r = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], battleDemo: { ground: 'mollwitz', units: [{ id: 'B20', side: 'B', type: 'lc', e: 0, n: 900, facing: 180 }, { id: 'B21', side: 'B', type: 'pandour', e: 0, n: 900, facing: 180 }, { id: 'A1', e: 10 }] }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } });
+    const c = checkReply(opening, r, {}); out.grounds.troops = { units: r.changes.battleDemo.units, fixes: c.fixes }; }
+  out.grounds.inlineIsMollwitz = JSON.stringify(T.rows_str) === JSON.stringify(M.rows_str); }
+// marching: a wheel turns on its inner flank, rectangles push apart, columns go round water and take the road
+{ const u = { e: 0, n: 0, facing: 0 }, w = wheel(u, 90, 150, 90), w2 = wheel(u, -30, 150, 12);
+  const flank = (x, f, s) => [x.e + s * Math.cos(f * Math.PI / 180) * 75, x.n - s * Math.sin(f * Math.PI / 180) * 75];
+  const g = { cols: 20, rows: 10, cell: 30, w: 600, h: 300 }, river = (c, r) => c === 10 && r !== 8; // a river down column 10, a ford at row 8
+  const cost = (c, r) => river(c, r) ? 8 : 1, ctr = (c, r) => [-300 + (c + .5) * 30, 150 - (r + .5) * 30];
+  const route = findRoute(g, cost, ctr(2, 2), ctr(17, 2)), roadCells = rasterize([[ctr(2, 6), ctr(17, 6)]], g);
+  const road = findRoute(g, (c, r) => roadCells.has(r * 20 + c) ? .5 : river(c, r) ? 8 : 1, ctr(2, 5), ctr(17, 5));
+  const cellsOf = pts => { const out = []; let prev = ctr(2, 2); for (const p of pts) { for (let k = 1; k <= 20; k++) { const x = prev[0] + (p[0] - prev[0]) * k / 20, y = prev[1] + (p[1] - prev[1]) * k / 20; out.push([Math.floor((x + 300) / 30), Math.floor((150 - y) / 30)]); } prev = p; } return out; };
+  out.march = { wheel: { to: w, pivotBefore: flank(u, 0, 1), pivotAfter: flank(w, w.facing, 1), small: w2 },
+    sep: { overlap: separation({ e: 0, n: 0, facing: 0 }, { w: 150, d: 12 }, { e: 0, n: 8, facing: 180 }, { w: 150, d: 12 }), apart: separation({ e: 0, n: 0, facing: 0 }, { w: 150, d: 12 }, { e: 0, n: 30, facing: 0 }, { w: 150, d: 12 }) },
+    route: { pts: route, wet: cellsOf(route).filter(([c, r]) => river(c, r)).length, ford: cellsOf(route).some(([c, r]) => c === 10 && r === 8) },
+    road: { pts: road, onRoad: cellsOf(road).filter(([c, r]) => roadCells.has(r * 20 + c)).length },
+    types: ['gd', 'lt', 'lc', 'inf', 'cav', 'art'].map(t => normalizeUnit({ type: t })), troops: Object.keys(TROOPS), north: bearing(0, 1), east: bearing(1, 0) }; }
+// a bad account: unknown ids, forms and losses, a broken arrow, a phase with neither time nor label
+{ const r = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], battleDemo: { phases: [{ t: '08:00', label: 'x', units: [{ id: 'A1', e: 1, n: 2, form: 'square' }, { id: 'Z9', e: 0, n: 0 }, { id: 'B1', losses: 'some' }], arrows: [{ side: 'A', kind: 'feint', p: [[0, 0], [1, 1]] }, { side: 'C', p: [[0, 0]] }] }, { text: 'nothing' }] }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } });
+  const c = checkReply(opening, r, {}); out.badAccount = { fixes: c.fixes, phases: r.changes.battleDemo.phases, packet: liveState({ ...opening, battleDemo: { ...opening.battleDemo, phases: r.changes.battleDemo.phases } }).battleDemo.phases }; }
+// the lie of the ground: a 20 m ridge at n = 500 hides what stands just behind it, not what stands on it or far beyond
+{ const ridge = (e, n) => 100 + 20 * Math.exp(-((n - 500) ** 2) / (2 * 60 ** 2)), flat = () => 100, a = { e: 0, n: 0 };
+  out.lie = { behind: crestBetween(ridge, a, { e: 0, n: 650 }), onTop: crestBetween(ridge, a, { e: 0, n: 500 }), farBeyond: crestBetween(ridge, a, { e: 0, n: 3000 }),
+    flat: crestBetween(flat, a, { e: 0, n: 1500 }), fromTop: crestBetween(ridge, { e: 0, n: 500 }, { e: 0, n: 900 }), close: crestBetween(ridge, { e: 0, n: 440 }, { e: 0, n: 555 }),
+    pace: { level: slopePace(.01, 'inf'), up10: slopePace(.1, 'inf'), up10cav: slopePace(.1, 'cav'), up10art: slopePace(.1, 'art'), up10road: slopePace(.1, 'inf', true), down4: slopePace(-.04, 'inf'), down15: slopePace(-.15, 'art'), cliff: slopePace(1, 'art') } }; }
 console.log(JSON.stringify(out));
