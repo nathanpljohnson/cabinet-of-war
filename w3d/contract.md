@@ -65,6 +65,8 @@ battleDemo.ground names the field a battle is drawn on, so the ground he sees is
 
 Each unit's type is one of inf (line infantry), gd (guards), lt (light infantry), cav (horse), lc (light horse: hussars, Croats on horseback), art (guns); give Croats, Pandours and other irregular foot as lt. On the table, lines keep their facing and wheel to turn, columns follow roads and go round woods and water, and units cannot pass through one another; order a column when the march is long or the way runs through villages and woods.
 
+A battle account can be drawn hour by hour: battleDemo.phases (see the reply format) gives each phase a time, a label, a short text in the staff's words, where the formations that moved now stand and how, their losses so far, and arrows for the moves. He steps through it on the ground as described. Keep it to what his informants could know, five to ten phases.
+
 ## Battles and enemy commanders
 When a battle may come, give battleDemo.enemy: {"commander": name, "temper": "rash" | "bold" | "steady" | "cautious" | "timid", "favours": "cavalry" | "infantry" | "guns", "habit": "flanks" | "centre" | "defence"} from what is known of that commander. The table battle's opposing army plays by it.
 After a battle he did not fight at the table, give battleDemo.aftermath: {"date", "held_by": "A" | "B", "fallen": {unit id: "light" | "heavy" | "destroyed"}, "guns_taken": [battery ids], "note": a sentence on what lies on the field}. He can ride over the ground afterwards; let what he finds there agree with the account.
