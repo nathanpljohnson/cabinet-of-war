@@ -1559,7 +1559,7 @@ function dist(a,b){return Math.hypot(a.e-b.e,a.n-b.n)}
 function ang(a,b){return(Math.atan2(b.e-a.e,b.n-a.n)*180/Math.PI+360)%360}
 function dAng(a,b){let d=Math.abs(a-b)%360;return d>180?360-d:d}
 function sight(u){if(window.__march)return window.__march.sight(u);return u.type==='cav'?1600:u.type==='art'?700:900}
-function blocked(a,b){const d=dist(a,b),k=Math.floor(d/30);let w=0;for(let i=1;i<k;i++){const t=terrainAt(a.e+(b.e-a.e)*i/k,a.n+(b.n-a.n)*i/k);if(t===1)w++}return w>=4&&terrainAt(b.e,b.n)!==1}
+function blocked(a,b){if(window.__march&&window.__march.ridge(a,b))return true;const d=dist(a,b),k=Math.floor(d/30);let w=0;for(let i=1;i<k;i++){const t=terrainAt(a.e+(b.e-a.e)*i/k,a.n+(b.n-a.n)*i/k);if(t===1)w++}return w>=4&&terrainAt(b.e,b.n)!==1}
 function sees(a,b){return dist(a,b)<=sight(a)&&!blocked(a,b)}
 function updateVis(){const us=state.battleDemo.units;
   for(const u of us){if(!alive(u))continue;const foes=us.filter(x=>x.side!==u.side&&alive(x)&&x.st!=='routing');let seen=false;for(const f of us){if(f.side===u.side||!alive(f))continue;if(sees(f,u)){seen=true;break}}

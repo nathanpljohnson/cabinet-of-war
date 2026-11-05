@@ -86,6 +86,8 @@ rep("for(const u of us)moveStep(u);","for(const u of us)moveStep(u);if(window.__
 rep("const base={inf:600,cav:130,art:60}[u.type];","const base=window.__march?window.__march.men(u):{inf:600,cav:130,art:60}[u.type];",1)
 rep("u.mor=u.side==='A'?76:86;","u.mor=(u.side==='A'?76:86)+(window.__march?window.__march.mor(u):0);",1)
 rep("function sight(u){return","function sight(u){if(window.__march)return window.__march.sight(u);return",1)
+# relief (game-v13 stage 6): a crest between two units hides one from the other, as a wood does
+rep("function blocked(a,b){","function blocked(a,b){if(window.__march&&window.__march.ridge(a,b))return true;",1)
 rep("*cov*(a.ammo>25?1:.5);","*cov*(a.ammo>25?1:.5);if(window.__march)k*=window.__march.fire(a)*window.__march.cover(t);",1)
 rep("const pForm=t.form==='column'?.62:.32;","const pForm=(t.form==='column'?.62:.32)*(window.__march?window.__march.charge(a,t):1);",1)
 rep("const pa=a.men*a.mor,pt=t.men*t.mor*","const sh=u=>window.__march?window.__march.shock(u):1;const pa=a.men*a.mor*sh(a),pt=t.men*t.mor*sh(t)*",1)
