@@ -232,3 +232,16 @@ def test_troop_types_in_replies(run):
     t = run["grounds"]["troops"]
     assert [(u.get("type"), u.get("kind")) for u in t["units"]] == [("cav", "lc"), ("inf", None), (None, None)]
     assert any("pandour" in f for f in t["fixes"])
+
+
+def test_crests_hide_what_stands_behind_them(run):
+    l = run["lie"]
+    assert l["behind"] and not l["onTop"] and not l["flat"] and not l["fromTop"] and not l["close"]
+    assert l["farBeyond"]  # 3 km on, the ridge still masks a man's height: the line of sight grazes it
+
+
+def test_slopes_slow_a_march(run):
+    p = run["lie"]["pace"]
+    assert p["level"] == 1 and p["down4"] == 1
+    assert p["up10cav"] < p["up10"] < 1 and p["up10art"] < p["up10cav"]
+    assert p["up10"] < p["up10road"] < 1 and p["down15"] < 1 and p["cliff"] == pytest.approx(.35)

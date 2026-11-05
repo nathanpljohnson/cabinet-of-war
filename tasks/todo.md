@@ -50,7 +50,7 @@
 - [x] 3 Library of likely fields for 1740–45, scenery from period sources: Mollwitz (re-cut from today's grid), Breslau/Leuthen ground (from atlas), Brieg, Neisse, Glogau, Chotusitz, Prague, Linz/Danube. List in the packet as vocabulary.
 - [x] 4 `battleDemo.ground`: Claude picks a library id, or gives `ground: {kind}` (river crossing, vineyards, marsh, wooded hills, open plain) for a field not in the library; the page then fetches real relief for `center` at runtime and lays land cover from the kind. Reply check warns on unknown ids. Contract + `replyFormat()` + tests together.
 - [x] 5 Page: swap `TER` in place on load (sim, desk map and 3D see the same ground); battle3d uses real relief instead of noise; vineyards/marsh get their own paint and props.
-- [ ] 6 Sim: ridges block sight (relief in `blocked()`), uphill slows a march. Small, in `src/battle.js`.
+- [x] 6 Sim: ridges block sight (relief in `blocked()`), uphill slows a march. Small, in `src/battle.js`.
 - [ ] 7 Replay a battle account phase by phase (atlas `setPhase`): Claude gives positions per phase; "See the ground as described" steps through them.
 - [x] 8 Atlas-style marching in the table battle: lines keep formation, columns follow roads, contact push.
 - [x] 9 Atlas camera (orbit) + clock rail (←/→, Play) for both the replay and the commanded battle; in the commanded battle a rail step = one phase of orders then moves. (Replay half waits on 7.)
@@ -85,3 +85,6 @@ Decisions (Nathan, 4 Nov): library + live fallback; replay accounts; atlas march
 - Clock rail above the order bar: a stop at the deployment and after every phase (kept in `draft.battleTrack` with the battle it belongs to), ◀ ▶| Play and ←/→. Looking back draws the field as it stood, read-only. From the last stop a step runs the next phase (orders, then moves); Play runs on until paused or the battle ends. Stops are generic `{phase, units}` so stage 7 can feed account phases.
 - Checked in page: → runs a phase; the dashed next stop runs one; ← draws the deployment; → → returns without running; left-drag turns, right-drag pans; no page errors.
 
+
+### Stage 6 result (5 Nov)
+`crestBetween` and `slopePace` in `w3d/march.js`, hooked into `blocked()` and the march step. A crest must stand 1.5 m clear of the line of sight (the relief is good to a metre or two). Share of random unit pairs 300–1500 m apart hidden by a crest: Mollwitz 1%, Leuthen 2%, Brieg 6%, Chotusitz 6%, Neisse 9%, Glogau 9%, Linz 28%, Prague 42%. Share of 30 m steps slowed by 5% or more: 0–5% on the plains, 16% Linz, 26% Prague.

@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS } from '../w3d/turn.js';
 import { checkContinuity } from '../w3d/continuity.js';
-import { wheel, separation, findRoute, rasterize, normalizeUnit, TROOPS, bearing } from '../w3d/march.js';
+import { wheel, separation, findRoute, rasterize, normalizeUnit, TROOPS, bearing, crestBetween, slopePace } from '../w3d/march.js';
 const root = new URL('../', import.meta.url), read = p => readFileSync(new URL(p, root), 'utf8');
 const html = read('cabinet-of-war.html'), m = html.match(/id="initial-state">([\s\S]*?)<\/script>/);
 const opening = JSON.parse(m[1].replace(/\\u003c/g, '<')), almanac = JSON.parse(read('w3d/almanac.json')), contract = read('w3d/contract.md');
@@ -73,4 +73,9 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
     route: { pts: route, wet: cellsOf(route).filter(([c, r]) => river(c, r)).length, ford: cellsOf(route).some(([c, r]) => c === 10 && r === 8) },
     road: { pts: road, onRoad: cellsOf(road).filter(([c, r]) => roadCells.has(r * 20 + c)).length },
     types: ['gd', 'lt', 'lc', 'inf', 'cav', 'art'].map(t => normalizeUnit({ type: t })), troops: Object.keys(TROOPS), north: bearing(0, 1), east: bearing(1, 0) }; }
+// the lie of the ground: a 20 m ridge at n = 500 hides what stands just behind it, not what stands on it or far beyond
+{ const ridge = (e, n) => 100 + 20 * Math.exp(-((n - 500) ** 2) / (2 * 60 ** 2)), flat = () => 100, a = { e: 0, n: 0 };
+  out.lie = { behind: crestBetween(ridge, a, { e: 0, n: 650 }), onTop: crestBetween(ridge, a, { e: 0, n: 500 }), farBeyond: crestBetween(ridge, a, { e: 0, n: 3000 }),
+    flat: crestBetween(flat, a, { e: 0, n: 1500 }), fromTop: crestBetween(ridge, { e: 0, n: 500 }, { e: 0, n: 900 }), close: crestBetween(ridge, { e: 0, n: 440 }, { e: 0, n: 555 }),
+    pace: { level: slopePace(.01, 'inf'), up10: slopePace(.1, 'inf'), up10cav: slopePace(.1, 'cav'), up10art: slopePace(.1, 'art'), up10road: slopePace(.1, 'inf', true), down4: slopePace(-.04, 'inf'), down15: slopePace(-.15, 'art'), cliff: slopePace(1, 'art') } }; }
 console.log(JSON.stringify(out));

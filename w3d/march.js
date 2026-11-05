@@ -107,6 +107,30 @@ export function rasterize(lines, g) {
   return set;
 }
 
+/* ---------- the lie of the ground (game-v13 stage 6): crests hide, slopes slow ---------- */
+// eye height of whoever looks for a unit (a mounted officer for foot and guns, a rider for horse) and the height a
+// unit shows above the ground (colours and bayonets, a rider's head), in metres
+export const EYE = { inf: 3, cav: 3.2, art: 2.6 }, SHOWS = { inf: 2.5, cav: 3, art: 1.8 };
+// true when the ground between a and b rises above the line from a's eye to the top of b: b stands in dead ground
+// behind a crest. Close by (under 120 m) nothing hides. The crest must stand 1.5 m clear of the line: the relief is a
+// survey of today's surface, good to a metre or two, and a swell smaller than that is not trusted to hide a battalion.
+// elev(e, n) gives metres above sea.
+export function crestBetween(elev, a, b, eyeA = 3, showsB = 2.5, step = 30) {
+  const de = b.e - a.e, dn = b.n - a.n, d = Math.hypot(de, dn); if (d < 120) return false;
+  const ha = elev(a.e, a.n) + eyeA, hb = elev(b.e, b.n) + showsB, k = Math.ceil(d / step);
+  for (let i = 1; i < k; i++) { const t = i / k; if (elev(a.e + de * t, a.n + dn * t) > ha + (hb - ha) * t + 1.5) return true; }
+  return false;
+}
+// how fast a unit goes on a grade (rise per metre along its march): gentle ground (under 2 %) costs nothing; uphill
+// slows foot, more so horse and most of all guns; only a steep descent (over 6 %) slows, for order's sake. A road halves
+// the grade's effect (it takes the easy line).
+export function slopePace(grade, type, road) {
+  const g = road ? grade * .5 : grade;
+  if (g > .02) return Math.max(.35, 1 - ({ inf: 4, cav: 5, art: 7 }[type] || 4) * (g - .02));
+  if (g < -.06) return Math.max(.5, 1 - ({ inf: 2, cav: 3, art: 3 }[type] || 2) * (-g - .06));
+  return 1;
+}
+
 /* ---------- the hooks the desk's battle engine calls (globals: TER, terrainAt, terMul, SPEED, dims, alive) ---------- */
 export function install() {
   const K = u => TROOPS[kindOf(u)];
@@ -114,6 +138,9 @@ export function install() {
   const roadSet = () => { const g = window.__ground, key = TER.id + ':' + (g ? g.key : ''); if (key !== roadKey) { roadKey = key; roads = rasterize(((g && g.roads) || []).map(r => r.p), TER); } return roads; };
   const cellOf = (e, n) => { const c = Math.floor((e + TER.w / 2) / TER.cell), r = Math.floor((TER.h / 2 - n) / TER.cell); return c < 0 || r < 0 || c >= TER.cols || r >= TER.rows ? -1 : r * TER.cols + c; };
   const onRoad = (e, n) => roadSet().has(cellOf(e, n));
+  const elev = () => { const g = window.__ground; return g && g.elev ? g.elev : null; };
+  // the grade over the next 30 m in the direction (ux, un), as a pace factor
+  const pace = (u, ux, un) => { const h = elev(); if (!h) return 1; return slopePace((h(u.e + ux * 30, u.n + un * 30) - h(u.e, u.n)) / 30, u.type, onRoad(u.e, u.n)); };
   // how fast a unit goes over a cell: the engine's land cover rule, light infantry at home in woods, roads quick for all
   const goes = (u, t, road) => {
     if (road) return u.form === 'column' ? 1.3 : 1.05;
@@ -132,7 +159,7 @@ export function install() {
       const sp0 = SPEED[u.type][u.form || 'line'] * .5 * K(u).speed * (u.st === 'wavering' ? .6 : 1), wheelMax = Math.min(12, sp0 / Math.max(20, W) / RAD);
       if (o.dest) {
         const d0 = Math.hypot(o.dest[0] - u.e, o.dest[1] - u.n);
-        const sp = sp0 * goes(u, terrainAt(u.e, u.n), onRoad(u.e, u.n)) * (o.mode === 'charge' && d0 < 260 ? 1.6 : 1);
+        const sp = sp0 * goes(u, terrainAt(u.e, u.n), onRoad(u.e, u.n)) * (o.mode === 'charge' && d0 < 260 ? 1.6 : 1) * pace(u, (o.dest[0] - u.e) / (d0 || 1), (o.dest[1] - u.n) / (d0 || 1));
         if (d0 <= Math.max(4, sp)) {
           u.e = o.dest[0]; u.n = o.dest[1]; o.dest = null; o.path = null; u.moved = true;
           if (o.facing != null && !isLine) { u.facing = o.facing; o.facing = null; }
@@ -146,7 +173,8 @@ export function install() {
           tgt = o.path[0];
         }
         const dx = tgt[0] - u.e, dy = tgt[1] - u.n, d = Math.hypot(dx, dy) || 1, want = bearing(dx, dy);
-        const step = (k) => { const s = Math.min(sp * k, d); u.e += dx / d * s; u.n += dy / d * s; u.moved = true; if (u.type === 'inf' && terrainAt(u.e, u.n) !== 0 && !K(u).open && !onRoad(u.e, u.n)) u.coh -= 1.2; };
+        const up = pace(u, dx / d, dy / d) / pace(u, (o.dest[0] - u.e) / d0, (o.dest[1] - u.n) / d0); // a column's next leg may climb where the straight line does not
+        const step = (k) => { const s = Math.min(sp * up * k, d); u.e += dx / d * s; u.n += dy / d * s; u.moved = true; if (u.type === 'inf' && terrainAt(u.e, u.n) !== 0 && !K(u).open && !onRoad(u.e, u.n)) u.coh -= 1.2; };
         if (isLine) {
           const r = Math.abs(rel(want, u.facing));
           if (r <= 60) step(1);                       // advance, or step obliquely, in line
@@ -210,7 +238,9 @@ export function install() {
     // a charge on light infantry caught in the open breaks in easily; in woods or a village it does not
     charge: (a, t) => K(a).shock * (K(t).open ? ([1, 3].includes(terrainAt(t.e, t.n)) ? .4 : 1.6) : 1),
     shock: u => K(u).shock,
-    onRoad, route,
+    // a crest between them hides b from a (sight, and with it aimed fire beyond 250 m)
+    ridge: (a, b) => { const h = elev(); return !!h && crestBetween(h, a, b, EYE[a.type] || 3, SHOWS[b.type] || 2.5); },
+    onRoad, route, pace,
   };
   window.__march = mover;
   return mover;
