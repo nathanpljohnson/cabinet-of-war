@@ -53,7 +53,7 @@
 - [ ] 6 Sim: ridges block sight (relief in `blocked()`), uphill slows a march. Small, in `src/battle.js`.
 - [ ] 7 Replay a battle account phase by phase (atlas `setPhase`): Claude gives positions per phase; "See the ground as described" steps through them.
 - [x] 8 Atlas-style marching in the table battle: lines keep formation, columns follow roads, contact push.
-- [ ] 9 Atlas camera (orbit) + clock rail (←/→, Play) for both the replay and the commanded battle; in the commanded battle a rail step = one phase of orders then moves.
+- [x] 9 Atlas camera (orbit) + clock rail (←/→, Play) for both the replay and the commanded battle; in the commanded battle a rail step = one phase of orders then moves. (Replay half waits on 7.)
 
 Decisions (Nathan, 4 Nov): library + live fallback; replay accounts; atlas marching; atlas camera + clock rail everywhere.
 - [ ] Verify: pytest, mock reply per ground kind, screenshots of 3+ grounds, lightCheck, sound off, separate profile.
@@ -78,4 +78,10 @@ Decisions (Nathan, 4 Nov): library + live fallback; replay accounts; atlas march
 - Roads for every library ground: today's country roads from Overture Maps (primary, secondary, tertiary, unclassified; left out inside today's towns), labelled as such; Leuthen keeps the atlas's period roads; live fields get illustrative tracks. Painted on the field.
 - 3D: columns snake along their own track; light infantry in open order (2 ranks, loose); light horse looser.
 - Tests: wheel pivot, separation, route fords and roads, troop types in replies (33 pass). In-page check on Mollwitz: line kept facing over a 500 m advance, second line wheeled 40° on its right flank, column marched 3.8 km, no overlaps.
+
+## Zig-zag fix and stage 9 (5 Nov)
+- Zig-zag: `autoTurn` now goes through `w3d/march.js`: a line keeps its front for any enemy within 60°, wheels for one on its flank or rear, else dresses on the battalions beside it; horse turn only beyond 30°. Mollwitz scenario: first-line facing spread 26–47° → 10–12° (1° by phase 5).
+- Camera: three.js OrbitControls (damping .08, as battle-atlas) on the field, kept in step with `cam` so arrival, the ride over the field, WASD/↑↓ and scripts still drive it; touch gets pinch and two-finger pan.
+- Clock rail above the order bar: a stop at the deployment and after every phase (kept in `draft.battleTrack` with the battle it belongs to), ◀ ▶| Play and ←/→. Looking back draws the field as it stood, read-only. From the last stop a step runs the next phase (orders, then moves); Play runs on until paused or the battle ends. Stops are generic `{phase, units}` so stage 7 can feed account phases.
+- Checked in page: → runs a phase; the dashed next stop runs one; ← draws the deployment; → → returns without running; left-drag turns, right-drag pans; no page errors.
 

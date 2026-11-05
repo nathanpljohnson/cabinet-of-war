@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { makeNoise, rngFrom, smooth, lerp, stdMat, tint, merge, place, box, setWindTime, disposeTree } from './lib.js';
 import { axis, buildTerrain } from './terrain.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { buildForest, AUTUMN, FIRS } from './nature.js';
 import * as P from './props.js';
 import { infantryFrames, cavalryFrames, tinyFrames, tinyCavalryFrames, FramePool } from './figures.js';
@@ -251,6 +252,13 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   const tmpM = new THREE.Matrix4(), tq = new THREE.Quaternion(), tv = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1), up = new THREE.Vector3(0, 1, 0);
   let shadowView = '', shadowTick = 0;
   const keys = new Set(); let hover = null, inspected = null, prevBattleOn = false, lastCardKey = '', readOnly = false; // readOnly: an account of a battle he was not at
+  // the camera (as in battle-atlas): an orbit with damping, left-drag to turn, right- or shift-drag to pan, wheel or pinch to
+  // zoom. cam {tx, tz, dist, yaw, pitch} stays the shared state: anything that sets it (arrival, the ride, keys) moves the orbit.
+  const controls = new OrbitControls(camera, renderer.domElement);
+  Object.assign(controls, { enabled: false, enableDamping: true, dampingFactor: .08, screenSpacePanning: false, minDistance: 50, maxDistance: 6000, minPolarAngle: Math.PI / 2 - 1.45, maxPolarAngle: Math.PI / 2 - .12, zoomSpeed: 1.2 });
+  controls.addEventListener('start', () => { cam.tw = null; });
+  let camSig = '';
+  const sigOf = () => [cam.tx, cam.tz, cam.dist, cam.yaw, cam.pitch].map(v => v.toFixed(3)).join();
   function placeCamera() {
     const ty = hAt(cam.tx, cam.tz), o = tv.set(Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch));
     camera.position.set(cam.tx + o.x * cam.dist, ty + o.y * cam.dist, cam.tz + o.z * cam.dist);
@@ -277,7 +285,7 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     o.x = x - dx * rem; o.z = z - dz * rem; o.dx = dx; o.dz = dz; return o;
   }
   function draw(dt, t) {
-    const bd = state.battleDemo, us = bd.units, k = 1 - Math.exp(-dt * 5), figScale = 1; // true scale at every distance, so men, guns and houses keep their proportions
+    const bd = state.battleDemo, us = rail.units() || bd.units, k = 1 - Math.exp(-dt * 5), figScale = 1; // true scale at every distance, so men, guns and houses keep their proportions
     for (const s of 'AB') for (const k in pools[s]) pools[s][k].begin(); guns.begin();
     const shown = new Set();
     if (aftermathOn) { const k = JSON.stringify(bd.aftermath || {}); if (k !== afterKey) { afterKey = k; buildAftermath(); } }
@@ -350,6 +358,7 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
       v.lab.style.display = ''; v.lab.style.left = (tv.x * W2 + W2) + 'px'; v.lab.style.top = (-tv.y * H2 + H2) + 'px';
     }
     for (const id in vis) if (!shown.has(id)) { vis[id].lab.style.display = 'none'; if (aftermathOn) { vis[id].plate.visible = false; vis[id].ghost.visible = false; if (vis[id].flag) vis[id].flag.visible = false; } }
+    arrowG.visible = !aftermathOn && !rail.viewing();
     const ak = JSON.stringify(armyOrders()) + Math.round(figScale * 4) + (BS.running ? Math.floor(t * 2) : '');
     if (ak !== arrowKey) { arrowKey = ak; buildArrows(figScale); }
     renderCard();
@@ -359,7 +368,8 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   function renderCard() {
     const bd = state.battleDemo, id = inspected || [...selUnits][0], u = id && unitById(id), mA = armyMorale('A'), mB = armyMorale('B'), seen = bd.units.some(x => x.side === 'B' && x.vis);
     const k = [id, u && Math.round(u.men), u && u.st, u && u.form, u && Math.round(u.mor), selUnits.size, BS.phase, BS.running, BS.result, JSON.stringify(u && armyOrders()[u.id] || ''), seen, Math.round(mA * 100), Math.round(mB * 20)].join('|');
-    if (k + readOnly === lastCardKey) return; lastCardKey = k + readOnly; card.hidden = false;
+    if (k + readOnly + rail.at() + rail.viewing() === lastCardKey) return; lastCardKey = k + readOnly + rail.at() + rail.viewing(); card.hidden = false;
+    if (rail.viewing() && !aftermathOn) { const p = rail.at(); card.innerHTML = '<h3>' + (p ? 'After ' + p * 15 + ' minutes' : 'The deployment') + '</h3><div class="m">The field as it stood ' + (p ? 'at the end of phase ' + p : 'before the first order') + '. Nothing can be ordered from here; <kbd>→</kbd> or ▶| goes on, and from the last phase runs the next.</div>'; return; }
     if (aftermathOn) { const af = bd.aftermath || {}; card.innerHTML = '<h3>The field, afterwards</h3><div class="m">' + (af.held_by === 'B' ? 'The enemy holds the ground; your officers ride over it under a flag of truce.' : 'Your army holds the ground.') + (af.date ? ' ' + new Date(af.date + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) + '.' : '') + '</div>' + (af.note ? '<div class="m">' + af.note.replace(/[<>&]/g, '') + '</div>' : '') + '<div class="m">WASD or right-drag to ride over it · drag to look · wheel to rise.</div><div class="row"><button data-b="leave">Ride back</button></div>'; return; }
     if (readOnly) { card.innerHTML = '<h3>The ground, as your staff describe it</h3><div class="m">You were not there. The positions are those given in the account; click a formation to read what is known of it.</div>' + (u ? '<h3>' + shortName(u) + '</h3><div class="m">' + ({ inf: 'Infantry', cav: 'Cavalry', art: 'Artillery' }[u.type]) + ' · ' + (u.form || 'line') + ' · about ' + Math.round(u.men / 50) * 50 + ' men · ' + moraleWord(u) + '</div>' : '') + '<div class="row"><button data-b="leave">Put the account down</button></div>'; return; }
     const h = []; const pct = x => Math.round(x * 100);
@@ -380,13 +390,72 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   }
   card.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const a = b.dataset.b; if (a === 'run') runPhase(1); else if (a === 'withdraw') withdrawBattle(); else if (a === 'again') newBattle(); else if (a === 'army') window.__w3d.act('notebook'); else if (a === 'sheet') window.__w3d.act('orders'); else if (a === 'leave') window.__w3d.act('room'); else if (a === 'after') window.__w3d.act('aftermathTable'); });
 
+  /* ---------- the clock rail (battle-atlas): a stop at the start and after every phase; ◀ ▶ or ← → step back and on,
+     Play runs on. Looking back shows the field as it stood, read-only. In the battle he commands, a step past the last stop
+     is the next phase: his orders, then the moves. Stops are kept in the draft with the battle they belong to. ---------- */
+  const rail = (() => {
+    const el = document.createElement('div'); el.className = 'w3d-rail'; el.hidden = true; el.setAttribute('role', 'group'); el.setAttribute('aria-label', 'The battle, phase by phase');
+    document.getElementById('w3d').append(el);
+    const KEEP = ['id', 'side', 'type', 'kind', 'name', 'strength', 'e', 'n', 'facing', 'form', 'men', 'max', 'mor', 'coh', 'ammo', 'st', 'vis', 'seenE', 'seenN', 'seenT', 'guns', 'gunLost', 'mode', 'w', 'd'];
+    const snap = () => ({ phase: BS.phase, units: state.battleDemo.units.map(u => Object.fromEntries(KEEP.filter(k => u[k] !== undefined).map(k => [k, u[k]]))) });
+    let view = null, playing = false, wait = 0, shown = false, domKey = '', recAt = 0;
+    const track = () => { const d = draft, id = state.battleDemo.id + '|' + (typeof state.battleDemo.ground === 'string' ? state.battleDemo.ground : JSON.stringify(state.battleDemo.ground || ''));
+      if (!d.battleTrack || d.battleTrack.id !== id) d.battleTrack = { id, stops: [] }; return d.battleTrack; };
+    const record = () => {
+      if (BS.running) return; const T = track(), last = T.stops[T.stops.length - 1];
+      if (!last || BS.phase === 0 || last.phase > BS.phase) { const fresh = !last || last.phase !== 0 || T.stops.length > 1; T.stops = [snap()]; view = null; if (fresh) saveDraft(); }
+      else if (last.phase < BS.phase) { T.stops.push(snap()); saveDraft(); }
+    };
+    const canRun = () => !readOnly && !aftermathOn && !BS.result && !BS.running;
+    const stops = () => track().stops;
+    function step(d) {
+      const n = stops().length, cur = view == null ? n - 1 : view;
+      if (d < 0) { view = Math.max(0, cur - 1); if (view >= n - 1) view = null; }
+      else if (view != null) { view = cur + 1 >= n - 1 ? null : cur + 1; }
+      else if (canRun()) runPhase(1);
+      lastCardKey = ''; arrowKey = '';
+    }
+    function render() {
+      const S = stops(), n = S.length, cur = view == null ? n - 1 : view, more = canRun() || BS.running;
+      const k = [n, view, playing, BS.phase, BS.running, BS.result, readOnly, aftermathOn].join('|'); if (k === domKey) return; domKey = k;
+      const at = view != null ? S[view].phase : BS.phase, slots = n + (more ? 1 : 0);
+      const dot = (i, cls, lab) => '<button class="stop ' + cls + '" data-i="' + i + '" style="left:' + (slots > 1 ? i / (slots - 1) * 100 : 50) + '%" aria-label="' + lab + '"><span></span></button>';
+      el.innerHTML = '<button class="rb" data-a="prev" aria-label="Back one phase">◀</button>'
+        + '<button class="rb play" data-a="play" aria-label="' + (playing ? 'Pause' : 'Play') + '">' + (playing ? '❚❚' : '▶') + '</button>'
+        + '<button class="rb" data-a="next" aria-label="' + (view == null && more ? 'Run the next 15 minutes' : 'On one phase') + '">▶|</button>'
+        + '<div class="track"><i style="width:' + (slots > 1 ? cur / (slots - 1) * 100 : 0) + '%"></i>'
+        + S.map((st, i) => dot(i, (i === cur ? 'on' : '') + (i < cur ? ' past' : ''), st.phase ? 'Phase ' + st.phase + ', ' + st.phase * 15 + ' minutes' : 'The deployment')).join('')
+        + (more ? dot(n, 'next' + (BS.running ? ' running' : ''), 'The next 15 minutes') : '') + '</div>'
+        + '<div class="lab">' + (BS.running && view == null ? 'Phase ' + BS.phase + ' · on the march…' : (at ? 'Phase ' + at + ' · ' + Math.floor(at * 15 / 60) + ':' + String(at * 15 % 60).padStart(2, '0') : 'The deployment') + (view != null ? ' · looking back' : BS.result ? ' · the end' : '')) + '</div>';
+    }
+    el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; e.stopPropagation();
+      if (b.dataset.a === 'prev') { stop(); step(-1); } else if (b.dataset.a === 'next') { stop(); step(1); } else if (b.dataset.a === 'play') { playing = !playing; wait = 1e9; }
+      else if (b.dataset.i != null) { stop(); const i = +b.dataset.i, n = stops().length; if (i >= n) step(1); else { view = i >= n - 1 ? null : i; lastCardKey = ''; arrowKey = ''; } }
+      domKey = ''; });
+    function stop() { playing = false; domKey = ''; }
+    return {
+      step, stop, show(b) { shown = b; domKey = ''; },
+      viewing: () => view != null, at: () => view != null ? stops()[view].phase : BS.phase,
+      units: () => view != null ? stops()[view].units : null,
+      tick(dt) {
+        // a stop as soon as a phase ends; while still deploying, the first stop follows the deployment (once a second)
+        const S = stops(), last = S[S.length - 1], now = performance.now();
+        if (!BS.running && (!last || last.phase !== BS.phase || (BS.phase === 0 && now - recAt > 1000))) { record(); recAt = now; }
+        if (playing) { if (BS.running) wait = 0; else if ((wait += dt) > 1.8) { wait = 0; if (view != null || canRun()) step(1); else stop(); } }
+        el.hidden = !shown || (stops().length < 2 && !canRun() && !BS.running);
+        if (!el.hidden) render();
+      },
+      remove() { el.remove(); },
+    };
+  })();
+
   /* ---------- input ---------- */
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
   const setRay = e => { const r = renderer.domElement.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); ray.setFromCamera(ndc, camera); };
   const pickUnit = e => { setRay(e); const plates = Object.values(vis).filter(v => v.plate.visible).map(v => v.plate); const h = ray.intersectObjects(plates, false)[0]; return h ? h.object.userData.id : null; };
   const pickGround = e => { setRay(e); const h = ray.intersectObject(T.mesh, false)[0]; return h ? h.point : null; };
   function click(e) {
-    if (readOnly) { inspected = pickUnit(e); lastCardKey = ''; return; }
+    if (readOnly || rail.viewing()) { inspected = pickUnit(e); lastCardKey = ''; return; }
     if (armyTool) { const p = pickGround(e); if (p) armyMapClick({ latlng: L.latLng(...lo(state.battleDemo.center, p.x, -p.z)) }); return; }
     const id = pickUnit(e);
     if (id) { const u = unitById(id); if (u.side === 'A') { inspected = null; selectUnits([id], e.shiftKey || e.metaKey); } else { inspected = id; } }
@@ -397,8 +466,8 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   return {
     camera,
     setShadows: n => { lights.setShadows(n); },
-    enter() { prevBattleOn = battleOn; if (!battleOn) showBattle(true); initSim(); resize(); placeCamera(); renderCard(); card.hidden = false; labels.hidden = false; },
-    leave() { card.hidden = true; labels.hidden = true; if (armyTool) setArmyTool(armyTool); if (!prevBattleOn) showBattle(false); },
+    enter() { prevBattleOn = battleOn; if (!battleOn) showBattle(true); initSim(); resize(); placeCamera(); camSig = ''; controls.enabled = true; renderCard(); card.hidden = false; labels.hidden = false; rail.show(true); },
+    leave() { controls.enabled = false; rail.show(false); rail.stop(); card.hidden = true; labels.hidden = true; if (armyTool) setArmyTool(armyTool); if (!prevBattleOn) showBattle(false); },
     refresh() { lastCardKey = ''; arrowKey = ''; },
     setReadOnly(b) { readOnly = b; inspected = null; lastCardKey = ''; if (b) selectUnits([]); },
     // ride over the ground the day after: the dead, the guns, the burial parties; the camera low, among them
@@ -410,10 +479,17 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
       if (cam.tw) { const w = cam.tw; w.t = Math.min(1, w.t + dt / 1.4); const e = 1 - Math.pow(1 - w.t, 3); cam.dist = w.d0 + (w.d1 - w.d0) * e; cam.pitch = w.p0 + (w.p1 - w.p0) * e; if (w.t >= 1) cam.tw = null; }
       const sp = cam.dist * .7 * dt, s = Math.sin(cam.yaw), c = Math.cos(cam.yaw);
       if (keys.has('KeyW') || keys.has('ArrowUp')) { cam.tx -= s * sp; cam.tz -= c * sp; } if (keys.has('KeyS') || keys.has('ArrowDown')) { cam.tx += s * sp; cam.tz += c * sp; }
-      if (keys.has('KeyA') || keys.has('ArrowLeft')) { cam.tx -= c * sp; cam.tz += s * sp; } if (keys.has('KeyD') || keys.has('ArrowRight')) { cam.tx += c * sp; cam.tz -= s * sp; }
+      if (keys.has('KeyA')) { cam.tx -= c * sp; cam.tz += s * sp; } if (keys.has('KeyD')) { cam.tx += c * sp; cam.tz -= s * sp; }
       if (keys.has('KeyQ')) cam.yaw += dt * 1.1; if (keys.has('KeyE')) cam.yaw -= dt * 1.1;
-      cam.tx = Math.max(-W / 2, Math.min(W / 2, cam.tx)); cam.tz = Math.max(-H / 2, Math.min(H / 2, cam.tz));
-      placeCamera(); draw(dt, t);
+      if (sigOf() !== camSig) { // set from outside: put the orbit there
+        cam.tx = Math.max(-W / 2, Math.min(W / 2, cam.tx)); cam.tz = Math.max(-H / 2, Math.min(H / 2, cam.tz)); placeCamera(); controls.target.set(cam.tx, hAt(cam.tx, cam.tz), cam.tz); controls.update(); }
+      else if (controls.enabled) { // the orbit moved (or glides on): read it back, keep it over the field and above the ground
+        controls.update(); const tg = controls.target, ox = camera.position.x - tg.x, oy = camera.position.y - tg.y, oz = camera.position.z - tg.z;
+        cam.dist = Math.hypot(ox, oy, oz); cam.pitch = Math.asin(Math.max(-1, Math.min(1, oy / cam.dist))); cam.yaw = Math.atan2(ox, oz);
+        cam.tx = Math.max(-W / 2, Math.min(W / 2, tg.x)); cam.tz = Math.max(-H / 2, Math.min(H / 2, tg.z)); placeCamera(); controls.target.set(cam.tx, hAt(cam.tx, cam.tz), cam.tz); }
+      else placeCamera();
+      camSig = sigOf();
+      rail.tick(dt); draw(dt, t);
       // the shadow map (thousands of figures) is redrawn when the view moves and a few times a second while men move
       const ck = [cam.tx, cam.tz, cam.dist, cam.yaw, cam.pitch].map(v => Math.round(v * 10)).join();
       if (ck !== shadowView || ++shadowTick % (BS.running ? 2 : 6) === 0) { shadowView = ck; renderer.shadowMap.needsUpdate = true; }
@@ -421,7 +497,8 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     },
     key(e) {
       const k = e.code;
-      if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(k)) { keys.add(k); return true; }
+      if (k === 'ArrowLeft' || k === 'ArrowRight') { rail.stop(); rail.step(k === 'ArrowLeft' ? -1 : 1); return true; }
+      if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'ArrowUp', 'ArrowDown'].includes(k)) { keys.add(k); return true; }
       if (readOnly && ['KeyM', 'KeyF', 'KeyC', 'KeyH', 'Enter'].includes(k)) return true;
       if (k === 'KeyM') { setArmyTool('move'); return true; } if (k === 'KeyF') { setArmyTool('face'); return true; }
       if (k === 'KeyC') { armyForm(); return true; } if (k === 'KeyH') { armyHold(); return true; }
@@ -435,18 +512,14 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     keyUp(e) { keys.delete(e.code); },
     pointerDown() { },
     pointerMove(e, drag) {
-      if (drag && (Math.abs(e.movementX) + Math.abs(e.movementY) > 0) && (drag.moved > 4 || Math.abs(e.movementX) + Math.abs(e.movementY) > 4)) {
-        if (drag.b === 2 || e.shiftKey) { const sp = cam.dist / 900, s = Math.sin(cam.yaw), c = Math.cos(cam.yaw); cam.tx += (-c * e.movementX - s * e.movementY) * sp; cam.tz += (s * e.movementX - c * e.movementY) * sp; }
-        else { cam.yaw -= e.movementX * .005; cam.pitch = Math.min(1.45, Math.max(.12, cam.pitch + e.movementY * .004)); }
-        return;
-      }
-      if (!drag) { const id = pickUnit(e); if (id !== hover) { hover = id; renderer.domElement.style.cursor = armyTool ? 'crosshair' : id ? 'pointer' : 'default'; } else if (armyTool) renderer.domElement.style.cursor = 'crosshair'; }
+      if (drag) return; // the orbit turns and pans
+      const id = pickUnit(e); if (id !== hover) { hover = id; renderer.domElement.style.cursor = armyTool ? 'crosshair' : id ? 'pointer' : 'default'; } else if (armyTool) renderer.domElement.style.cursor = 'crosshair';
     },
     pointerUp(e, drag) { if (drag && drag.moved < 6 && drag.b === 0) click(e); },
-    wheel(e) { if (e.deltaY > 0 && cam.dist >= 5900 && onRise) { onRise(cam.tx, cam.tz); return; } cam.tw = null; cam.dist = Math.min(6000, Math.max(50, cam.dist * (1 + Math.sign(e.deltaY) * .12))); },
-    debug: { cam, vis, pools, guns, get inspected() { return inspected; }, ground: G, exag: EXAG },
+    wheel(e) { if (e.deltaY > 0 && cam.dist >= 5900 && onRise) onRise(cam.tx, cam.tz); }, // the orbit zooms
+    debug: { cam, vis, pools, guns, get inspected() { return inspected; }, ground: G, exag: EXAG, controls, rail },
     // the field's own geometry and painted textures; materials are shared with the rest of the world (nature.js, props.js)
-    dispose() { labels.remove(); card.remove(); scene.traverse(o => { if (o.geometry) o.geometry.dispose(); }); groundTex.dispose(); grainTex.dispose(); },
+    dispose() { controls.dispose(); rail.remove(); labels.remove(); card.remove(); scene.traverse(o => { if (o.geometry) o.geometry.dispose(); }); groundTex.dispose(); grainTex.dispose(); },
   };
   function resize() { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
 }
