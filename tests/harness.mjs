@@ -8,11 +8,11 @@ const html = read('cabinet-of-war.html'), m = html.match(/id="initial-state">([\
 const opening = JSON.parse(m[1].replace(/\\u003c/g, '<')), almanac = JSON.parse(read('w3d/almanac.json')), contract = read('w3d/contract.md');
 const out = { mocks: {} };
 const reply = (state, changes) => ({ kind: 'turn', schemaVersion: 3, campaignId: state.campaignId, turn: state.turn + 1, parentTurn: state.turn, seal: sealOf(state), changes: JSON.parse(JSON.stringify(changes)) });
-for (const name of ['answers', 'winter', 'dismissed', 'backwards', 'contradiction', 'living', 'ending']) {
+for (const name of ['answers', 'winter', 'dismissed', 'backwards', 'contradiction', 'living', 'ending', 'account']) {
   const mk = JSON.parse(read('w3d/mocks/' + name + '.json')), r = reply(opening, mk.changes);
   const chk = checkReply(opening, r, { orderRefs: ['T0-1', 'T0-2', 'T0-3'], fortune: rollFortune(opening.campaignId, 0), seal: sealOf(opening) });
   const res = { errors: chk.errors, warns: chk.warns, fixes: chk.fixes };
-  if (!chk.errors.length) { const { next } = mergeTurn(opening, r); res.next = { turn: next.turn, date: next.date, reports: next.reports.length, canon: next.hidden.canon.length, cast: next.cast.length, threads: next.hidden.threads.length, decision: next.decision, world: next.world, ended: next.ended || null, kessler: next.cast.find(c => c.id === 'kessler') || null, thread: next.hidden.threads.find(t => t.id === 'pol_prussian_invasion'), standingOrders: !!next.hidden.standingOrders, forces: next.forces.length, enemy: (next.battleDemo || {}).enemy || null, urgent: (next.reports.find(x => x.urgent) || {}).urgent || null, gazette: next.gazette, household: next.household, aftermath: (next.battleDemo || {}).aftermath || null, purse: next.hidden.purse || null };
+  if (!chk.errors.length) { const { next } = mergeTurn(opening, r); res.next = { turn: next.turn, date: next.date, reports: next.reports.length, canon: next.hidden.canon.length, cast: next.cast.length, threads: next.hidden.threads.length, decision: next.decision, world: next.world, ended: next.ended || null, kessler: next.cast.find(c => c.id === 'kessler') || null, thread: next.hidden.threads.find(t => t.id === 'pol_prussian_invasion'), standingOrders: !!next.hidden.standingOrders, forces: next.forces.length, enemy: (next.battleDemo || {}).enemy || null, urgent: (next.reports.find(x => x.urgent) || {}).urgent || null, gazette: next.gazette, household: next.household, aftermath: (next.battleDemo || {}).aftermath || null, phases: ((next.battleDemo || {}).phases || []).map(p => [p.t, (p.units || []).length, (p.arrows || []).length]), ground: (next.battleDemo || {}).ground, purse: next.hidden.purse || null };
     res.continuity = checkContinuity(opening, next); }
   out.mocks[name] = res;
 }
@@ -73,4 +73,7 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
     route: { pts: route, wet: cellsOf(route).filter(([c, r]) => river(c, r)).length, ford: cellsOf(route).some(([c, r]) => c === 10 && r === 8) },
     road: { pts: road, onRoad: cellsOf(road).filter(([c, r]) => roadCells.has(r * 20 + c)).length },
     types: ['gd', 'lt', 'lc', 'inf', 'cav', 'art'].map(t => normalizeUnit({ type: t })), troops: Object.keys(TROOPS), north: bearing(0, 1), east: bearing(1, 0) }; }
+// a bad account: unknown ids, forms and losses, a broken arrow, a phase with neither time nor label
+{ const r = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], battleDemo: { phases: [{ t: '08:00', label: 'x', units: [{ id: 'A1', e: 1, n: 2, form: 'square' }, { id: 'Z9', e: 0, n: 0 }, { id: 'B1', losses: 'some' }], arrows: [{ side: 'A', kind: 'feint', p: [[0, 0], [1, 1]] }, { side: 'C', p: [[0, 0]] }] }, { text: 'nothing' }] }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } });
+  const c = checkReply(opening, r, {}); out.badAccount = { fixes: c.fixes, phases: r.changes.battleDemo.phases, packet: liveState({ ...opening, battleDemo: { ...opening.battleDemo, phases: r.changes.battleDemo.phases } }).battleDemo.phases }; }
 console.log(JSON.stringify(out));

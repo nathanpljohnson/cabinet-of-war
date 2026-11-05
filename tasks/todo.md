@@ -51,7 +51,7 @@
 - [x] 4 `battleDemo.ground`: Claude picks a library id, or gives `ground: {kind}` (river crossing, vineyards, marsh, wooded hills, open plain) for a field not in the library; the page then fetches real relief for `center` at runtime and lays land cover from the kind. Reply check warns on unknown ids. Contract + `replyFormat()` + tests together.
 - [x] 5 Page: swap `TER` in place on load (sim, desk map and 3D see the same ground); battle3d uses real relief instead of noise; vineyards/marsh get their own paint and props.
 - [ ] 6 Sim: ridges block sight (relief in `blocked()`), uphill slows a march. Small, in `src/battle.js`.
-- [ ] 7 Replay a battle account phase by phase (atlas `setPhase`): Claude gives positions per phase; "See the ground as described" steps through them.
+- [x] 7 Replay a battle account phase by phase (atlas `setPhase`): Claude gives positions per phase; "See the ground as described" steps through them.
 - [x] 8 Atlas-style marching in the table battle: lines keep formation, columns follow roads, contact push.
 - [x] 9 Atlas camera (orbit) + clock rail (←/→, Play) for both the replay and the commanded battle; in the commanded battle a rail step = one phase of orders then moves. (Replay half waits on 7.)
 
@@ -84,4 +84,9 @@ Decisions (Nathan, 4 Nov): library + live fallback; replay accounts; atlas march
 - Camera: three.js OrbitControls (damping .08, as battle-atlas) on the field, kept in step with `cam` so arrival, the ride over the field, WASD/↑↓ and scripts still drive it; touch gets pinch and two-finger pan.
 - Clock rail above the order bar: a stop at the deployment and after every phase (kept in `draft.battleTrack` with the battle it belongs to), ◀ ▶| Play and ←/→. Looking back draws the field as it stood, read-only. From the last stop a step runs the next phase (orders, then moves); Play runs on until paused or the battle ends. Stops are generic `{phase, units}` so stage 7 can feed account phases.
 - Checked in page: → runs a phase; the dashed next stop runs one; ← draws the deployment; → → returns without running; left-drag turns, right-drag pans; no page errors.
+
+## Stage 7 (5 Nov): an account, phase by phase
+- `battleDemo.phases`: [{t, label, text, units: [{id, e, n, facing, form: line|column|firing|routing|camp, losses}], arrows: [{side, kind: move|charge|retreat|fire, p}]}]. Units carry forward from `battleDemo.units` (before the first phase); losses run on. `checkReply` leaves out unknown ids, bad arrows and empty phases, and reads unknown forms as line and unknown losses as heavy (fixes); the packet carries only the phase index. Contract and reply format say so.
+- Page: in the read-only field ("See the ground as described"), the rail's stops are the account's phases. Moving between them, lines march straight in formation and columns by their route (roads preferred) over ~3 s, firing lines smoke, routed units run, and the phase's arrows lie on the ground as ribbons. The card carries the phase's time, label and text. Play steps every 4 s.
+- Mock: `w3d/mocks/account.json`, a test account on the Chotusitz ground (illustrative, not the history). Tests: the mock is accepted clean; a bad account is fixed (5 fixes).
 

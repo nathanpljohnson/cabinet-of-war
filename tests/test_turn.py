@@ -14,7 +14,7 @@ def run():
     return json.loads(out.stdout)
 
 
-@pytest.mark.parametrize("name", ["answers", "winter", "dismissed", "living", "ending"])
+@pytest.mark.parametrize("name", ["answers", "winter", "dismissed", "living", "ending", "account"])
 def test_good_mocks_are_accepted(run, name):
     m = run["mocks"][name]
     assert m["errors"] == []
@@ -23,8 +23,9 @@ def test_good_mocks_are_accepted(run, name):
 
 
 def test_good_mocks_have_no_warnings(run):
-    for name in ["answers", "winter", "dismissed", "living", "ending"]:
+    for name in ["answers", "winter", "dismissed", "living", "ending", "account"]:
         assert run["mocks"][name]["warns"] == [], name
+    assert run["mocks"]["account"]["fixes"] == []
 
 
 def test_time_cannot_run_backwards(run):
@@ -232,3 +233,13 @@ def test_troop_types_in_replies(run):
     t = run["grounds"]["troops"]
     assert [(u.get("type"), u.get("kind")) for u in t["units"]] == [("cav", "lc"), ("inf", None), (None, None)]
     assert any("pandour" in f for f in t["fixes"])
+
+
+def test_an_account_phase_by_phase(run):
+    n = run["mocks"]["account"]["next"]
+    assert n["ground"] == "chotusitz" and [p[0] for p in n["phases"]] == ["07:30", "08:30", "09:30", "10:30", "11:30"]
+    b = run["badAccount"]
+    assert len(b["phases"]) == 1 and [u["id"] for u in b["phases"][0]["units"]] == ["A1", "B1"]
+    assert b["phases"][0]["units"][0]["form"] == "line" and b["phases"][0]["units"][1]["losses"] == "heavy"
+    assert b["phases"][0]["arrows"] == [{"side": "A", "kind": "move", "p": [[0, 0], [1, 1]]}]
+    assert len(b["fixes"]) == 5 and b["packet"] == "08:00 x"

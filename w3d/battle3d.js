@@ -201,6 +201,27 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
 
   // order arrows and destination ghosts
   const arrowG = new THREE.Group(); scene.add(arrowG); let arrowKey = '';
+  const accG = new THREE.Group(); scene.add(accG); let accArrowKey = '';
+  const ARROW = { move: [32, 70, 80, false], charge: [46, 92, 100, false], retreat: [26, 60, 70, true], fire: [12, 34, 40, true] }; // width, head width, head length (m), dashed
+  function buildAccountArrows(list) {
+    for (const c of [...accG.children]) { c.geometry.dispose(); c.material.dispose(); accG.remove(c); }
+    for (const a of list || []) {
+      const [w, hw, hl, dash] = ARROW[a.kind] || ARROW.move, P = a.p.map(([e, n]) => [e, -n]);
+      const cum = [0]; for (let i = 1; i < P.length; i++) cum.push(cum[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]));
+      const L = cum[cum.length - 1]; if (L < 20) continue;
+      const at = s => { let i = 1; while (i < cum.length - 1 && cum[i] < s) i++; const A = P[i - 1], B = P[i], g = (cum[i] - cum[i - 1]) || 1, q = Math.min(1, Math.max(0, (s - cum[i - 1]) / g)); return [A[0] + (B[0] - A[0]) * q, A[1] + (B[1] - A[1]) * q, (B[0] - A[0]) / g, (B[1] - A[1]) / g]; };
+      const pos = [], body = Math.max(0, L - hl), step = 12, lift = 2.2;
+      for (let s = 0; s < body; s += step) { const s2 = Math.min(body, s + step); if (dash && Math.floor(s / 36) % 2) continue;
+        const [x1, z1, dx1, dz1] = at(s), [x2, z2, dx2, dz2] = at(s2), h = w / 2;
+        const a1 = [x1 - dz1 * h, z1 + dx1 * h], b1 = [x1 + dz1 * h, z1 - dx1 * h], a2 = [x2 - dz2 * h, z2 + dx2 * h], b2 = [x2 + dz2 * h, z2 - dx2 * h], y = q => hAt(q[0], q[1]) + lift;
+        pos.push(a1[0], y(a1), a1[1], b1[0], y(b1), b1[1], a2[0], y(a2), a2[1], b1[0], y(b1), b1[1], b2[0], y(b2), b2[1], a2[0], y(a2), a2[1]); }
+      { const [x, z, dx, dz] = at(body), [tx, tz] = at(L), l = [x - dz * hw / 2, z + dx * hw / 2], r = [x + dz * hw / 2, z - dx * hw / 2];
+        pos.push(l[0], hAt(l[0], l[1]) + lift, l[1], r[0], hAt(r[0], r[1]) + lift, r[1], tx, hAt(tx, tz) + lift, tz); }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      const m = new THREE.MeshBasicMaterial({ color: a.side === 'A' ? 0xf2e6c8 : 0x7fa6ee, transparent: true, opacity: a.kind === 'fire' ? .55 : .78, side: THREE.DoubleSide, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 });
+      const mesh = new THREE.Mesh(g, m); mesh.renderOrder = 3; accG.add(mesh);
+    }
+  }
   function buildArrows(scale) {
     while (arrowG.children.length) { const c = arrowG.children.pop(); c.geometry.dispose(); c.material.dispose(); }
     const ord = armyOrders();
@@ -285,7 +306,7 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     o.x = x - dx * rem; o.z = z - dz * rem; o.dx = dx; o.dz = dz; return o;
   }
   function draw(dt, t) {
-    const bd = state.battleDemo, us = rail.units() || bd.units, k = 1 - Math.exp(-dt * 5), figScale = 1; // true scale at every distance, so men, guns and houses keep their proportions
+    const bd = state.battleDemo, us = rail.units() || bd.units, replay = rail.replaying(), k = 1 - Math.exp(-dt * 5), figScale = 1; // true scale at every distance, so men, guns and houses keep their proportions
     for (const s of 'AB') for (const k in pools[s]) pools[s][k].begin(); guns.begin();
     const shown = new Set();
     if (aftermathOn) { const k = JSON.stringify(bd.aftermath || {}); if (k !== afterKey) { afterKey = k; buildAftermath(); } }
@@ -300,10 +321,26 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
         v.x = u.e; v.z = -u.n; v.f = u.facing; v.ammo = u.ammo; continue;
       }
       shown.add(u.id);
-      const tx = u.e, tz = -u.n, mv = Math.hypot(tx - v.x, tz - v.z); if (mv > 1.5 || u.moved) v.moveT = .6; v.moveT -= dt;
-      if (mv > 400) { v.x = tx; v.z = tz; } else { v.x += (tx - v.x) * k; v.z += (tz - v.z) * k; }
-      let df = ((u.facing - v.f + 540) % 360) - 180; v.f = (v.f + df * k + 360) % 360;
-      if (u.ammo < v.ammo - .5) { v.fireT = .7; v.fired = true; } v.ammo = u.ammo; v.fireT -= dt;
+      const tx = u.e, tz = -u.n, mv = Math.hypot(tx - v.x, tz - v.z);
+      if (replay) { // stepping through stops: each formation marches to its next place over ~3 s, a column by its route
+        const key = Math.round(tx) + ',' + Math.round(tz);
+        if (v.goal !== key) { v.goal = key; if (mv > 2) { const col = u.form === 'column', from = [v.x, -v.z];
+          const pts = col && window.__march ? [from, ...window.__march.route({ ...u, e: from[0], n: from[1], form: 'column' }, [u.e, u.n])] : [from, [u.e, u.n]];
+          const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+          v.mv = { pts, cum, L: cum[cum.length - 1], t: 0, dur: Math.min(3.2, 1.2 + cum[cum.length - 1] / 600), col, f0: v.f }; } }
+        if (v.mv) { const M = v.mv; M.t = Math.min(1, M.t + dt / M.dur); const e = M.t < .5 ? 2 * M.t * M.t : 1 - Math.pow(-2 * M.t + 2, 2) / 2, s = e * M.L;
+          let i = 1; while (i < M.cum.length - 1 && M.cum[i] < s) i++; const a = M.pts[i - 1], b = M.pts[i], seg = (M.cum[i] - M.cum[i - 1]) || 1, q = Math.min(1, (s - M.cum[i - 1]) / seg);
+          v.x = a[0] + (b[0] - a[0]) * q; v.z = -(a[1] + (b[1] - a[1]) * q); v.moveT = .6;
+          const head = M.col && M.t < .97 ? (Math.atan2(b[0] - a[0], b[1] - a[1]) * 180 / Math.PI + 360) % 360 : u.facing;
+          let df = ((head - v.f + 540) % 360) - 180; v.f = (v.f + df * Math.min(1, dt * 4) + 360) % 360; if (M.t >= 1) v.mv = null; }
+        else { v.x = tx; v.z = tz; let df = ((u.facing - v.f + 540) % 360) - 180; v.f = (v.f + df * k + 360) % 360; }
+        if (u.firing && Math.random() < dt * .7) { v.fireT = .7; v.fired = true; }
+      } else {
+        v.goal = null; v.mv = null; if (mv > 1.5 || u.moved) v.moveT = .6;
+        if (mv > 400) { v.x = tx; v.z = tz; } else { v.x += (tx - v.x) * k; v.z += (tz - v.z) * k; }
+        let df = ((u.facing - v.f + 540) % 360) - 180; v.f = (v.f + df * k + 360) % 360; }
+      v.moveT -= dt;
+      if (!replay && u.ammo < v.ammo - .5) { v.fireT = .7; v.fired = true; } v.ammo = u.ammo; v.fireT -= dt;
       const d = dims(u), f = v.f * Math.PI / 180, fx = Math.sin(f), fz = -Math.cos(f), rx = Math.cos(f), rz = Math.sin(f), cy = hAt(v.x, v.z);
       if (u.form === 'column') { const T = v.trail || (v.trail = [[v.x, v.z]]), last = T[T.length - 1];
         if (Math.hypot(v.x - last[0], v.z - last[1]) > 4) { T.push([v.x, v.z]); let L = 0; for (let i = T.length - 1; i > 0; i--) { L += Math.hypot(T[i][0] - T[i - 1][0], T[i][1] - T[i - 1][1]); if (L > d.d + 40) { T.splice(0, i - 1); break; } } } }
@@ -358,7 +395,8 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
       v.lab.style.display = ''; v.lab.style.left = (tv.x * W2 + W2) + 'px'; v.lab.style.top = (-tv.y * H2 + H2) + 'px';
     }
     for (const id in vis) if (!shown.has(id)) { vis[id].lab.style.display = 'none'; if (aftermathOn) { vis[id].plate.visible = false; vis[id].ghost.visible = false; if (vis[id].flag) vis[id].flag.visible = false; } }
-    arrowG.visible = !aftermathOn && !rail.viewing();
+    arrowG.visible = !aftermathOn && !rail.viewing() && !readOnly;
+    { const st = rail.stopShown(), key = st ? st.phase + '|' + JSON.stringify(st.arrows).length : ''; if (key !== accArrowKey) { accArrowKey = key; buildAccountArrows(st && st.arrows); } accG.visible = !!st && !aftermathOn; }
     const ak = JSON.stringify(armyOrders()) + Math.round(figScale * 4) + (BS.running ? Math.floor(t * 2) : '');
     if (ak !== arrowKey) { arrowKey = ak; buildArrows(figScale); }
     renderCard();
@@ -368,9 +406,14 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   function renderCard() {
     const bd = state.battleDemo, id = inspected || [...selUnits][0], u = id && unitById(id), mA = armyMorale('A'), mB = armyMorale('B'), seen = bd.units.some(x => x.side === 'B' && x.vis);
     const k = [id, u && Math.round(u.men), u && u.st, u && u.form, u && Math.round(u.mor), selUnits.size, BS.phase, BS.running, BS.result, JSON.stringify(u && armyOrders()[u.id] || ''), seen, Math.round(mA * 100), Math.round(mB * 20)].join('|');
-    if (k + readOnly + rail.at() + rail.viewing() === lastCardKey) return; lastCardKey = k + readOnly + rail.at() + rail.viewing(); card.hidden = false;
+    const ck = k + readOnly + rail.at() + rail.viewing() + inspected + (rail.stopShown() || {}).label; if (ck === lastCardKey) return; lastCardKey = ck; card.hidden = false;
     if (rail.viewing() && !aftermathOn) { const p = rail.at(); card.innerHTML = '<h3>' + (p ? 'After ' + p * 15 + ' minutes' : 'The deployment') + '</h3><div class="m">The field as it stood ' + (p ? 'at the end of phase ' + p : 'before the first order') + '. Nothing can be ordered from here; <kbd>→</kbd> or ▶| goes on, and from the last phase runs the next.</div>'; return; }
     if (aftermathOn) { const af = bd.aftermath || {}; card.innerHTML = '<h3>The field, afterwards</h3><div class="m">' + (af.held_by === 'B' ? 'The enemy holds the ground; your officers ride over it under a flag of truce.' : 'Your army holds the ground.') + (af.date ? ' ' + new Date(af.date + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) + '.' : '') + '</div>' + (af.note ? '<div class="m">' + af.note.replace(/[<>&]/g, '') + '</div>' : '') + '<div class="m">WASD or right-drag to ride over it · drag to look · wheel to rise.</div><div class="row"><button data-b="leave">Ride back</button></div>'; return; }
+    const sp = rail.stopShown();
+    if (sp) { const iu = inspected && (rail.units() || []).find(x => x.id === inspected);
+      card.innerHTML = '<h3>' + (sp.t ? sp.t + ' · ' : '') + sp.label + '</h3>' + (sp.text ? '<div class="m">' + sp.text + '</div>' : '')
+        + (iu ? '<h3 style="margin-top:10px">' + shortName(iu) + '</h3><div class="m">' + (iu.st === 'routing' ? 'In flight' : iu.st === 'gone' ? 'Broken' : iu.form === 'column' ? 'In column' : 'In line') + '</div>' : '')
+        + '<div class="m" style="margin-top:8px">You were not there; this is the ground as the account gives it. <kbd>←</kbd> <kbd>→</kbd> or Play step through the hours.</div>'; return; }
     if (readOnly) { card.innerHTML = '<h3>The ground, as your staff describe it</h3><div class="m">You were not there. The positions are those given in the account; click a formation to read what is known of it.</div>' + (u ? '<h3>' + shortName(u) + '</h3><div class="m">' + ({ inf: 'Infantry', cav: 'Cavalry', art: 'Artillery' }[u.type]) + ' · ' + (u.form || 'line') + ' · about ' + Math.round(u.men / 50) * 50 + ' men · ' + moraleWord(u) + '</div>' : '') + '<div class="row"><button data-b="leave">Put the account down</button></div>'; return; }
     const h = []; const pct = x => Math.round(x * 100);
     h.push('<div class="m">Phase ' + BS.phase + ' of ' + BS.max + ' · ' + BS.phase * 15 + ' min' + (BS.running ? ' · <b>running…</b>' : '') + '</div>');
@@ -407,9 +450,27 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
       else if (last.phase < BS.phase) { T.stops.push(snap()); saveDraft(); }
     };
     const canRun = () => !readOnly && !aftermathOn && !BS.result && !BS.running;
-    const stops = () => track().stops;
+    // an account he was not at, phase by phase (state.battleDemo.phases): each stop is the field after that phase's moves,
+    // the formations it names carried forward from where they stood before
+    let accKey = '', acc = null;
+    const LOSS = { light: .85, heavy: .55, destroyed: 0 };
+    const account = () => {
+      const bd = state.battleDemo; if (!readOnly || aftermathOn || !Array.isArray(bd.phases) || !bd.phases.length) return null;
+      const key = bd.id + '|' + JSON.stringify(bd.phases).length + '|' + bd.units.length; if (key === accKey) return acc; accKey = key; view = 0;
+      const cur = bd.units.map(u => Object.assign(Object.fromEntries(KEEP.filter(k => u[k] !== undefined).map(k => [k, u[k]])), { vis: true, st: 'ok', men: u.max || u.men, max: u.max || u.men }));
+      acc = bd.phases.map((ph, i) => {
+        for (const p of ph.units || []) { const u = cur.find(x => x.id === p.id); if (!u) continue;
+          for (const k of ['e', 'n', 'facing']) if (Number.isFinite(p[k])) u[k] = p[k];
+          if (p.form) { u.firing = p.form === 'firing'; u.st = p.form === 'routing' ? 'routing' : 'ok'; u.form = p.form === 'column' || p.form === 'camp' ? 'column' : 'line'; }
+          if (p.losses) { u.men = Math.round(u.max * LOSS[p.losses]); if (p.losses === 'destroyed') u.st = 'gone'; } }
+        return { phase: i, t: ph.t || '', label: ph.label || '', text: ph.text || '', arrows: ph.arrows || [], units: cur.map(u => ({ ...u })) };
+      });
+      return acc;
+    };
+    const stops = () => account() || track().stops;
     function step(d) {
       const n = stops().length, cur = view == null ? n - 1 : view;
+      if (account()) { view = Math.max(0, Math.min(n - 1, cur + d)); lastCardKey = ''; arrowKey = ''; return; }
       if (d < 0) { view = Math.max(0, cur - 1); if (view >= n - 1) view = null; }
       else if (view != null) { view = cur + 1 >= n - 1 ? null : cur + 1; }
       else if (canRun()) runPhase(1);
@@ -418,31 +479,35 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     function render() {
       const S = stops(), n = S.length, cur = view == null ? n - 1 : view, more = canRun() || BS.running;
       const k = [n, view, playing, BS.phase, BS.running, BS.result, readOnly, aftermathOn].join('|'); if (k === domKey) return; domKey = k;
-      const at = view != null ? S[view].phase : BS.phase, slots = n + (more ? 1 : 0);
+      const A = account(), at = view != null ? S[view].phase : BS.phase, slots = n + (more ? 1 : 0);
       const dot = (i, cls, lab) => '<button class="stop ' + cls + '" data-i="' + i + '" style="left:' + (slots > 1 ? i / (slots - 1) * 100 : 50) + '%" aria-label="' + lab + '"><span></span></button>';
       el.innerHTML = '<button class="rb" data-a="prev" aria-label="Back one phase">◀</button>'
         + '<button class="rb play" data-a="play" aria-label="' + (playing ? 'Pause' : 'Play') + '">' + (playing ? '❚❚' : '▶') + '</button>'
         + '<button class="rb" data-a="next" aria-label="' + (view == null && more ? 'Run the next 15 minutes' : 'On one phase') + '">▶|</button>'
         + '<div class="track"><i style="width:' + (slots > 1 ? cur / (slots - 1) * 100 : 0) + '%"></i>'
-        + S.map((st, i) => dot(i, (i === cur ? 'on' : '') + (i < cur ? ' past' : ''), st.phase ? 'Phase ' + st.phase + ', ' + st.phase * 15 + ' minutes' : 'The deployment')).join('')
+        + S.map((st, i) => dot(i, (i === cur ? 'on' : '') + (i < cur ? ' past' : ''), A ? st.t + ' ' + st.label : st.phase ? 'Phase ' + st.phase + ', ' + st.phase * 15 + ' minutes' : 'The deployment')).join('')
         + (more ? dot(n, 'next' + (BS.running ? ' running' : ''), 'The next 15 minutes') : '') + '</div>'
-        + '<div class="lab">' + (BS.running && view == null ? 'Phase ' + BS.phase + ' · on the march…' : (at ? 'Phase ' + at + ' · ' + Math.floor(at * 15 / 60) + ':' + String(at * 15 % 60).padStart(2, '0') : 'The deployment') + (view != null ? ' · looking back' : BS.result ? ' · the end' : '')) + '</div>';
+        + '<div class="lab">' + (A ? (S[cur].t ? S[cur].t + ' · ' : '') + S[cur].label : BS.running && view == null ? 'Phase ' + BS.phase + ' · on the march…' : (at ? 'Phase ' + at + ' · ' + Math.floor(at * 15 / 60) + ':' + String(at * 15 % 60).padStart(2, '0') : 'The deployment') + (view != null ? ' · looking back' : BS.result ? ' · the end' : '')) + '</div>';
     }
     el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; e.stopPropagation();
       if (b.dataset.a === 'prev') { stop(); step(-1); } else if (b.dataset.a === 'next') { stop(); step(1); } else if (b.dataset.a === 'play') { playing = !playing; wait = 1e9; }
-      else if (b.dataset.i != null) { stop(); const i = +b.dataset.i, n = stops().length; if (i >= n) step(1); else { view = i >= n - 1 ? null : i; lastCardKey = ''; arrowKey = ''; } }
+      else if (b.dataset.i != null) { stop(); const i = +b.dataset.i, n = stops().length; if (i >= n) step(1); else { view = i >= n - 1 && !account() ? null : i; lastCardKey = ''; arrowKey = ''; } }
       domKey = ''; });
     function stop() { playing = false; domKey = ''; }
     return {
       step, stop, show(b) { shown = b; domKey = ''; },
-      viewing: () => view != null, at: () => view != null ? stops()[view].phase : BS.phase,
-      units: () => view != null ? stops()[view].units : null,
+      viewing: () => view != null && !account(), at: () => view != null ? stops()[view].phase : BS.phase,
+      units: () => { const S = stops(); return account() ? S[Math.min(view ?? 0, S.length - 1)].units : view != null ? S[view].units : null; },
+      // the account's stop on show: its time, label, text and arrows
+      stopShown: () => { const A = account(); return A ? A[Math.min(view ?? 0, A.length - 1)] : null; },
+      replaying: () => !!account() || view != null,
       tick(dt) {
         // a stop as soon as a phase ends; while still deploying, the first stop follows the deployment (once a second)
-        const S = stops(), last = S[S.length - 1], now = performance.now();
-        if (!BS.running && (!last || last.phase !== BS.phase || (BS.phase === 0 && now - recAt > 1000))) { record(); recAt = now; }
-        if (playing) { if (BS.running) wait = 0; else if ((wait += dt) > 1.8) { wait = 0; if (view != null || canRun()) step(1); else stop(); } }
-        el.hidden = !shown || (stops().length < 2 && !canRun() && !BS.running);
+        const S = track().stops, last = S[S.length - 1], now = performance.now();
+        if (!account() && !BS.running && (!last || last.phase !== BS.phase || (BS.phase === 0 && now - recAt > 1000))) { record(); recAt = now; }
+        const A = account();
+        if (playing) { if (BS.running) wait = 0; else if ((wait += dt) > (A ? 4 : 1.8)) { wait = 0; if (A ? (view ?? 0) < A.length - 1 : view != null || canRun()) step(1); else stop(); } }
+        el.hidden = !shown || aftermathOn || (!A && stops().length < 2 && !canRun() && !BS.running);
         if (!el.hidden) render();
       },
       remove() { el.remove(); },
@@ -517,7 +582,7 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     },
     pointerUp(e, drag) { if (drag && drag.moved < 6 && drag.b === 0) click(e); },
     wheel(e) { if (e.deltaY > 0 && cam.dist >= 5900 && onRise) onRise(cam.tx, cam.tz); }, // the orbit zooms
-    debug: { cam, vis, pools, guns, get inspected() { return inspected; }, ground: G, exag: EXAG, controls, rail },
+    debug: { cam, vis, pools, guns, get inspected() { return inspected; }, ground: G, exag: EXAG, controls, rail, get accArrows() { return accG.children.length; } },
     // the field's own geometry and painted textures; materials are shared with the rest of the world (nature.js, props.js)
     dispose() { controls.dispose(); rail.remove(); labels.remove(); card.remove(); scene.traverse(o => { if (o.geometry) o.geometry.dispose(); }); groundTex.dispose(); grainTex.dispose(); },
   };
