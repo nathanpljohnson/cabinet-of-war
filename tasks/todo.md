@@ -55,7 +55,10 @@
 
 # Simulated playthrough + debug (Nov 2026)
 - [x] Driver: Playwright page held open (scratchpad), helpers to read letters, give orders, seal, paste, walk days
-- [ ] Play turns 0 → 12+ (at turn 8, 1 Dec 1740) on a fresh profile (sound off, autosave off); a fresh adjudicator agent answers each packet cold
+- [x] Play turns 0 → 11 (21 Oct → 22 Dec 1740; stopped after the crossing and volume 1 — no battle is plausible before spring) on a fresh profile (sound off, autosave off); a fresh adjudicator agent answers each packet cold
 - [x] Log every finding (game, packet, checker, history) as it happens
-- [ ] Rank findings; fix the bugs in code; tests for each fix; re-run the affected turn
-- [ ] Write the report (tasks/playtest-2026-11-20.md)
+- [x] Rank findings; fix the bugs in code; tests for each fix (30 → 33); re-run the affected turn
+- [x] Write the report (tasks/playtest-2026-11-20.md)
+
+## Review
+17 fixes on the branch (one blocker: every audience refused; one leak path: the Mollwitz preview sent as the live field once campaigning). Open: illness in 3D (design), one global tempo (design), context budget (~35k tokens a turn), scenes not rare, no price/weather baselines. Untested: table battle, endings, urgent letters, forged letters.
