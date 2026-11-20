@@ -1,6 +1,6 @@
 // Runs the reply pipeline (w3d/turn.js, w3d/continuity.js) on the opening state and the mock replies; prints JSON for pytest.
 import { readFileSync } from 'node:fs';
-import { replyFormat, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue } from '../w3d/turn.js';
+import { replyFormat, rulesText, rulesVersion, tableOf, TABLES, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue } from '../w3d/turn.js';
 import { checkContinuity } from '../w3d/continuity.js';
 import { makeGround, groundKey } from '../w3d/ground.js';
 const root = new URL('../', import.meta.url), read = p => readFileSync(new URL(p, root), 'utf8');
@@ -8,7 +8,7 @@ const html = read('cabinet-of-war.html'), m = html.match(/id="initial-state">([\
 const opening = JSON.parse(m[1].replace(/\\u003c/g, '<')), almanac = JSON.parse(read('w3d/almanac.json')), contract = read('w3d/contract.md');
 const out = { mocks: {} };
 const reply = (state, changes) => ({ kind: 'turn', schemaVersion: 3, campaignId: state.campaignId, turn: state.turn + 1, parentTurn: state.turn, seal: sealOf(state), changes: JSON.parse(JSON.stringify(changes)) });
-for (const name of ['answers', 'winter', 'dismissed', 'backwards', 'contradiction', 'living', 'ending', 'journey', 'battle']) {
+for (const name of ['answers', 'winter', 'dismissed', 'backwards', 'contradiction', 'living', 'ending', 'journey', 'battle', 'fever']) {
   const mk = JSON.parse(read('w3d/mocks/' + name + '.json')), r = reply(opening, mk.changes);
   const chk = checkReply(opening, r, { orderRefs: ['T0-1', 'T0-2', 'T0-3'], fortune: rollFortune(opening.campaignId, 0), seal: sealOf(opening) });
   const res = { errors: chk.errors, warns: chk.warns, fixes: chk.fixes };
@@ -68,4 +68,18 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
 { const mv = reply(opening, { date: '1740-12-11', title: 't', briefing: 'b', reports: [], movements: [{ id: 'm1', label: 'Prussian regiments towards Crossen', side: 'prussia', status: 'heard', pts: [[52.52, 13.40], [52.05, 15.10]] }, { id: 'm2', label: 'bad', pts: [[52, 13]] }] });
   const mc = checkReply(opening, mv, {}); out.moves = { ids: mv.changes.movements.map(m => m.id + ':' + m.status + ':' + m.reported), fixes: mc.fixes.filter(f => /Movement/.test(f)).length, fmt: replyFormat(opening).includes('"status":"confirmed"|"reported"|"rumour"') }; }
 { const camp = JSON.parse(JSON.stringify(opening)); camp.world = { ...(camp.world || {}), tempo: 'campaigning' }; const bd = liveState(camp).battleDemo; out.preview = { units: !!bd.units, note: /preview field/.test(bd.note || ''), title: bd.title || null }; }
+// in bed: a bad abed is left out with a fix; an abed with no end while he is well is warned of
+{ const h = { chronicle: 'c', decisions: [{}], fortune_used: [{}] };
+  const bad = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], player: { abed: { from: '1740-10-26', to: '1740-10-24' } }, hidden: h }), cb = checkReply(opening, bad, {});
+  const open = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], player: { abed: { from: '1740-10-22' } }, hidden: h }), co = checkReply(opening, open, {});
+  const sick = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], player: { health: 'ill', abed: { from: '1740-10-01' } }, hidden: h }), cs = checkReply(opening, sick, {});
+  out.abed = { badFix: cb.fixes.some(f => /player\.abed/.test(f)), badGone: !('abed' in bad.changes.player), openWarn: co.warns.some(w => /player\.abed has no end/.test(w)), sickWarns: cs.warns.filter(w => /abed/.test(w)).length, clamped: sick.changes.player.abed.from, fmt: replyFormat(opening).includes('player.abed'), contract: /player\.abed/.test(contract) }; }
+// the packet: people, places and fortresses as tables; with the rules in a Claude Project, a packet without them
+{ const args = { state: opening, contract, orders: '## His orders\n(test)', almanac, fortune: rollFortune(opening.campaignId, 0) };
+  const full = buildPacket(args), lean = buildPacket({ ...args, rulesInProject: true }), rules = rulesText({ contract, almanac }), v = rulesVersion({ contract, almanac });
+  const stateJson = JSON.parse(full.slice(full.indexOf('\n', full.indexOf('## Current state (JSON)') + 25)).split('\n').find(l => l.startsWith('{')));
+  out.lean = { full: full.length, lean: lean.length, rules: rules.length, v, names: lean.includes('cabinet-of-war-rules-' + v + '.md'), noContract: !lean.includes('## Adjudication principles') && !lean.includes('## Reply format'),
+    header: lean.includes('"seal": "' + sealOf(opening) + '"'), rulesHave: ['## Adjudication principles', '## Reply format', '<campaignId>', '## Almanac: systems and stakes'].every(k => rules.includes(k)), rulesNoState: !rules.includes(opening.campaignId),
+    tablesInFull: Object.keys(TABLES).every(k => full.includes('### ' + k)), notInJson: Object.keys(TABLES).filter(k => k in stateJson), everyCast: opening.cast.every(c => full.includes('\n' + c.id + ' | ')),
+    pipe: tableOf([{ id: 'a', note: 'x | y' }, { id: 'b', dead: true }], ['id', 'dead', 'note']) }; }
 console.log(JSON.stringify(out));

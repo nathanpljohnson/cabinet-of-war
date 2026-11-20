@@ -1,0 +1,23 @@
+{
+ "note": "Test reply (illustrative, not history): a fever keeps him to his bed from the 25th to the 28th; Harrach and Starhemberg call on the 26th, Bartenstein (cool) on the 27th. Load with __w3d.mockReply('fever').",
+ "changes": {
+  "date": "1740-10-30",
+  "title": "A fever",
+  "briefing": "A fever took you on the 25th. The physician bled you twice and kept you abed until the 28th; the business of the court came to your bedside, or waited.",
+  "player": { "health": "tired", "abed": { "from": "1740-10-25", "to": "1740-10-28" } },
+  "whereabouts": [
+   { "date": "1740-10-26", "place": "vienna", "who": ["harrach_joseph", "starhemberg"], "doing": "calling at your bedside on the Conference's business" },
+   { "date": "1740-10-27", "place": "vienna", "who": ["bartenstein"], "doing": "come for your signature, and in no hurry to leave" }
+  ],
+  "reports": [
+   { "id": "r-fever-1", "place": "vienna", "dated": "1740-10-25", "arrives": "1740-10-25", "category": "Your household", "title": "The physician's opinion", "text": "Your physician finds a tertian fever and orders rest, broth and quiet. He will bleed you tomorrow if it does not break.", "claim": "demo", "from_id": "steward", "via": "audience", "source": "your steward" },
+   { "id": "r-fever-2", "place": "vienna", "dated": "1740-10-26", "arrives": "1740-10-26", "category": "The court", "title": "The Conference comes to you", "text": "Count Harrach and Count Starhemberg have come in person: the Conference will not wait on your fever. They bring the question of the Silesian garrisons.", "claim": "demo", "from_id": "harrach_joseph", "via": "audience", "source": "Count Harrach" },
+   { "id": "r-fever-3", "place": "vienna", "dated": "1740-10-29", "arrives": "1740-10-29", "category": "Your household", "title": "On your feet", "text": "The fever has broken. You are weak, but the physician allows you out of bed.", "claim": "demo", "from_id": "steward", "via": "audience", "source": "your steward" }
+  ],
+  "hidden": {
+   "chronicle": "Test chronicle: a fever in late October.",
+   "fortune_used": [{ "roll": 12, "for": "his health in the wet", "outcome": "a fever" }],
+   "decisions": [{ "who": "Harrach", "knows": "The minister is abed.", "wants": "The Conference's business done.", "decides": "Takes it to his bedside." }]
+  }
+ }
+}
