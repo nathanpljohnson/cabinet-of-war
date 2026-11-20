@@ -19,7 +19,7 @@
 body.w3d-on > header, body.w3d-on #left, body.w3d-on #right, body.w3d-on #case, body.w3d-on .skip{display:none!important}
 body.w3d-on:not(.w3d-map) #timeline{visibility:hidden}
 /* the map's tools and layers open in one place, clear of the bars at the foot of the map; sound is the game's own setting */
-body.w3d-on #tools,body.w3d-on #layers{left:14px;top:70px;max-height:calc(100vh - 250px)}
+body.w3d-on #tools,body.w3d-on #layers{left:14px;top:100px;max-height:calc(100vh - 280px)}
 body.w3d-on #tools label:has(#a-sound){display:none}
 
 /* the 3D canvas: hidden on the map; dims behind papers */
@@ -436,3 +436,5 @@ body:not(.w3d-sick) .w3d-bedside{display:none}
 .w3d-bedside button:hover,.w3d-bedside button:focus-visible{background:var(--glass-3);outline:none;border-color:var(--bone-3)}
 .w3d-bedside button small{display:block;color:var(--bone-3);font:italic 13px var(--read);margin-top:2px}
 @media (max-width:640px){.w3d-bedside{top:auto;bottom:150px;max-height:30vh}}
+/* a refused reply has no Accept: the button styles would otherwise override [hidden] */
+#confirm [hidden]{display:none!important}
