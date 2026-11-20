@@ -125,4 +125,12 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
   out.sky = { seasons: ['1740-10-21', '1741-01-15', '1741-04-10', '1741-07-01'].map(seasonOf), dec: +sunTimes('1740-12-21').length.toFixed(1), jun: +sunTimes('1741-06-21').length.toFixed(1),
     noonDec: Math.round(sunVector('1740-12-21', 12).alt), noonJun: Math.round(sunVector('1741-06-21', 12).alt), morningEast: sunVector('1740-10-21', 9).x > 0, newMoon: +moonPhase('2024-04-08').toFixed(2), fullMoon: +moonPhase('2024-04-23').toFixed(2),
     palettes: Object.keys(LEAVES).every(k => COUNTRY[k] && COUNTRY[k].grass.length === 3 && COUNTRY[k].fields.length === 4) }; }
+// a place's own tempo: bad values and unknown places are left out; it lasts, merges per place, and makes a battle near
+{ const h = { chronicle: 'c', decisions: [{}], fortune_used: [{}] }, real = JSON.parse(JSON.stringify(opening)); real.battleDemo = { ...real.battleDemo, id: 'bd-real' };
+  const r1 = reply(real, { date: '1740-10-25', title: 't', briefing: 'b', reports: [], world: { tempo: 'winter quarters', tempoAt: { glogau: 'campaigning', brieg: 'truce', prague: 'marching', atlantis: 'campaigning' } }, hidden: h });
+  const c1 = checkReply(real, r1, {}), n1 = mergeTurn(real, r1).next;
+  const r2 = reply(n1, { date: '1740-10-30', title: 't', briefing: 'b', reports: [], world: { tempoAt: { brieg: null, neisse: 'campaigning' } }, hidden: h }); checkReply(n1, r2, {});
+  const n2 = mergeTurn(n1, r2).next, r3 = reply(n2, { date: '1740-11-04', title: 't', briefing: 'b', reports: [], hidden: h }), n3 = mergeTurn(n2, r3).next;
+  const quiet = JSON.parse(JSON.stringify(n3)); quiet.world.tempoAt = { glogau: 'truce', neisse: 'truce' };
+  out.tempoAt = { kept: r1.changes.world.tempoAt, fixes: c1.fixes.filter(f => f.includes('tempoAt')).length, merged: n2.world.tempoAt, lasts: n3.world.tempoAt, near: !!liveState(n3).battleDemo.units, notNear: !!liveState(quiet).battleDemo.units, fmt: replyFormat(opening).includes('"tempoAt"'), contract: contract.includes('**tempoAt**') }; }
 console.log(JSON.stringify(out));

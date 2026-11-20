@@ -176,6 +176,10 @@ export function checkReply(prev, reply, ctx = {}) {
   if (ctx.seal) { if (reply.seal && reply.seal !== ctx.seal) errors.push('This reply was written for a different packet (its seal ' + reply.seal + ' is not this turn’s ' + ctx.seal + '). Paste the reply to the latest packet.'); else if (!reply.seal) warns.push('The reply does not carry this turn’s seal.'); }
   if (ctx.volumeDue && !(Array.isArray(h.volumes) && h.volumes.length)) warns.push('A volume of the chronicle was due this turn (hidden.volumes).');
   if (w && w.tempo && !TEMPO.includes(w.tempo)) { fixes.push('Unknown tempo "' + w.tempo + '" was left out.'); delete w.tempo; }
+  // a place's own tempo: a location, or a fortress by its place (f-glogau → glogau)
+  if (w && w.tempoAt != null) { const places = new Set([...locIds, ...(prev.fortresses || []).map(f => f && String(f.id).replace(/^f-/, ''))]);
+    if (!isObj(w.tempoAt)) { fixes.push('world.tempoAt must be {place id: tempo}; it was left out.'); delete w.tempoAt; }
+    else for (const [k, v] of Object.entries(w.tempoAt)) if (v !== null && (!TEMPO.includes(v) || !places.has(k))) { fixes.push('world.tempoAt "' + k + '": "' + v + '" was left out (' + (places.has(k) ? 'unknown tempo' : 'not a location or fortress on the map') + ').'); delete w.tempoAt[k]; } }
   if (Array.isArray(ch.gazette)) ch.gazette = ch.gazette.filter((g, i) => { if (!isObj(g) || !g.date || !Array.isArray(g.items) || !g.items.length) { fixes.push('Gazette issue ' + (i + 1) + ' had no date or items and was left out.'); return false; } g.id = g.id || 'gz-' + g.date; if (g.date < prev.date) g.date = prev.date; if (g.date > ch.date) g.date = ch.date; return true; });
   // the phases of an account: times, formations by id, losses, arrows; what cannot be drawn is left out with a fix
   const phs = ch.battleDemo && ch.battleDemo.phases;
@@ -285,7 +289,7 @@ export function liveState(state) {
   // the opening's Mollwitz preview is an illustration, never the live field: its units go only once a reply has made it a real battle
   const preview = bd && bd.id === 'bd-demo' && !bd.enemy && !bd.aftermath;
   const phaseIndex = bd && Array.isArray(bd.phases) && bd.phases.length ? bd.phases.map(p => (p.t ? p.t + ' ' : '') + (p.label || '')).join(' · ') : undefined;
-  const battleNear = bd && !preview && (bd.enemy || bd.aftermath || (state.world || {}).tempo === 'campaigning' || state.player.mode === 'field');
+  const battleNear = bd && !preview && (bd.enemy || bd.aftermath || [(state.world || {}).tempo, ...Object.values((state.world || {}).tempoAt || {})].includes('campaigning') || state.player.mode === 'field');
   if (preview) s.battleDemo = { id: bd.id, note: 'No battle has been fought or described yet; this is the page\'s preview field. For a battle, give battleDemo a new id with its place, date, ground and units.' };
   else if (bd && !battleNear) s.battleDemo = { id: bd.id, title: bd.title, place: bd.place, center: bd.center, date: bd.date, ground: bd.ground, phases: phaseIndex, note: 'Units and positions are sent when a battle may come (campaigning, an enemy commander named, or the player with the army).' };
   else if (bd) s.battleDemo = { id: bd.id, date: bd.date, title: bd.title, place: bd.place, center: bd.center, enemy: bd.enemy, aftermath: bd.aftermath, ground: bd.ground, phases: phaseIndex, unitsAs: 'id, side, type, e, n, facing', units: (bd.units || []).map(u => [u.id, u.side, u.kind || u.type, u.e, u.n, u.facing]) };
@@ -322,7 +326,7 @@ Skeleton (fill it from the story; leave out what did not change):
  "player":{"locationId":"…","mode":"court","health":"well"},
  "reports":[{"id":"t${n}-1","from_id":"…","place":"…","dated":"…","arrives":"…","via":"courier","source":"…","category":"…","title":"…","text":"…","claim":"invention","re":["T${t0}-1"]}],
  "decision":{"id":"…","title":"…","options":[{"id":"…","by":"…","title":"…","objective":"…","reasoning":"…","risks":"…"}]},
- "world":{"tempo":"winter quarters","weather":{"YYYY-MM-DD":"overcast"},"scene":{"vienna":["recruiting"]}},
+ "world":{"tempo":"winter quarters","tempoAt":{"glogau":"campaigning"},"weather":{"YYYY-MM-DD":"overcast"},"scene":{"vienna":["recruiting"]}},
  "gazette":[{"date":"YYYY-MM-DD","items":[{"head":"…","text":"…"}]}],
  "household":{"purse":"what his steward would say of his money, in a sentence"},
  "whereabouts":[{"date":"…","place":"vienna","who":["…","…"],"doing":"…"}],

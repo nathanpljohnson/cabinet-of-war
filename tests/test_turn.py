@@ -354,3 +354,12 @@ def test_packet_tables_and_rules_in_a_project(run):
     # with the rules in a Claude Project the packet names their version and leaves them out
     assert l["names"] and l["noContract"] and l["header"] and l["lean"] < l["full"] * 0.6
     assert l["rulesHave"] and l["rulesNoState"] and len(l["v"]) == 8
+
+
+def test_tempo_per_place(run):
+    t = run["tempoAt"]
+    assert t["kept"] == {"glogau": "campaigning", "brieg": "truce"} and t["fixes"] == 2
+    assert t["merged"] == {"glogau": "campaigning", "neisse": "campaigning"}
+    assert t["lasts"] == t["merged"]
+    assert t["near"] and not t["notNear"]
+    assert t["fmt"] and t["contract"]
