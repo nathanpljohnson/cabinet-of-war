@@ -402,6 +402,7 @@ function syncCourierOnBoot() {
 }
 let pendingArrival = false, lastTurn = null;
 async function onNewTurn() {
+  buildTimeline(); // the desk's strip of dated events: drawn once at load, so redraw it for the new turn
   void shell.today; // the day walk starts on the turn's first day, before anything is built
   loadClock(); applyAtmosphere();
   if (builtFor !== travel.here() || builtMode !== travel.mode() || builtCues !== JSON.stringify(worldCues())) { showLoading(builtFor !== travel.here() ? 'Riding to ' + locName(travel.here()) + '…' : travel.mode() === 'field' ? 'Joining the army in camp…' : 'Returning to headquarters…'); await sleep(40); await buildWorld(); hideLoading(); }
