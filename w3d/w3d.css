@@ -18,6 +18,7 @@
 /* the old desk chrome is replaced by the shell */
 body.w3d-on > header, body.w3d-on #left, body.w3d-on #right, body.w3d-on #case, body.w3d-on .skip{display:none!important}
 body.w3d-on:not(.w3d-map) #timeline{visibility:hidden}
+body.w3d-on:not(.w3d-map) #tools,body.w3d-on:not(.w3d-map) #layers{display:none!important} /* the map's panels belong to the map */
 /* the map's tools and layers open in one place, clear of the bars at the foot of the map; sound is the game's own setting */
 body.w3d-on #tools,body.w3d-on #layers{left:14px;top:100px;max-height:calc(100vh - 280px)}
 body.w3d-on #tools label:has(#a-sound){display:none}

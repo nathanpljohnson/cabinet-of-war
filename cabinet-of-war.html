@@ -931,6 +931,8 @@ body.rm .leaflet-pdxSel-pane{animation:none}
 #pdx-modes button:focus-visible{outline:2px solid #ffe7a8;outline-offset:1px}
 #pdx-modes button[aria-pressed=true]{color:#fff4d2;border-color:#f3d27a;background:radial-gradient(circle at 50% 32%,#94712f,#3d2b13);box-shadow:0 0 12px rgba(243,210,122,.5),inset 0 1px 0 rgba(255,240,200,.3)}
 #pdx-modes svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+#tools .pdx-close,#layers .pdx-close{position:sticky;top:0;float:right;margin:-4px -6px 0 8px;width:26px;height:26px;padding:0;border:1px solid #6b5636;background:#211810;color:#d9c08a;font:18px/1 var(--display,serif);cursor:pointer;z-index:1}
+#tools .pdx-close:hover,#layers .pdx-close:hover{color:#ffe7a8;border-color:var(--brass)}
 #pdx-modes .pdx-sep{width:1px;margin:4px 3px;background:#6b5636}
 #pdx-modes kbd{position:absolute;right:3px;bottom:1px;font:600 8px var(--caps);color:#c9b07a;opacity:.85}
 #pdx-legend{position:fixed;z-index:510;right:var(--pdx-r,450px);bottom:140px;width:290px;padding:8px 11px 9px;background:linear-gradient(180deg,rgba(40,30,22,.94),rgba(22,16,12,.94));border:1px solid var(--line);box-shadow:0 6px 16px rgba(0,0,0,.45);color:var(--vellum);font:13px/1.35 var(--fell);transition:right .25s}
@@ -951,6 +953,7 @@ body:has(#armybar:not(:empty)) #pdx-legend{bottom:222px}
   #pdx-modes button{width:36px;height:36px}
   #pdx-legend{display:none}
 }
+#tools .season-now{font:15px var(--display,serif);letter-spacing:0;text-transform:none;color:var(--text,#eadfc8);margin:2px 0 4px}
 </style>
 <link rel="stylesheet" href="w3d/w3d.css">
 </head><body>
@@ -1016,7 +1019,8 @@ body:has(#armybar:not(:empty)) #pdx-legend{bottom:222px}
   <button class="btn small" data-book="europe">1 Europe</button><button class="btn small" data-book="theatre">2 Theatre</button><button class="btn small" data-book="vienna">3 Vienna</button><button class="btn small" data-book="prague">4 Prague</button><button class="btn small" data-book="battle">5 Battle</button>
  </div>
  <div class="eyebrow tt">Season</div>
- <select id="season"><option value="autumn" selected>Autumn (now)</option><option value="winter">Winter</option><option value="spring">Spring</option><option value="summer">Summer</option></select>
+ <div id="season-now" class="season-now"></div>
+ <select id="season" style="display:none" aria-hidden="true" tabindex="-1"><option value="autumn" selected>Autumn (now)</option><option value="winter">Winter</option><option value="spring">Spring</option><option value="summer">Summer</option></select>
  <div class="key" id="season-note"></div>
  <div class="eyebrow tt">Measure &amp; notes</div>
  <div class="tgrid"><button class="btn small" id="tool-measure">Measure (m)</button><button class="btn small" id="tool-note">Note (n)</button><button class="btn small quiet" id="tool-clear">Clear</button></div>
@@ -1202,6 +1206,7 @@ function pdxUI(){
   bar.append(el('span',null,'pdx-sep',{'aria-hidden':'true'}));
   for(const [id,tog,name,icon] of [['tools','toggleT','Map tools','<path d="M12 3 6 21M12 3l6 18M8.2 15h7.6"/><circle cx="12" cy="3" r="1.2"/>'],['layers','toggleY','Map layers','<path d="m12 4 9 5-9 5-9-5z"/><path d="m3 14 9 5 9-5"/>']]){
     const b=el('button',null,null,{type:'button','data-panel':id,'aria-pressed':'false','aria-label':name,title:name});b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true">'+icon+'</svg>';b.onclick=()=>$(tog).click();bar.append(b)}
+  for(const [id,tog] of [['tools','toggleT'],['layers','toggleY']]){const x=el('button',null,'pdx-close',{type:'button','aria-label':'Hide','title':'Hide (Esc)'});x.textContent='×';x.onclick=()=>$(tog).click();$(id).prepend(x)}
   document.addEventListener('mappanels',()=>bar.querySelectorAll('[data-panel]').forEach(b=>b.setAttribute('aria-pressed',$(b.dataset.panel).classList.contains('on'))));
   document.body.append(bar,el('div',null,null,{id:'pdx-legend','aria-live':'polite'}),el('div',null,null,{id:'pdx-tip',role:'tooltip'}));
   const dock=()=>{const r=$('right'),hid=r.classList.contains('hide')||innerWidth<=860;document.documentElement.style.setProperty('--pdx-r',(hid?14:r.offsetWidth+30)+'px')};

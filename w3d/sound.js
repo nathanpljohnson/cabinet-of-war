@@ -6,14 +6,15 @@ const midi = n => 440 * Math.pow(2, (n - 69) / 12);
 // D minor and its relatives, voiced as broken chords; a phrase is one progression
 const PROG = [[[50, 57, 62, 65], [55, 58, 62, 67], [57, 61, 64, 69], [50, 57, 62, 65]], [[46, 53, 58, 62], [55, 58, 62, 67], [52, 57, 61, 64], [50, 57, 62, 65]], [[53, 57, 60, 65], [46, 53, 58, 62], [45, 52, 57, 61], [50, 57, 62, 65]]];
 export function createSound() {
-  let ctx = null, master, sfx, music, wind, windF, windG, rainG, fireG, drumT = 0, on = false, nextPhrase = 4, night = false;
+  let ctx = null, master, sfx, music, wind, windF, windG, rainG, fireG, drumT = 0, on = false, nextPhrase = 4, night = false, vol = 1, musicVol = 1, quietNow = false;
+  const level = () => (quietNow ? .14 : .4) * vol; // the player's volume over the scene's own level
   function noiseBuf(sec, k = 1) { const len = Math.floor(ctx.sampleRate * sec), b = ctx.createBuffer(1, len, ctx.sampleRate), d = b.getChannelData(0); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * k; return b; }
   function start() {
     if (ctx) return; ctx = new (window.AudioContext || window.webkitAudioContext)();
     master = ctx.createGain(); master.gain.value = 0; master.connect(ctx.destination);
     sfx = ctx.createGain(); sfx.gain.value = .9; sfx.connect(master);
     const rev = ctx.createConvolver(), rl = ctx.sampleRate * 2.2, rb = ctx.createBuffer(2, rl, ctx.sampleRate); for (let c = 0; c < 2; c++) { const d = rb.getChannelData(c); for (let i = 0; i < rl; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / rl, 3); } rev.buffer = rb;
-    music = ctx.createGain(); music.gain.value = .5; const wet = ctx.createGain(); wet.gain.value = .35; music.connect(master); music.connect(rev).connect(wet).connect(master);
+    music = ctx.createGain(); music.gain.value = .5 * musicVol; const wet = ctx.createGain(); wet.gain.value = .35; music.connect(master); music.connect(rev).connect(wet).connect(master);
     const len = ctx.sampleRate * 3, buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0); let b0 = 0, b1 = 0, b2 = 0;
     for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; b0 = .997 * b0 + w * .029; b1 = .985 * b1 + w * .032; b2 = .95 * b2 + w * .048; d[i] = (b0 + b1 + b2) * .35; }
     wind = ctx.createBufferSource(); wind.buffer = buf; wind.loop = true; windF = ctx.createBiquadFilter(); windF.type = 'lowpass'; windF.frequency.value = 500;
@@ -52,16 +53,19 @@ export function createSound() {
       e.gain.setValueAtTime(0, t); e.gain.linearRampToValueAtTime(1.1 * g, t + .25); e.gain.exponentialRampToValueAtTime(.4 * g, t + 1.4); e.gain.exponentialRampToValueAtTime(.001, t + 4.8); n.connect(f).connect(e).connect(sfx); n.start(t); n.stop(t + 5); },
   };
   return {
-    set enabled(v) { on = v; if (v) { start(); ctx.resume(); } if (master) master.gain.setTargetAtTime(v ? .4 : 0, ctx.currentTime, .4); },
+    set enabled(v) { on = v; if (v) { start(); ctx.resume(); } if (master) master.gain.setTargetAtTime(v ? level() : 0, ctx.currentTime, .4); },
+    // volume and music: 0…1 of their usual level
+    set volume(v) { vol = v; if (master && on) master.gain.setTargetAtTime(level(), ctx.currentTime, .1); },
+    set musicVolume(v) { musicVol = v; if (music) music.gain.setTargetAtTime(.5 * v, ctx.currentTime, .1); },
     get enabled() { return on; },
-    gesture() { if (on) { start(); ctx.resume(); master.gain.setTargetAtTime(.4, ctx.currentTime, .4); } },
+    gesture() { if (on) { start(); ctx.resume(); master.gain.setTargetAtTime(level(), ctx.currentTime, .4); } },
     cue(name, arg) { if (ctx && on && CUES[name]) CUES[name](arg); },
     // dFire: metres to the nearest fire; dCamp: metres to the camp; quiet: map view; opts.night: after dark
     update(dt, t, dFire, dCamp, quiet, opts = {}) {
       if (!ctx || !on) return; night = !!opts.night;
       const wk = opts.wind ?? .35; windF.frequency.setTargetAtTime((380 + 260 * (Math.sin(t * .13) * .5 + .5) + 120 * Math.sin(t * .51)) * (.8 + wk * .7), ctx.currentTime, .5);
       windG.gain.setTargetAtTime(.3 + wk * .45, ctx.currentTime, .8); rainG.gain.setTargetAtTime(opts.rain ? .09 : 0, ctx.currentTime, 1.2);
-      master.gain.setTargetAtTime(quiet ? .14 : .4, ctx.currentTime, .6);
+      quietNow = !!quiet; master.gain.setTargetAtTime(level(), ctx.currentTime, .6);
       const fg = Math.max(0, 1 - dFire / 26); fireG.gain.setTargetAtTime(fg * .9, ctx.currentTime, .3);
       if (fg > 0 && Math.random() < dt * 9) crackle();
       drumT -= dt; if (!night && dCamp < 300 && drumT <= 0) { const g = .12 * Math.max(0, 1 - dCamp / 300); for (let i = 0; i < 6; i++) thump(110, 50, g * (i % 3 === 0 ? 1.3 : .8), ctx.currentTime + i * .26); drumT = 9 + Math.random() * 8; }
