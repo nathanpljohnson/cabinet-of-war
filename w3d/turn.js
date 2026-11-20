@@ -15,7 +15,7 @@ export const APPEND = ['ledger', 'hidden.canon', 'hidden.dispatches', 'hidden.vo
 const appendPath = p => APPEND.includes(p) || p.startsWith('hidden.memory.');
 // per-turn things: when a reply leaves them out, they are cleared rather than carried into the next turn
 const PER_TURN_LISTS = ['reports', 'overheard', 'whereabouts', 'gazette'], PER_TURN_HIDDEN = ['decisions', 'fortune_used'], PER_TURN_NULL = ['decision', 'scene'];
-export const WEATHER = ['clear', 'haze', 'overcast', 'mist', 'rain', 'snow', 'storm'];
+export const WEATHER = ['clear', 'haze', 'overcast', 'mist', 'frost', 'rain', 'thaw', 'snow', 'storm', 'thunder'];
 export const SCENE_TAGS = ['alarm', 'idle_soldiers', 'bread_queue', 'empty_market', 'recruiting', 'wagons_in', 'wounded', 'prisoners', 'celebration', 'smoke'];
 export const THREAD_STATUS = ['dormant', 'building', 'triggered', 'resolved', 'abandoned'];
 export const TEMPERS = ['rash', 'bold', 'steady', 'cautious', 'timid'];

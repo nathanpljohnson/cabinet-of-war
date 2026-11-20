@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { makeNoise, rngFrom, smooth, lerp, stdMat, tint, merge, place, box, setWindTime } from './lib.js';
 import { axis, buildTerrain } from './terrain.js';
-import { buildForest, AUTUMN, FIRS } from './nature.js';
+import { buildForest, FIRS } from './nature.js';
+import { leafColour, BARE, lookOf, sunVector } from './season.js';
 import * as P from './props.js';
 import { infantryFrames, cavalryFrames, tinyFrames, tinyCavalryFrames, FramePool } from './figures.js';
 
@@ -9,13 +10,22 @@ import { infantryFrames, cavalryFrames, tinyFrames, tinyCavalryFrames, FramePool
    (battle.js / army.js): orders go through armyOrders()/selectUnits()/armyMapClick(), time through runPhase().
    World axes: x = east (e), z = −north (−n). Relief is illustrative; land cover is TER: the project's OSM grid at Mollwitz,
    or the ground the adjudicator described for another battle (w3d/ground.js), with its relief and named heights. */
-export async function createBattle({ renderer, actors, quality, makeSky, makeLights, toast, onRise, winter }) {
+// season: spring | summer | autumn | winter (snow); date: the day shown (the battle's, or today); weather: that day's kind
+export async function createBattle({ renderer, actors, quality, makeSky, makeLights, toast, onRise, season = 'autumn', date = '1740-10-21', weather = 'clear' }) {
+  const winter = season === 'winter', L = lookOf(weather);
   const N = makeNoise(1741), rnd = rngFrom(41), scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 2, 30000);
   const sunDir = new THREE.Vector3(-.55, .42, .5).normalize();
   scene.background = new THREE.Color(0xe8d4b2); scene.fog = new THREE.Fog(0xe6d3b2, 2500, 11000);
   const sky = makeSky(scene, sunDir); const lights = makeLights(scene, sunDir, 600, quality.shadows);
   lights.sun.shadow.camera.far = 5000;
+  // the day's light over the field: the sun where it stands late in the morning of that date, the weather's sky, light and haze
+  { const lat = ((state.battleDemo || {}).center || [50.8])[0], sv = sunVector(date, 10.5, lat); sunDir.set(sv.x, Math.max(.15, sv.y), sv.z).normalize();
+    const u = sky.material.uniforms; u.top.value.set(L.top); u.hor.value.set(L.hor); u.sunVis.value = 1 - L.cover * .85;
+    lights.sun.intensity = L.sun * (winter ? .8 : .95); lights.sun.color.set(winter ? 0xf2e6d8 : L.sunC); lights.hemi.intensity = L.hemi * 1.05;
+    if (weather !== 'clear') { scene.fog.color.set(L.fog); scene.background.set(L.fog); scene.fog.near = 2500 * L.near / 110; scene.fog.far = 11000 * L.far / 1500; } }
+
+  const leaf = () => winter ? BARE[Math.floor(rnd() * BARE.length)] : leafColour(date, rnd, season);
 
   /* ---------- ground ---------- */
   const W = TER.w, H = TER.h, cell = TER.cell;
@@ -45,7 +55,9 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   const CW = 1600, CH = Math.round(CW * H / W), cvs = document.createElement('canvas'); cvs.width = CW; cvs.height = CH;
   { const ctx = cvs.getContext('2d'), img = ctx.createImageData(CW, CH), D = img.data;
     const hex = h => [h >> 16 & 255, h >> 8 & 255, h & 255], mix = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
-    const PASTURE = hex(0x7f9645), STUBBLE = hex(0xb7a463), FALLOW = hex(0x96974f), PLOUGH = hex(0x8a6e4c), WOOD = hex(0x4e6532), VILLAGE = hex(0x9c9670), WATER = hex(0x5c716a);
+    // open country by season: spring pasture and young corn, summer ripe grain, autumn stubble and plough (winter: under snow)
+    const P4 = { spring: [0x86aa50, 0xa0be60, 0x96a65a, 0x7e624a], summer: [0x80964a, 0xd6ba68, 0xaaa05a, 0xc8aa60] }[season] || [0x7f9645, 0xb7a463, 0x96974f, 0x8a6e4c];
+    const PASTURE = hex(P4[0]), STUBBLE = hex(P4[1]), FALLOW = hex(P4[2]), PLOUGH = hex(P4[3]), WOOD = hex(0x4e6532), VILLAGE = hex(0x9c9670), WATER = hex(0x5c716a);
     const ss = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
     for (let j = 0; j < CH; j++) for (let i = 0; i < CW; i++) {
       const x = -W / 2 + (i + .5) / CW * W, z = -H / 2 + (j + .5) / CH * H, lt = landAt(x, z); let c;
@@ -56,7 +68,9 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
         c = mix(c, FALLOW, ss(.15, .45, b) * .7);
         c = mix(c, PLOUGH, ss(.35, .6, d * .6 + b * .5) * .35);
       }
-      if (winter && lt !== 2) c = mix(c, [236, 240, 243], lt === 1 ? .35 : .72 + .2 * N(x / 60, z / 60));
+      if (winter && lt !== 2) c = mix(c, [236, 240, 243], (lt === 1 ? .35 : .72 + .2 * N(x / 60, z / 60)) * (weather === 'thaw' ? ss(-.05, .3, N(x / 140 + 4, z / 140)) : 1));
+      if (L.rime && lt !== 2) c = mix(c, [222, 230, 238], .42 + .2 * N(x / 30, z / 30)); // hoar frost
+      if (L.wet && lt !== 2) c = mix(c, [c[0] * .8, c[1] * .8, c[2] * .8], L.wet); // rain darkens the ground
       const k = 1 + N.fbm(x / 45, z / 45, 2) * .07, o = (j * CW + i) * 4; D[o] = c[0] * k; D[o + 1] = c[1] * k; D[o + 2] = c[2] * k; D[o + 3] = 255;
     }
     ctx.putImageData(img, 0, 0); ctx.filter = 'blur(2px)'; ctx.drawImage(cvs, 0, 0); ctx.filter = 'none'; // soft edges to woods, water and hamlets
@@ -70,7 +84,7 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
       gi.data[o] = gi.data[o + 1] = gi.data[o + 2] = Math.max(0, Math.min(255, v)); gi.data[o + 3] = 255; }
     gx.putImageData(gi, 0, 0); }
   const grainTex = new THREE.CanvasTexture(grain); grainTex.wrapS = grainTex.wrapT = THREE.RepeatWrapping; grainTex.anisotropy = 8;
-  const MEAD = new THREE.Color(0x7d9442), tmp = new THREE.Color();
+  const MEAD = new THREE.Color({ spring: 0x86aa4a, summer: 0x76903e }[season] || 0x7d9442), tmp = new THREE.Color();
   const color = (x, z, h, out) => {
     const o = outside(x, z);
     if (o > 0) { out.copy(MEAD).lerp(tmp.set(0x5a7438), smooth(0, 3000, o) * .6); if (winter) out.lerp(tmp.set(0xeef1f4), .78); return; }
@@ -92,12 +106,12 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   const trees = { broadleaf: [], fir: [], poplar: [], bush: [] }, per = quality.trees >= 1 ? 3 : quality.trees >= .8 ? 2 : 1, vill = [];
   for (let r = 0; r < TER.rows; r++) for (let c = 0; c < TER.cols; c++) {
     const t = +TER.rows_str[r][c], x = -W / 2 + (c + .5) * cell, z = -(H / 2 - (r + .5) * cell);
-    if (t === 1 || near(r, c, 1)) for (let k = 0; k < per; k++) { const px = x + (rnd() - .5) * 30, pz = z + (rnd() - .5) * 30, sp = rnd() < .3 ? 'fir' : 'broadleaf'; if (landAt(px, pz) !== 1) continue; trees[sp].push({ x: px, y: hAt(px, pz), z: pz, ry: rnd() * 6.28, s: 1.1 + rnd() * .6, col: sp === 'fir' ? FIRS[k % 4] : winter ? 0x6e5e4e : AUTUMN[Math.floor(rnd() * AUTUMN.length)] }); }
+    if (t === 1 || near(r, c, 1)) for (let k = 0; k < per; k++) { const px = x + (rnd() - .5) * 30, pz = z + (rnd() - .5) * 30, sp = rnd() < .3 ? 'fir' : 'broadleaf'; if (landAt(px, pz) !== 1) continue; trees[sp].push({ x: px, y: hAt(px, pz), z: pz, ry: rnd() * 6.28, s: 1.1 + rnd() * .6, col: sp === 'fir' ? FIRS[k % 4] : leaf() }); }
     if (t === 3) vill.push([r, c, x, z]);
     else if (near(r, c, 3)) vill.push([r, c, x, z, true]);
   }
-  for (let i = 0; i < 900; i++) { const x = -W / 2 + rnd() * W, z = -H / 2 + rnd() * H; if (cellAt(x, z) === 0 && N(x / 400, z / 400) > .35) trees.broadleaf.push({ x, y: hAt(x, z), z, ry: rnd() * 6, s: 1 + rnd() * .5, col: winter ? 0x6e5e4e : AUTUMN[Math.floor(rnd() * AUTUMN.length)] }); }
-  for (let i = 0; i < 2500; i++) { const a = rnd() * 6.28, d = Math.max(W, H) * .55 + rnd() * 5000, x = Math.cos(a) * d, z = Math.sin(a) * d * .8; if (N.fbm(x / 1500, z / 1500, 2) > -.05) trees[rnd() < .4 ? 'fir' : 'broadleaf'].push({ x, y: hAt(x, z), z, ry: rnd() * 6, s: 1.6 + rnd(), col: rnd() < .4 ? FIRS[0] : winter ? 0x6e5e4e : AUTUMN[Math.floor(rnd() * AUTUMN.length)] }); }
+  for (let i = 0; i < 900; i++) { const x = -W / 2 + rnd() * W, z = -H / 2 + rnd() * H; if (cellAt(x, z) === 0 && N(x / 400, z / 400) > .35) trees.broadleaf.push({ x, y: hAt(x, z), z, ry: rnd() * 6, s: 1 + rnd() * .5, col: leaf() }); }
+  for (let i = 0; i < 2500; i++) { const a = rnd() * 6.28, d = Math.max(W, H) * .55 + rnd() * 5000, x = Math.cos(a) * d, z = Math.sin(a) * d * .8; if (N.fbm(x / 1500, z / 1500, 2) > -.05) trees[rnd() < .4 ? 'fir' : 'broadleaf'].push({ x, y: hAt(x, z), z, ry: rnd() * 6, s: 1.6 + rnd(), col: rnd() < .4 ? FIRS[0] : leaf() }); }
   scene.add(buildForest(trees, { variants: 2, seed: 8, lod: true, shadows: quality.shadows >= 2048 }));
   const houseG = [merge([box(9, 4.5, 6, 0xeee6d2), place(tint(new THREE.CylinderGeometry(0, 1, 1, 4, 1), 0x8e4a34, .06), 0, 6.3, 0, Math.PI / 4, 7.4, 3.6, 5.2)]),
     merge([box(11, 3.8, 6.5, 0xd9c49a), box(.4, 3.8, 6.6, 0x5a4030, -3, 0, 0), box(.4, 3.8, 6.6, 0x5a4030, 3, 0, 0), place(tint(new THREE.CylinderGeometry(0, 1, 1, 4, 1), 0x8a7a52, .06), 0, 5.6, 0, Math.PI / 4, 8.8, 3.6, 5.6)])];

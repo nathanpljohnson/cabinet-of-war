@@ -52,3 +52,13 @@
 - [x] Desk: lines and wings read from where the army stands and faces; labels and view on the armies; reset follows the battle
 - [x] Reply checks and format, contract, battle mock and tests (30 pass); browser: Mollwitz unchanged, new field, a phase fought, aftermath ride
 - [x] The desk map draws the battle's ground (same warped outlines as the 3D field, field patches, villages) with the named features, under the units; Mollwitz keeps the real map
+
+# Sky, seasons and weather
+- [x] Weather words frost, thaw, thunder (reply checks, contract, tests)
+- [x] Four seasons from the date: foliage (blossom in spring, thinning in late autumn), fields, grass; snow in midwinter or after it falls
+- [x] Sky: the sun where it stands for date, hour and place (day length 8 h in December to 16 h in June); stars; the moon in its phase
+- [x] Clouds by weather (few and bright to a grey deck to storm towers), drifting with the wind; darker at night
+- [x] Weather on the ground: rain darkens it and fills puddles, frost rimes it, a thaw leaves snow in patches and mud on the roads
+- [x] Wind sways trees and grass by the weather; rain falls in streaks slanted by it; thunderstorms flash, and thunder follows
+- [x] The battlefield takes the season and weather of its day
+- [x] lightCheck passes for every weather in all four seasons; frame rate unchanged against main

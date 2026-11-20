@@ -202,3 +202,19 @@ def test_bad_battle_is_made_safe(run):
     assert bad["kind"] == "farmland" and bad["villages"] == ["Ok:village"]
     assert bad["units"] == ["X3:0"]
     assert any("both sides" in w for w in bad["warns"])
+
+
+def test_new_weather_words(run):
+    w = run["weather"]
+    assert w["kept"] == ["frost", "thaw", "thunder"]
+    assert len(w["fixes"]) == 1 and "hail" in w["fixes"][0]
+    assert w["looks"] == [] and w["lookKeys"] == [True]
+
+
+def test_sun_moon_and_seasons(run):
+    s = run["sky"]
+    assert s["seasons"] == ["autumn", "winter", "spring", "summer"]
+    assert 7.5 < s["dec"] < 8.8 and 15.3 < s["jun"] < 16.4
+    assert 15 <= s["noonDec"] <= 21 and 62 <= s["noonJun"] <= 68 and s["morningEast"]
+    assert s["newMoon"] in (0.0, 0.01, 0.02, 0.98, 0.99, 1.0) and 0.45 <= s["fullMoon"] <= 0.55
+    assert s["palettes"]

@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import { parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue } from '../w3d/turn.js';
 import { checkContinuity } from '../w3d/continuity.js';
 import { makeGround, groundKey } from '../w3d/ground.js';
+import { seasonOf, sunTimes, sunVector, moonPhase, LOOK, LEAVES, COUNTRY } from '../w3d/season.js';
+import { WEATHER } from '../w3d/turn.js';
 const root = new URL('../', import.meta.url), read = p => readFileSync(new URL(p, root), 'utf8');
 const html = read('cabinet-of-war.html'), m = html.match(/id="initial-state">([\s\S]*?)<\/script>/);
 const opening = JSON.parse(m[1].replace(/\\u003c/g, '<')), almanac = JSON.parse(read('w3d/almanac.json')), contract = read('w3d/contract.md');
@@ -62,4 +64,11 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
   const badB = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], battleDemo: { id: 'bd-x', ground: { kind: 'swamp', villages: [{ name: 'Far', e: 9000, n: 0 }, { name: 'Ok', e: 0, n: 0, size: 'city' }] }, units: [{ id: 'X1', side: 'C', type: 'inf', e: 0, n: 0 }, { id: 'X2', side: 'A', type: 'inf', e: 0, n: 99999 }, { id: 'X3', side: 'A', type: 'cav', e: 10, n: 10 }] } });
   const bb = checkReply(opening, badB, {}); out.battle.bad = { fixes: bb.fixes, warns: bb.warns, kind: badB.changes.battleDemo.ground.kind, villages: badB.changes.battleDemo.ground.villages.map(v => v.name + ':' + v.size), units: badB.changes.battleDemo.units.map(u => u.id + ':' + u.facing) };
 }
+// the new weather words are accepted, unknown ones still left out; every weather has a look; the sun and moon by the calendar
+{ const rw = reply(opening, { date: '1740-10-25', title: 't', briefing: 'b', reports: [], world: { weather: { '1740-10-21': 'frost', '1740-10-22': 'thaw', '1740-10-23': 'thunder', '1740-10-24': 'hail' } } });
+  const cw = checkReply(opening, rw, {});
+  out.weather = { kept: Object.values(rw.changes.world.weather), fixes: cw.fixes.filter(f => f.includes('weather')), looks: WEATHER.filter(w => !LOOK[w]), lookKeys: [...new Set(Object.values(LOOK).map(l => ['sun', 'sunC', 'hemi', 'top', 'hor', 'fog', 'near', 'far', 'cover', 'shade', 'wind', 'wet', 'rime'].every(k => k in l)))] };
+  out.sky = { seasons: ['1740-10-21', '1741-01-15', '1741-04-10', '1741-07-01'].map(seasonOf), dec: +sunTimes('1740-12-21').length.toFixed(1), jun: +sunTimes('1741-06-21').length.toFixed(1),
+    noonDec: Math.round(sunVector('1740-12-21', 12).alt), noonJun: Math.round(sunVector('1741-06-21', 12).alt), morningEast: sunVector('1740-10-21', 9).x > 0, newMoon: +moonPhase('2024-04-08').toFixed(2), fullMoon: +moonPhase('2024-04-23').toFixed(2),
+    palettes: Object.keys(LEAVES).every(k => COUNTRY[k] && COUNTRY[k].grass.length === 3 && COUNTRY[k].fields.length === 4) }; }
 console.log(JSON.stringify(out));
