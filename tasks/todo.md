@@ -51,4 +51,4 @@
 - [x] 3D field: relief by kind, named heights, valleys and shallow beds by distance to water, dry valleys past the edge
 - [x] Desk: lines and wings read from where the army stands and faces; labels and view on the armies; reset follows the battle
 - [x] Reply checks and format, contract, battle mock and tests (30 pass); browser: Mollwitz unchanged, new field, a phase fought, aftermath ride
-- [ ] Not done: the 2D desk map still shows the real map at the battle's centre, not the drawn ground
+- [x] The desk map draws the battle's ground (same warped outlines as the 3D field, field patches, villages) with the named features, under the units; Mollwitz keeps the real map

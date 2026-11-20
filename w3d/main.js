@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { initActors, makePerson, makeHorse } from './actors.js';
 import { buildRegion } from './region.js';
-import { setWindTime, disposeTree } from './lib.js';
+import { setWindTime, disposeTree, makeNoise } from './lib.js';
 import { createShell, locName, fmtDate } from './shell.js';
 import { createSound } from './sound.js';
 import { travel, loc, roadKm, travelDays, letterDays, placeOn, groupsOn } from './places.js';
@@ -284,7 +284,30 @@ const TER0 = JSON.parse(JSON.stringify(TER));
 function syncGround() {
   const bd = state.battleDemo, k = groundKey(bd); if (TER.key === k) return;
   const g = makeGround(bd); for (const f of Object.keys(TER)) delete TER[f]; Object.assign(TER, g || JSON.parse(JSON.stringify(TER0)), { key: k });
+  drawGroundOnMap();
 }
+// on the desk's map the drawn ground lies over the real one, under the units, whenever the battle is shown (Mollwitz: the real map is the ground)
+const groundLayer = L.layerGroup();
+function drawGroundOnMap() {
+  groundLayer.clearLayers(); if (!TER.kind) return;
+  const m = desk.map; if (!m.getPane('w3dGround')) { m.createPane('w3dGround').style.zIndex = 350; }
+  // painted like the desk's map: the same warped outlines as the 3D field (battle3d.js landAt), fields in soft patches, red-roofed villages
+  const CW = 1188, CH = Math.round(CW * TER.h / TER.w), cv = document.createElement('canvas'); cv.width = CW; cv.height = CH;
+  const x = cv.getContext('2d'), img = x.createImageData(CW, CH), D = img.data, N = makeNoise(1741);
+  const mix = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
+  const FIELD = [214, 200, 156], PASTURE = [178, 178, 124], PLOUGH = [190, 158, 116], WOOD = [104, 122, 76], WATER = [112, 150, 160], VILLAGE = [178, 112, 84];
+  for (let j = 0; j < CH; j++) for (let i = 0; i < CW; i++) {
+    const wx = -TER.w / 2 + (i + .5) / CW * TER.w, wz = -TER.h / 2 + (j + .5) / CH * TER.h, t = terrainAt(wx + 18 * N(wx / 95, wz / 95), -(wz + 18 * N(wx / 95 + 31, wz / 95 - 17)));
+    let col = t === 1 ? WOOD : t === 2 ? WATER : t === 3 ? VILLAGE : mix(mix(FIELD, PASTURE, Math.max(0, Math.min(1, .5 + N.fbm(wx / 500, wz / 500, 3) * 1.6))), PLOUGH, Math.max(0, Math.min(1, N(wx / 160 + 7, wz / 160 - 3) * 1.4)) * .45);
+    const k = 1 + N(wx / 40, wz / 40) * .05, o = (j * CW + i) * 4; D[o] = col[0] * k; D[o + 1] = col[1] * k; D[o + 2] = col[2] * k; D[o + 3] = 255;
+  }
+  x.putImageData(img, 0, 0); x.filter = 'blur(1px)'; x.drawImage(cv, 0, 0); x.filter = 'none';
+  const c = state.battleDemo.center, sw = lo(c, -TER.w / 2, -TER.h / 2), ne = lo(c, TER.w / 2, TER.h / 2);
+  L.imageOverlay(cv.toDataURL(), [sw, ne], { pane: 'w3dGround', opacity: .9, interactive: false }).addTo(groundLayer);
+  for (const f of TER.names || []) L.marker(lo(c, f.e, f.n), { pane: 'w3dGround', interactive: false, icon: L.divIcon({ className: 'w3d-gname ' + f.what, html: f.name.replace(/[<>&]/g, ''), iconSize: [0, 0] }) }).addTo(groundLayer);
+}
+desk.map.on('layeradd', e => { if (e.layer === battleLayer && !desk.map.hasLayer(groundLayer)) groundLayer.addTo(desk.map); });
+desk.map.on('layerremove', e => { if (e.layer === battleLayer) desk.map.removeLayer(groundLayer); });
 const battleCentreIn = m => m.getBounds().contains(lo(state.battleDemo.center, 0, 0));
 // the ground is painted for the season: of the battle itself when you read an account of it, else of today
 const fieldSeason = () => { const bd = state.battleDemo || {}; const bdd = bd.date || (bd.aftermath || {}).date; if ((account || aftermath) && bdd) { const m = new Date(bdd + 'T12:00:00').getMonth(); return m === 11 || m <= 1 ? 'winter' : 'open'; } return worldCues().season; };
