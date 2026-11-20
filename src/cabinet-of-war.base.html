@@ -1145,11 +1145,13 @@ let seasonName='autumn';
 function badge(c){const lab={documented:'Documented',inference:'Inference',disputed:'Disputed',invention:'Invention',demo:'Demo'}[c]||c;return '<span class="claim '+(['documented','inference','disputed','invention','demo'].includes(c)?c:'demo')+'">'+lab+'</span>'}
 function pathKm(pts){let d=0;for(let i=1;i<pts.length;i++)d+=map.distance(pts[i-1],pts[i]);return d/1000}
 function arrowHead(a,b,col){const k=Math.cos(b[0]*Math.PI/180),brg=Math.atan2((b[1]-a[1])*k,(b[0]-a[0]))*180/Math.PI;return L.marker(b,{interactive:false,keyboard:false,icon:L.divIcon({className:'',html:'<div class="ahead" style="transform:rotate('+brg+'deg);border-bottom-color:'+col+'"></div>',iconSize:[0,0]})})}
+// trade routes are the page's, not the campaign's: drawn from the shipped opening, so older saves get the sourced lines too
+function pageRoutes(){try{return JSON.parse($('initial-state').textContent).routes||state.routes||[]}catch{return state.routes||[]}}
 function initRoutes(){
-  const RC={river:'#7cc6d8',road:'#8a5a2a',salt:'#f6efe0'};
-  for(const r of state.routes||[]){const pts=spline(r.pts,8),c=RC[r.kind]||'#8a5a2a',km=Math.round(pathKm(r.pts)*1.12);
+  const RC={river:'#7cc6d8',road:'#8a5a2a',salt:'#f6efe0',drove:'#c9a24a'};routesLayer.clearLayers();
+  for(const r of pageRoutes()){const pts=spline(r.pts,8),c=RC[r.kind]||'#8a5a2a',km=Math.round(pathKm(r.pts)*1.12);
     const days=Math.round(km/(KMD.wagon*.9));
-    const html='<b>'+r.name+'</b><br>'+r.goods+'<br>≈ '+km+' km · wagons ≈ '+days+' days · foot ≈ '+Math.round(km/KMD.foot)+' days<br>'+badge(r.claim)+' <span class="meta">approximate corridor</span>';
+    const html='<b>'+r.name+'</b><br>'+r.goods+'<br>≈ '+km+' km · wagons ≈ '+days+' days · foot ≈ '+Math.round(km/KMD.foot)+' days<br>'+badge(r.claim)+' <span class="meta">drawn through its towns, not surveyed</span>'+(r.source?'<br><span class="meta">Source: '+r.source.replace(/[<>&]/g,'')+'</span>':'');
     L.polyline(pts,{color:'#f4e8c8',weight:6,opacity:.7,interactive:false}).addTo(routesLayer);
     L.polyline(pts,{color:c,weight:3,opacity:.95,interactive:true}).bindPopup(html).addTo(routesLayer);
     L.polyline(pts,{color:'#2a1808',weight:2,opacity:.8,dashArray:'1 14',lineCap:'round',className:'flow2',interactive:false}).addTo(routesLayer);
@@ -1601,13 +1603,15 @@ function buildTimeline(){const t=$('timeline');t.replaceChildren();const ev=[];
   for(const e of ev){const c=el('button',fmt(e.d)+' — '+e.txt.slice(0,46),'tl-chip '+e.kind);c.onclick=()=>{if(e.place)selectPlace(e.place);else if(e.pt)map.flyTo(e.pt,7,{duration:.8})};t.append(c)}}
 /* sound (WebAudio, synthesised: no files) */
 let ac=null,windG=null,bellT=null;
-function sound(on){if(!on){if(ac){ac.close();ac=null}clearInterval(bellT);return}
-  ac=new (window.AudioContext||window.webkitAudioContext)();const len=ac.sampleRate*2,buf=ac.createBuffer(1,len,ac.sampleRate),d=buf.getChannelData(0);let l=0;for(let i=0;i<len;i++){l=l*.97+(Math.random()*2-1)*.03;d[i]=l*3}
-  const src=ac.createBufferSource();src.buffer=buf;src.loop=true;const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=500;windG=ac.createGain();windG.gain.value=.12;src.connect(f).connect(windG).connect(ac.destination);src.start();
+// everything the map plays goes through deskOut, so the 3D page's volume reaches it (deskVolume)
+let deskOut=null,deskVol=1;function deskVolume(v){deskVol=v;if(deskOut)deskOut.gain.value=v}
+function sound(on){if(!on){if(ac){ac.close();ac=null;deskOut=null}clearInterval(bellT);return}
+  if(ac)return;ac=new (window.AudioContext||window.webkitAudioContext)();deskOut=ac.createGain();deskOut.gain.value=deskVol;deskOut.connect(ac.destination);const len=ac.sampleRate*2,buf=ac.createBuffer(1,len,ac.sampleRate),d=buf.getChannelData(0);let l=0;for(let i=0;i<len;i++){l=l*.97+(Math.random()*2-1)*.03;d[i]=l*3}
+  const src=ac.createBufferSource();src.buffer=buf;src.loop=true;const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=500;windG=ac.createGain();windG.gain.value=.12;src.connect(f).connect(windG).connect(deskOut);src.start();
   bellT=setInterval(()=>{if(!ac||!map||map.getZoom()<13)return;bell()},22000)}
-function bell(){const t=ac.currentTime;for(const [fr,dl] of[[392,0],[523,1.1]]){const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=fr;g.gain.setValueAtTime(0,t+dl);g.gain.linearRampToValueAtTime(.06,t+dl+.02);g.gain.exponentialRampToValueAtTime(.0001,t+dl+3);o.connect(g).connect(ac.destination);o.start(t+dl);o.stop(t+dl+3.2)}}
+function bell(){const t=ac.currentTime;for(const [fr,dl] of[[392,0],[523,1.1]]){const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=fr;g.gain.setValueAtTime(0,t+dl);g.gain.linearRampToValueAtTime(.06,t+dl+.02);g.gain.exponentialRampToValueAtTime(.0001,t+dl+3);o.connect(g).connect(deskOut);o.start(t+dl);o.stop(t+dl+3.2)}}
 let drumT=null;
-function soundDrums(on){clearInterval(drumT);if(!on||!ac)return;drumT=setInterval(()=>{const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type='triangle';o.frequency.setValueAtTime(110,t);o.frequency.exponentialRampToValueAtTime(55,t+.2);g.gain.setValueAtTime(.18,t);g.gain.exponentialRampToValueAtTime(.001,t+.25);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+.3)},520)}
+function soundDrums(on){clearInterval(drumT);if(!on||!ac)return;drumT=setInterval(()=>{const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type='triangle';o.frequency.setValueAtTime(110,t);o.frequency.exponentialRampToValueAtTime(55,t+.2);g.gain.setValueAtTime(.18,t);g.gain.exponentialRampToValueAtTime(.001,t+.25);o.connect(g).connect(deskOut);o.start(t);o.stop(t+.3)},520)}
 
 /* ---------- left rail ---------- */
 function selectPlace(id){selectedPlace=id;renderPlace();renderPins();const l=state.locations.find(x=>x.id===id);if(l)map.panTo([l.lat,l.lon],{animate:true});if(innerWidth<=860)$('left').classList.add('open')}

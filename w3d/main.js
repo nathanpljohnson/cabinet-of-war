@@ -282,7 +282,9 @@ function stepInteract() {
 
 /* ---------- one world: views and the transitions between them ---------- */
 const body = document.body, sleep = ms => new Promise(r => setTimeout(r, ms));
-function setView(v) { mode = v; dyn.grace = 1.5; if (v === 'map') drawSightings(); body.classList.remove('w3d-room', 'w3d-map', 'w3d-field', 'w3d-hall', 'w3d-sick'); body.classList.add('w3d-' + v); if (v !== 'room') { nearest = null; $3('w3d-prompt').hidden = true; } refreshHud(); if (v !== 'map') canvas.focus(); }
+// the map's own sounds (wind and bells on the map, drums in a table battle) play with the game's sound, at its volume
+function deskSound() { const on = !!gfx.sound && (mode === 'map' || mode === 'field'); deskVolume(gfx.volume ?? 1); window.sound(on); } // window.sound: the desk's own, which this module's `sound` hides
+function setView(v) { mode = v; dyn.grace = 1.5; if (v === 'map') drawSightings(); deskSound(); body.classList.remove('w3d-room', 'w3d-map', 'w3d-field', 'w3d-hall', 'w3d-sick'); body.classList.add('w3d-' + v); if (v !== 'room') { nearest = null; $3('w3d-prompt').hidden = true; } refreshHud(); if (v !== 'map') canvas.focus(); }
 async function fadeCanvas(on, ms = 420) { root.style.transition = 'opacity ' + ms + 'ms ease'; root.style.opacity = on ? '1' : '0'; await sleep(ms + 20); }
 
 // the map table: its sheet shows zoom-6 tiles x32–37, y20–23; lean over it, then cross-fade to the same view on the live map
@@ -681,10 +683,10 @@ gp.shadows.onchange = () => { gfx.shadows = +gp.shadows.value; saveGfx(); applyG
 gp.veg.onchange = () => { gfx.veg = gp.veg.value; saveGfx(); rebuild(); };
 gp.auto.onchange = () => { gfx.auto = gp.auto.checked; dyn.k = 1; saveGfx(); applyGfx(); };
 gp.fps.onchange = () => { gfx.fps = gp.fps.checked; saveGfx(); syncGfxUi(); };
-gp.sound.onchange = () => { gfx.sound = gp.sound.checked; saveGfx(); sound.enabled = gfx.sound; };
+gp.sound.onchange = () => { gfx.sound = gp.sound.checked; saveGfx(); sound.enabled = gfx.sound; deskSound(); };
 // volume and music, saved with the other settings; a slider moved up turns the sound on
 function syncSoundUi() { for (const k of ['volume', 'music']) { $3('g-' + k).value = gfx[k] ?? 1; $3('g-' + k + '-v').textContent = Math.round((gfx[k] ?? 1) * 100) + '%'; } }
-for (const k of ['volume', 'music']) $3('g-' + k).oninput = e => { gfx[k] = +e.target.value; saveGfx(); syncSoundUi(); sound.volume = gfx.volume ?? 1; sound.musicVolume = gfx.music ?? 1; if (gfx[k] > 0 && !gfx.sound) { gfx.sound = true; gp.sound.checked = true; sound.enabled = true; } };
+for (const k of ['volume', 'music']) $3('g-' + k).oninput = e => { gfx[k] = +e.target.value; saveGfx(); syncSoundUi(); sound.volume = gfx.volume ?? 1; sound.musicVolume = gfx.music ?? 1; if (gfx[k] > 0 && !gfx.sound) { gfx.sound = true; gp.sound.checked = true; sound.enabled = true; } deskSound(); };
 syncSoundUi();
 $3('g-tools').onclick = () => $3('toggleT').click(); $3('g-layers').onclick = () => $3('toggleY').click();
 async function rebuild() { showLoading('Replanting…'); await sleep(30); await buildWorld(); hideLoading(); }

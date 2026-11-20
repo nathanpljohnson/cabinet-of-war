@@ -158,3 +158,10 @@ Decisions (Nathan, 4 Nov): library + live fallback; replay accounts; atlas march
 - [x] Rain: 10,000 drops in a 40 m box round you (was 2,400 in 70 m), streaks about 30 cm (was 90), none within 2.5 m of the eye
 - [x] Sound: Volume and Music sliders under Graphics & sound (100% = the old level); moving one up turns sound on
 - [x] Screenshots kept as JPEG in tasks/visual/review-2026-11-20 and tasks/visual/people-looks; .playwright-mcp/ ignored
+
+# Notes, rain, map sound, trade routes (20 Nov 2026)
+- [x] Map notes go to Claude with their place ("at Glogau: …", "about 36 km from Glatz: …")
+- [x] Rain darkens the courtyard flagstones and leaves puddles (not under snow); lightCheck passes autumn, spring, summer
+- [x] The map's wind and bells, and the table battle's drums, play with the game's sound on the map and the field, at its Volume
+- [x] UI-IDEAS.md marks match the game
+- [x] Trade routes from sources: Danube, Bohemian Elbe, Salzkammergut salt to Budweis, the Trieste road over the Semmering, Vienna–Prague post road, Vienna–Breslau by Brünn and Olmütz, the High Road Breslau–Leipzig, the Golden Road Prague–Nuremberg, the Hungarian ox drive; each names its source and what is not sourced; drawn from the page, so old saves get them. Dropped: the Salzach route (Salzburg's, not the Crown's) and Moravia–Cracow (no source found)

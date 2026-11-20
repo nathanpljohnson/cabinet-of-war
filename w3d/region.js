@@ -528,8 +528,12 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
     for (let z = CY.z0 + .45; z < CY.z1 - .3; z += .82) { let x = CY.x0 + .1 - prnd() * .6; while (x < CY.x1 - .2) { const x1 = Math.min(CY.x1 - .15, x + .7 + prnd() * .7); if (x1 - x > .25 && x > CY.x0 && Math.hypot((x + x1) / 2 + 174, z + 10) > 3.3) S.push([(x + x1) / 2, z, x1 - x - .07]); x = x1; } }
     const slabs = new THREE.InstancedMesh(tint(new THREE.BoxGeometry(1, 1, 1), 0xffffff), propsMat, S.length);
     S.forEach(([x, z, w], i) => { d.position.set(x, hqH + .03, z); d.rotation.set(0, 0, 0); d.scale.set(w, .06, .75); d.updateMatrix(); slabs.setMatrixAt(i, d.matrix);
-      c.copy(SL[Math.floor(prnd() * SL.length)]).multiplyScalar(.96 + prnd() * .07); if (winter) c.lerp(SNOW, .45 + prnd() * .3); slabs.setColorAt(i, c); });
+      c.copy(SL[Math.floor(prnd() * SL.length)]).multiplyScalar(.96 + prnd() * .07); if (winter) c.lerp(SNOW, .45 + prnd() * .3); else if (wet) c.multiplyScalar(1 - wet * (.2 + prnd() * .08)); slabs.setColorAt(i, c); }); // rain darkens the stone
     slabs.receiveShadow = true; group.add(slabs);
+    // in steady rain, water stands in the hollows of the paving
+    if (wet > .7 && !winter) { const pm = new THREE.MeshStandardMaterial({ color: 0x8c968f, roughness: .06, metalness: .1, transparent: true, opacity: .55, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }), pg = new THREE.CircleGeometry(1, 12).rotateX(-Math.PI / 2);
+      for (let n = 0; n < 26; n++) { const x = lerp(CY.x0 + 1, CY.x1 - 1, prnd()), z = lerp(CY.z0 + 1, CY.z1 - 1, prnd()); if (Math.hypot(x + 174, z + 10) < 4) continue; const m = new THREE.Mesh(pg, pm);
+        m.position.set(x, hqH + .065, z); m.rotation.y = prnd() * 6.28; m.scale.set(.4 + prnd() * .7, 1, .3 + prnd() * .5); m.receiveShadow = true; group.add(m); } }
     const D = [], put = (geo, x, z, ry = 0, y = 0) => D.push(placeGeom(geo, x, hqH + .06 + y, z, ry));
     const tub = () => P.orangeTub(prnd), bale = P.hayBale, sack = () => P.sack(prnd), logs = (n, L) => P.logPile(n, L, prnd);
     if (road) { for (const [x, z, r, y] of [[-182, 5.6, Math.PI / 2, 0], [-180.8, 5.6, Math.PI / 2 + .1, 0], [-181.4, 5.6, Math.PI / 2, .5], [-175, 5.7, Math.PI / 2 - .1, 0]]) put(bale(), x, z, r, y); colliders.push({ b: [-182.8, -174.3, 5, 6.4] }); }

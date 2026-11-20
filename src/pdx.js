@@ -15,7 +15,7 @@ const PMODES=[
    icon:'<path d="M2 20 9 8l4 6 3-4 6 10z"/>',ov:{routes:0,moves:0,forts:0}},
   {id:'reach',key:'r',name:'Courier reach',hint:'Days for a courier from your location: your staff’s estimate (same rule as the marching rings), not live knowledge.',
    icon:'<path d="M6 3h12M6 21h12M7 3c0 5 10 6 10 9s-10 4-10 9M17 3c0 5-10 6-10 9s10 4 10 9"/>',ov:{routes:0,moves:0,forts:0}},
-  {id:'trade',key:'t',name:'Trade',hint:'Roads, rivers and salt routes (placeholders until sourced).',
+  {id:'trade',key:'t',name:'Trade',hint:'Roads, rivers, the salt route and the ox drive c.1740, each with its source; drawn through their towns, not surveyed.',
    icon:'<path d="M12 3v18M7 21h10M4 7h16M6 7l-3 7a3 3 0 0 0 6 0zM18 7l-3 7a3 3 0 0 0 6 0z"/>',ov:{routes:1,moves:0,forts:0}},
   {id:'intel',key:'y',name:'Intelligence',hint:'Reported movements and fortresses, with report status and age.',
    icon:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',ov:{routes:0,moves:1,forts:1}}];
