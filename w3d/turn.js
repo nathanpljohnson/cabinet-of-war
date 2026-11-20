@@ -279,7 +279,7 @@ Skeleton (fill it from the story; leave out what did not change):
  "hidden":{"chronicle":"…","decisions":[{"who":"…","knows":"…","wants":"…","decides":"…"}],"fortune_used":[{"roll":0,"for":"…","outcome":"…"}],"canon":["…"],"dispatches":[{"to":"…","via":"…","sent":"…","arrives":"…","gist":"…"}],"threads":[{"id":"…","status":"building","next_check":"…","note":"…"}],"standing":{"…":"cool"},"memory":{"…":["…"]}}
 }}`;
 }
-export function buildPacket({ state, contract, orders, almanac, fortune, wake, trust, choices, endRequested, purse }) {
+export function buildPacket({ state, contract, orders, almanac, fortune, wake, trust, choices, endRequested, purse, waiting }) {
   const th = (state.hidden || {}).threads || [], date = state.date, act = activePlots(almanac || {}, th, date), byId = new Map(th.map(t => [t.id, t]));
   const shown = th.filter(t => !['resolved', 'abandoned'].includes(t.status) && (liveThread(t) || dueThread(t, date))), rest = th.length - shown.length;
   const index = shown.map(t => '- ' + t.id + ' · ' + (t.title || '') + ' · ' + (t.status || 'dormant') + (t.next_check ? ' · check ' + t.next_check : '') + (t.note ? ' · ' + t.note : '')).join('\n')
@@ -292,6 +292,7 @@ export function buildPacket({ state, contract, orders, almanac, fortune, wake, t
     + (endRequested ? '\n\n## He ends his service\nHe asks to end his service here. End the campaign this turn: set "ended" and write the epilogue.' : '')
     + '\n\n' + orders.trim()
     + '\n\n## His judgement of sources\nTrusts: ' + (trusts.join('; ') || '(none marked)') + '\nDoubts: ' + (doubts.join('; ') || '(none marked)')
+    + ((waiting || []).length ? '\n\n## Earlier orders with no answer yet\nA letter that answers one of these carries its reference in "re" like this turn\'s.\n' + waiting.map(o => '- [' + o.ref + '] ' + (o.line.length > 200 ? o.line.slice(0, 200) + ' …' : o.line)).join('\n') : '')
     + '\n\n## Urgent letters he answered this turn\n' + ((choices || []).map(c => '- On “' + c.title + '” (' + c.id + '): he chose “' + c.label + '”' + (c.byDefault ? ' (the day passed without his answer; the default applied)' : '') + '.').join('\n') || '(none)')
     + '\n\n## His own purse\n' + (purse && purse.length ? 'Orders he pays for himself: ' + purse.join(' | ') : '(nothing from his own purse this turn)')
     + (volumeDue(state) ? '\n\n## A volume closes\nThis is turn ' + (state.turn + 1) + '. Add one entry to hidden.volumes: {"n": ' + ((state.turn + 1) / 10) + ', "turns": "' + (state.turn - 8) + '–' + (state.turn + 1) + '", "title", "text"} — these ten turns in at most 200 words. Then begin hidden.chronicle again from the end of this volume.' : '')

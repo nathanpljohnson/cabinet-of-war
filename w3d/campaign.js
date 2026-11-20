@@ -34,10 +34,13 @@ function migrate() {
 /* ---------- the packet ---------- */
 const sentOrders = () => store(SENT_KEY, []).flatMap(s => (s.orders || []).filter(o => o && o.ref).map(o => o.ref));
 const choicesNow = () => store(CHOICE_KEY, []).filter(c => c.turn === state.turn);
+// orders of the last three turns that no letter has answered: the adjudicator needs their references to answer them later
+const waiting = () => { const arch = Object.values(store(P + 'w3d-archive', {})), done = new Set([...arch, ...(state.reports || [])].flatMap(r => r.re || []));
+  return store(SENT_KEY, []).filter(s => s.turn < state.turn && s.turn >= state.turn - 3).flatMap(s => (s.orders || []).filter(o => o && o.ref && !done.has(o.ref) && !/^Journey: /.test(o.line || ''))); };
 export const fortune = () => rollFortune(state.campaignId, state.turn, 8, (state.record || {}).salt || '');
 async function packet(orders) {
   const w = draft.w3d || {};
-  return buildPacket({ state, contract, orders, almanac, fortune: fortune(), wake: w.wake, trust: state.trust, choices: choicesNow(), endRequested: !!w.end, purse: (w.items || []).filter(i => i.purse).map(i => i.text) });
+  return buildPacket({ state, contract, orders, almanac, fortune: fortune(), wake: w.wake, trust: state.trust, choices: choicesNow(), waiting: waiting(), endRequested: !!w.end, purse: (w.items || []).filter(i => i.purse).map(i => i.text) });
 }
 
 /* ---------- reading the reply ---------- */

@@ -100,6 +100,8 @@ def test_packet(run):
     assert p["bytes"] < 60_000
     # the opening letters were written by the page: the adjudicator gets them whole
     assert p["openingLetters"]
+    # orders from earlier turns that are still unanswered go with their references
+    assert p["waiting"] and p["noWaiting"]
     for k in p["staticKeys"]:
         assert k not in p["live"]
     assert p["active"], "some plots are in play at the opening"
