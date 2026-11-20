@@ -1,5 +1,5 @@
 {
- "openingVersion": 3,
+ "openingVersion": 4,
  "locations_add": [
   {
    "id": "brunn",
@@ -97,6 +97,15 @@
    "claim": "documented",
    "agenda": "The family's standing and the daughters' futures; your safety.",
    "voice": "Affectionate, practical, sharp about money and people."
+  },
+  {
+   "id": "secretary",
+   "name": "Your secretary",
+   "office": "Role: your correspondence and register, and what is said in the antechambers",
+   "place": "vienna",
+   "claim": "invention",
+   "agenda": "Your favour, and a place in the chancery when you rise.",
+   "voice": "Plain and careful; marks each item as fact, report or rumour, and names the source."
   }
  ],
  "household": {
@@ -111,7 +120,8 @@
    }
   ],
   "health": "well",
-  "estate": "Your house in the city and the family's lands; the accounts are not yet before you."
+  "estate": "Your house in the city and the family's lands; the accounts are not yet before you.",
+  "purse": "The house runs on credit until the Martinmas rents come in, as it always has."
  },
  "mandate": {
   "from_id": "maria_theresa",
@@ -317,7 +327,13 @@
   ],
   "chronicle": "In the night of 19–20 October 1740 the Emperor Charles VI died at the Favorita. His daughter Maria Theresa, twenty-three, succeeds to the hereditary lands under the Pragmatic Sanction, with her husband Francis Stephen beside her. The treasury is nearly empty, the army is weak after the Turkish war, and pay is in arrears. Count Neipperg is held at Brünn for the Belgrade peace. Frederick II has been King in Prussia since May; his intentions are unknown in Vienna. Count Khevenhüller, at court in Vienna, waits for Her Majesty's commands on the morning of 21 October. Nothing has yet been decided.",
   "decisions": [],
-  "fortune_used": []
+  "fortune_used": [],
+  "purse": {
+   "income": "Pay as Vice-President of the Hofkriegsrat and as a general, irregular and in arrears like all pay; rents from the family's lands at Martinmas and Easter. Amounts not yet before him (campaign invention).",
+   "debts": "The household's running bills; nothing large known.",
+   "creditors": "Tradesmen of the city.",
+   "pledged": "Nothing known."
+  }
  },
  "sourcesAppendix": [
   {
