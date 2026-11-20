@@ -147,4 +147,5 @@ Decisions (Nathan, 4 Nov): library + live fallback; replay accounts; atlas march
 - [x] Scenes: written whenever he meets someone in person (one a turn); `scene.date` defaults to the reply's and is kept inside the turn; it arrives in the post that day on paper (setting, names, You, narration, what was undertaken); not counted as a letter to answer; shared `sceneLines()` for the book
 - [x] `world.scene` (the tags) renamed `world.sights`; the old name is read as sights with a fix, and old saves lose the old tags at the next turn
 - [x] Tests 56 pass; browser: the meeting on day 3, Glogau campaigning while Vienna is in winter quarters, Vienna's sights drawn
-- Not done, on purpose: merging hidden.dispatches into the ledger (the ledger is the player's own timeline; dispatches are hidden), and he/his → "the player" in the rules (the player's character is a historical man)
+- [x] Rules text says "the player" (they/their) instead of he/his: contract, orders section, packet
+- Not done, on purpose: merging hidden.dispatches into the ledger (the ledger is the player's own timeline; dispatches are hidden)
