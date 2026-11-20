@@ -1,0 +1,26 @@
+{
+"source": "Overture Maps Foundation, divisions, release 2026-10-21.0 (ODbL; includes OpenStreetMap data)",
+"points": [
+{
+"name": "Buďánka",
+"de": null,
+"class": "hamlet",
+"lat": 50.07074,
+"lon": 14.37005
+},
+{
+"name": "Praha",
+"de": "Prag",
+"class": "city",
+"lat": 50.08746,
+"lon": 14.42125
+},
+{
+"name": "Horoměřice",
+"de": "Horomierschitz",
+"class": "village",
+"lat": 50.13178,
+"lon": 14.33873
+}
+]
+}

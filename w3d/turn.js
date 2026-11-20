@@ -1,7 +1,8 @@
+import { TROOPS, normalizeUnit } from './march.js';
 /* The turn: what goes to Claude and how its reply comes back. Pure functions (no DOM), so tests/ can run them in node.
    A reply carries only what changed (schema 3); mergeTurn applies it to the state by the rules in REPLY_RULES. */
 
-import { cleanGround, GROUND_KINDS, VILLAGE_SIZES, FIELD } from './ground.js';
+import { cleanGround, GROUNDS, GROUND_KINDS, VILLAGE_SIZES, FIELD } from './groundspec.js';
 
 export const REPLY_SCHEMA = 3;
 // reference the adjudicator does not need to see or return every turn (kept in the page and the campaign file)
@@ -22,6 +23,11 @@ export const TEMPERS = ['rash', 'bold', 'steady', 'cautious', 'timid'];
 export const TEMPO = ['winter quarters', 'campaigning', 'truce'];
 export const LOSSES = ['light', 'heavy', 'destroyed'];
 export const UNIT_TYPES = ['inf', 'cav', 'art'];
+// battle grounds: the library ids and the kinds the page lays out (w3d/groundspec.js)
+export { GROUNDS, GROUND_KINDS };
+// a battle account, phase by phase (battleDemo.phases): how each formation stood, and the arrows of the moves
+export const PHASE_FORMS = ['line', 'column', 'firing', 'routing', 'camp'];
+export const ARROW_KINDS = ['move', 'charge', 'retreat', 'fire'];
 // a fingerprint for the sealed record (not cryptographic: it shows tampering and stale replies, it does not stop a determined editor)
 export function fingerprint(s) {
   let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
@@ -171,21 +177,50 @@ export function checkReply(prev, reply, ctx = {}) {
   if (ctx.volumeDue && !(Array.isArray(h.volumes) && h.volumes.length)) warns.push('A volume of the chronicle was due this turn (hidden.volumes).');
   if (w && w.tempo && !TEMPO.includes(w.tempo)) { fixes.push('Unknown tempo "' + w.tempo + '" was left out.'); delete w.tempo; }
   if (Array.isArray(ch.gazette)) ch.gazette = ch.gazette.filter((g, i) => { if (!isObj(g) || !g.date || !Array.isArray(g.items) || !g.items.length) { fixes.push('Gazette issue ' + (i + 1) + ' had no date or items and was left out.'); return false; } g.id = g.id || 'gz-' + g.date; if (g.date < prev.date) g.date = prev.date; if (g.date > ch.date) g.date = ch.date; return true; });
+  // the phases of an account: times, formations by id, losses, arrows; what cannot be drawn is left out with a fix
+  const phs = ch.battleDemo && ch.battleDemo.phases;
+  if (phs != null) {
+    if (!Array.isArray(phs)) { fixes.push('battleDemo.phases must be a list; it was left out.'); delete ch.battleDemo.phases; }
+    else {
+      const ids = new Set([...((prev.battleDemo || {}).units || []), ...(Array.isArray(ch.battleDemo.units) ? ch.battleDemo.units : [])].filter(isObj).map(u => u.id));
+      ch.battleDemo.phases = phs.filter((ph, i) => { if (!isObj(ph) || !(ph.label || ph.t)) { fixes.push('Phase ' + (i + 1) + ' of the account had no time or label and was left out.'); return false; } return true; });
+      ch.battleDemo.phases.forEach((ph, i) => {
+        const where = 'phase ' + (i + 1) + (ph.label ? ' (' + ph.label + ')' : '');
+        if (ph.units != null && !Array.isArray(ph.units)) { fixes.push('The units of ' + where + ' were not a list and were left out.'); ph.units = []; }
+        ph.units = (ph.units || []).filter(u => {
+          if (!isObj(u) || !ids.has(u.id)) { fixes.push('A unit in ' + where + ' (' + (isObj(u) ? u.id : u) + ') is not in battleDemo.units and was left out.'); return false; }
+          if (u.form != null && !PHASE_FORMS.includes(u.form)) { fixes.push('Unknown formation "' + u.form + '" for ' + u.id + ' in ' + where + ' read as line.'); u.form = 'line'; }
+          if (u.losses != null && !LOSSES.includes(u.losses)) { fixes.push('Unknown losses "' + u.losses + '" for ' + u.id + ' in ' + where + ' read as heavy.'); u.losses = 'heavy'; }
+          return true; });
+        if (ph.arrows != null) ph.arrows = (Array.isArray(ph.arrows) ? ph.arrows : []).filter(a => {
+          const ok = isObj(a) && ['A', 'B'].includes(a.side) && Array.isArray(a.p) && a.p.length >= 2 && a.p.every(q => Array.isArray(q) && q.length === 2 && q.every(Number.isFinite));
+          if (!ok) { fixes.push('An arrow in ' + where + ' needs side A or B and two or more [e, n] points; it was left out.'); return false; }
+          if (!ARROW_KINDS.includes(a.kind)) a.kind = 'move'; return true; });
+      });
+    }
+  }
+  if (isObj(ch.battleDemo) && ch.battleDemo.center && !('ground' in ch.battleDemo)) warns.push('battleDemo.center moved but no ground was given; the old ground is kept under the new place.');
   const af = ch.battleDemo && ch.battleDemo.aftermath; if (af && isObj(af.fallen)) for (const [id, v] of Object.entries(af.fallen)) if (!LOSSES.includes(v)) { fixes.push('Unknown losses "' + v + '" for ' + id + ' read as heavy.'); af.fallen[id] = 'heavy'; }
   return { errors, warns, fixes };
 }
 // a battle: a new id is a new field (its units replace the old ones whole); the ground and units are made safe to draw
 function checkBattle(old, bd, warns, fixes) {
+  // troop types: the six of the table (w3d/march.js) are kept as the engine's class plus a kind
+  if (Array.isArray(bd.units)) for (const u of bd.units) if (isObj(u) && u.type != null) {
+    if (!TROOPS[u.type]) { fixes.push('Unknown troop type "' + u.type + '" for ' + (u.id || 'a unit') + ' read as inf. Types: ' + Object.keys(TROOPS).join(', ') + '.'); u.type = 'inf'; }
+    normalizeUnit(u); }
   const fresh = bd.id && (!old || bd.id !== old.id);
   if (fresh) { const miss = ['title', 'center', 'date', 'ground'].filter(k => !bd[k]); if (miss.length) warns.push('The new battle "' + bd.id + '" has no ' + miss.join(', ') + '.');
     const sides = new Set((Array.isArray(bd.units) ? bd.units : []).map(u => u && u.side)); if (!sides.has('A') || !sides.has('B')) warns.push('The new battle "' + bd.id + '" needs units for both sides (A his, B the enemy); the field replaces the old one whole.'); }
-  if ('ground' in bd) bd.ground = cleanGround(bd.ground, fixes);
+  if ('ground' in bd) bd.ground = cleanGround(bd.ground, fixes, warns);
   if (Array.isArray(bd.units)) bd.units = bd.units.filter((u, i) => {
     if (!isObj(u) || typeof u.id !== 'string') { fixes.push('Unit ' + (i + 1) + ' had no id and was left out.'); return false; }
     if (u._remove) return true;
     const full = fresh || !(old && (old.units || []).some(x => x.id === u.id));
-    if (full && (!['A', 'B'].includes(u.side) || !UNIT_TYPES.includes(u.type))) { fixes.push('Unit ' + u.id + ' was left out: it needs side "A" or "B" and type inf, cav or art.'); return false; }
-    if ((('e' in u) || full) && (typeof u.e !== 'number' || Math.abs(u.e) > FIELD.w / 2 || typeof u.n !== 'number' || Math.abs(u.n) > FIELD.h / 2)) { fixes.push('Unit ' + u.id + ' was left out: e and n must place it on the field (±' + FIELD.w / 2 + ' and ±' + FIELD.h / 2 + ' m).'); return false; }
+    if (full && (!['A', 'B'].includes(u.side) || !UNIT_TYPES.includes(u.type))) { fixes.push('Unit ' + u.id + ' was left out: it needs side "A" or "B" and a troop type (' + Object.keys(TROOPS).join(', ') + ').'); return false; }
+    const badE = typeof u.e !== 'number' || Math.abs(u.e) > FIELD.w / 2, badN = typeof u.n !== 'number' || Math.abs(u.n) > FIELD.h / 2;
+    // a new unit needs both; a unit moved by id may give one of them
+    if (full ? badE || badN : ('e' in u && badE) || ('n' in u && badN)) { fixes.push('Unit ' + u.id + ' was left out: e and n must place it on the field (±' + FIELD.w / 2 + ' and ±' + FIELD.h / 2 + ' m).'); return false; }
     if (full) { if (typeof u.facing !== 'number') u.facing = u.side === 'A' ? 0 : 180; if (!u.name) u.name = u.id; }
     return true; });
 }
@@ -249,10 +284,11 @@ export function liveState(state) {
   const bd = s.battleDemo; // the table battle's ground, compactly: change units by id ({"id", "e", "n", "facing"}) when a battle moves them
   // the opening's Mollwitz preview is an illustration, never the live field: its units go only once a reply has made it a real battle
   const preview = bd && bd.id === 'bd-demo' && !bd.enemy && !bd.aftermath;
+  const phaseIndex = bd && Array.isArray(bd.phases) && bd.phases.length ? bd.phases.map(p => (p.t ? p.t + ' ' : '') + (p.label || '')).join(' · ') : undefined;
   const battleNear = bd && !preview && (bd.enemy || bd.aftermath || (state.world || {}).tempo === 'campaigning' || state.player.mode === 'field');
   if (preview) s.battleDemo = { id: bd.id, note: 'No battle has been fought or described yet; this is the page\'s preview field. For a battle, give battleDemo a new id with its place, date, ground and units.' };
-  else if (bd && !battleNear) s.battleDemo = { id: bd.id, title: bd.title, place: bd.place, center: bd.center, date: bd.date, ground: bd.ground, note: 'Units and positions are sent when a battle may come (campaigning, an enemy commander named, or the player with the army).' };
-  else if (bd) s.battleDemo = { id: bd.id, date: bd.date, title: bd.title, place: bd.place, center: bd.center, enemy: bd.enemy, aftermath: bd.aftermath, ground: bd.ground, unitsAs: 'id, side, type, e, n, facing', units: (bd.units || []).map(u => [u.id, u.side, u.type, u.e, u.n, u.facing]) };
+  else if (bd && !battleNear) s.battleDemo = { id: bd.id, title: bd.title, place: bd.place, center: bd.center, date: bd.date, ground: bd.ground, phases: phaseIndex, note: 'Units and positions are sent when a battle may come (campaigning, an enemy commander named, or the player with the army).' };
+  else if (bd) s.battleDemo = { id: bd.id, date: bd.date, title: bd.title, place: bd.place, center: bd.center, enemy: bd.enemy, aftermath: bd.aftermath, ground: bd.ground, phases: phaseIndex, unitsAs: 'id, side, type, e, n, facing', units: (bd.units || []).map(u => [u.id, u.side, u.kind || u.type, u.e, u.n, u.facing]) };
   return s;
 }
 
@@ -276,8 +312,9 @@ Return ONE JSON object (a fenced json block is fine). The page reads only that o
 - Optional, give only when they apply: gazette (the Diarium issues of this turn), movements (forces on the move as he has heard of them, drawn on his map: {"id","label","side":"habsburg"|"prussia"|"bavaria"|"saxony"|"france","status":"confirmed"|"reported"|"rumour","reported":"YYYY-MM-DD","source","claim","pts":[[lat,lon],[lat,lon],…]} from where they were to where they are said to go; change one by id as news comes), weather (only the days it changes; each day keeps the last weather given), overheard, whereabouts, decision (only a real fork), scene (an audience he asked for: {"id","title","setting","participants":[{"id","name"}],"lines":[{"who","text"}]; his part goes as narration (who "Narration") or in the words of his orders (who "player"),"commitments":["…"],"status":"closed"}).
 - Illness: player.health says how he is at the end of the turn. player.abed {"from","to"} gives the days he keeps to his bed (leave out "to" if he is still abed); without it, "ill" or "gravely ill" keeps him abed the whole turn. While abed, those whereabouts put with him that day come to his bedside, with his household; anyone else is reached by a note. He cannot inspect, ride out or attend the Conference.
 - A journey: give player.locationId where he ends the turn, and player.route [{"date","place"}] (place a location id or "road") if he stops anywhere or arrives on a day other than the distance implies. Without a route he is on the road from the first day of the turn and arrives after the usual days for the distance.
-- A battle account (a report with "battle": true) needs battleDemo for that battle. The same battle (same id): move or remove its units by id. A new battle takes a new id and replaces the whole field: give id, title, place, center [lat, lon], date, ground and every unit of both sides ({"id","side":"A" his | "B" the enemy,"type":"inf"|"cav"|"art","name","e","n","facing"}, metres east and north of center, within ±${FIELD.w / 2} and ±${FIELD.h / 2}; facing in degrees, 0 = north). For a battle outside this campaign, write an ordinary letter instead.
-- battleDemo.ground describes the ground the page draws and the table battle is fought over: {"kind": ${Object.keys(GROUND_KINDS).map(k => '"' + k + '"').join(' | ')}, "villages":[{"name","e","n","size": ${Object.keys(VILLAGE_SIZES).map(k => '"' + k + '"').join(' | ')}}], "woods":[{"name","e","n","w","d"}] (w, d its extent in metres east–west and north–south), "streams":[{"name","kind":"stream"|"river","path":[[e,n],…],"crossings":[[e,n]]}] (bridges and fords), "heights":[{"name","e","n","r","h"}] (radius and height in metres)}. Name the features the account mentions and put them where it says; the kind fills in the rest. Woods and villages slow troops and give cover; water stops them except at crossings.
+- A battle account (a report with "battle": true) needs battleDemo for that battle. The same battle (same id): move or remove its units by id. A new battle takes a new id and replaces the whole field: give id, title, place, center [lat, lon], date, ground and every unit of both sides ({"id","side":"A" his | "B" the enemy,"type":${Object.keys(TROOPS).map(k => '"' + k + '"').join('|')},"name","e","n","facing"}, metres east and north of center, within ±${FIELD.w / 2} and ±${FIELD.h / 2}; facing in degrees, 0 = north). For a battle outside this campaign, write an ordinary letter instead.
+- battleDemo.ground is the field it is drawn on and the table battle is fought over: one of ${GROUNDS.join(', ')} (the library, real ground: no features needed), or for a field elsewhere {"kind": ${GROUND_KINDS.map(k => '"' + k + '"').join(' | ')}, "villages":[{"name","e","n","size": ${Object.keys(VILLAGE_SIZES).map(k => '"' + k + '"').join(' | ')}}], "woods":[{"name","e","n","w","d"}] (w, d its extent in metres east–west and north–south), "streams":[{"name","kind":"stream"|"river","path":[[e,n],…],"crossings":[[e,n]]}] (bridges and fords), "heights":[{"name","e","n","r","h"}] (radius and height in metres)}. The page lays that kind of country on the real relief at center; name the features the account mentions and put them where it says. Units stand in metres from center (e east, n north) on a field ${FIELD.w} m by ${FIELD.h} m. A unit's type is one of ${Object.keys(TROOPS).map(k => k + ' (' + TROOPS[k].word.toLowerCase() + ')').join(', ')}. Woods and villages slow troops and give cover; water stops them except at crossings.
+- A battle account may carry battleDemo.phases, the battle as his staff describe it, in order: [{"t": "07:30", "label": "…", "text": "what the staff report of this hour", "units": [{"id", "e", "n", "facing", "form": ${PHASE_FORMS.map(k => '"' + k + '"').join(' | ')}, "losses": ${LOSSES.map(k => '"' + k + '"').join(' | ')}}], "arrows": [{"side": "A" | "B", "kind": ${ARROW_KINDS.map(k => '"' + k + '"').join(' | ')}, "p": [[e, n], …]}]}]. battleDemo.units is where they stood before the first phase; a phase names only the formations that moved or changed, and losses run on from phase to phase. The packet carries only the phase index; give the whole list again when it changes. For a battle outside this campaign, write an ordinary letter instead.
 
 Skeleton (fill it from the story; leave out what did not change):
 {"kind":"turn","schemaVersion":3,"campaignId":"${cid}","turn":${n},"parentTurn":${t0},"seal":"${seal}","changes":{

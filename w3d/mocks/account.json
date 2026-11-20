@@ -1,0 +1,772 @@
+{
+ "note": "Test reply: a battle account he was not at, on the Chotusitz ground, phase by phase. Illustrative; not the history of the battle.",
+ "changes": {
+  "date": "1740-10-24",
+  "title": "An account from Bohemia",
+  "briefing": "A test account of an action near Chotusitz arrives with the courier.",
+  "reports": [
+   {
+    "id": "t1-acc",
+    "place": "prague",
+    "dated": "1740-10-23",
+    "arrives": "1740-10-24",
+    "category": "Bohemia",
+    "title": "An action near Chotusitz (test)",
+    "text": "A test account, hour by hour, of an action between Chotusitz and the park of Sehuschitz. The officer encloses the positions.",
+    "claim": "demo",
+    "from_id": "wallis",
+    "via": "courier",
+    "source": "the officer commanding",
+    "battle": true
+   }
+  ],
+  "battleDemo": {
+   "title": "An action near Chotusitz (test account)",
+   "place": "Chotusitz (Chotusice), Bohemia",
+   "center": [
+    49.954,
+    15.405
+   ],
+   "ground": "chotusitz",
+   "date": "1740-10-23",
+   "units": [
+    {
+     "id": "A1",
+     "e": -500,
+     "n": -1500,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "A2",
+     "e": -229,
+     "n": -1307,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "A3",
+     "e": 43,
+     "n": -1114,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "A4",
+     "e": 314,
+     "n": -921,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "A5",
+     "e": 586,
+     "n": -729,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "A6",
+     "e": 857,
+     "n": -536,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "A7",
+     "e": 1129,
+     "n": -343,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "A8",
+     "e": 1400,
+     "n": -150,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "A9",
+     "e": -750,
+     "n": -1720,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "A10",
+     "e": -433,
+     "n": -1503,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "A11",
+     "e": -117,
+     "n": -1287,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "A12",
+     "e": 200,
+     "n": -1070,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "A13",
+     "e": 517,
+     "n": -853,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "A14",
+     "e": 833,
+     "n": -637,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "A15",
+     "e": 1150,
+     "n": -420,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "AC1",
+     "e": -1250,
+     "n": -1950,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "AC2",
+     "e": -950,
+     "n": -1800,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "AC3",
+     "e": 1750,
+     "n": 200,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "AC4",
+     "e": 1950,
+     "n": 350,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "AC5",
+     "e": 2150,
+     "n": 500,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "AA1",
+     "e": -300,
+     "n": -1300,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "AA2",
+     "e": 400,
+     "n": -800,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "AA3",
+     "e": 1100,
+     "n": -300,
+     "facing": 315,
+     "form": "line"
+    },
+    {
+     "id": "B1",
+     "e": -650,
+     "n": -150,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "B2",
+     "e": -407,
+     "n": 21,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "B3",
+     "e": -164,
+     "n": 193,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "B4",
+     "e": 79,
+     "n": 364,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "B5",
+     "e": 321,
+     "n": 536,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "B6",
+     "e": 564,
+     "n": 707,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "B7",
+     "e": 807,
+     "n": 879,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "B8",
+     "e": 1050,
+     "n": 1050,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "B9",
+     "e": -900,
+     "n": 150,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "B10",
+     "e": -617,
+     "n": 350,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "B11",
+     "e": -333,
+     "n": 550,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "B12",
+     "e": -50,
+     "n": 750,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "B13",
+     "e": 233,
+     "n": 950,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "B14",
+     "e": 517,
+     "n": 1150,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "B15",
+     "e": 800,
+     "n": 1350,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "BC1",
+     "e": -1300,
+     "n": -700,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "BC2",
+     "e": -1050,
+     "n": -500,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "BC3",
+     "e": 1350,
+     "n": 1450,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "BC4",
+     "e": 1525,
+     "n": 1575,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "BC5",
+     "e": 1700,
+     "n": 1700,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "BA1",
+     "e": -450,
+     "n": -350,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "BA2",
+     "e": 200,
+     "n": 150,
+     "facing": 135,
+     "form": "line"
+    },
+    {
+     "id": "BA3",
+     "e": 850,
+     "n": 650,
+     "facing": 135,
+     "form": "line"
+    }
+   ],
+   "phases": [
+    {
+     "t": "07:30",
+     "label": "The lines formed",
+     "text": "Both armies stand formed: ours on the rising ground south-east of Chotusitz, theirs from the village to the wall of the Sehuschitz park.",
+     "units": []
+    },
+    {
+     "t": "08:30",
+     "label": "Our horse charges on the left",
+     "text": "The horse of our left goes forward against theirs below Chotusitz and drives it back on the village.",
+     "units": [
+      {
+       "id": "AC1",
+       "e": -1000,
+       "n": -950,
+       "form": "line"
+      },
+      {
+       "id": "AC2",
+       "e": -700,
+       "n": -800,
+       "form": "line"
+      },
+      {
+       "id": "BC1",
+       "e": -1750,
+       "n": -350,
+       "form": "routing",
+       "losses": "heavy"
+      },
+      {
+       "id": "BC2",
+       "e": -1500,
+       "n": -150,
+       "form": "routing",
+       "losses": "heavy"
+      }
+     ],
+     "arrows": [
+      {
+       "side": "A",
+       "kind": "charge",
+       "p": [
+        [
+         -1100,
+         -1850
+        ],
+        [
+         -1000,
+         -1300
+        ],
+        [
+         -850,
+         -850
+        ]
+       ]
+      },
+      {
+       "side": "B",
+       "kind": "retreat",
+       "p": [
+        [
+         -1150,
+         -600
+        ],
+        [
+         -1550,
+         -300
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "t": "09:30",
+     "label": "The village taken",
+     "text": "Our first line advances, the left battalions into Chotusitz itself; the village burns.",
+     "units": [
+      {
+       "id": "A1",
+       "e": -650,
+       "n": -950,
+       "form": "firing",
+       "losses": "light"
+      },
+      {
+       "id": "A2",
+       "e": -379,
+       "n": -757,
+       "form": "firing",
+       "losses": "light"
+      },
+      {
+       "id": "A3",
+       "e": -107,
+       "n": -564,
+       "form": "firing",
+       "losses": "light"
+      },
+      {
+       "id": "A4",
+       "e": 164,
+       "n": -371,
+       "form": "firing",
+       "losses": "light"
+      },
+      {
+       "id": "A5",
+       "e": 586,
+       "n": -279,
+       "form": "firing"
+      },
+      {
+       "id": "A6",
+       "e": 857,
+       "n": -86,
+       "form": "firing"
+      },
+      {
+       "id": "A7",
+       "e": 1129,
+       "n": 107,
+       "form": "firing"
+      },
+      {
+       "id": "A8",
+       "e": 1400,
+       "n": 300,
+       "form": "firing"
+      },
+      {
+       "id": "B1",
+       "e": -900,
+       "n": 100,
+       "form": "routing",
+       "losses": "heavy"
+      },
+      {
+       "id": "B2",
+       "e": -657,
+       "n": 271,
+       "form": "routing",
+       "losses": "heavy"
+      },
+      {
+       "id": "B3",
+       "e": -414,
+       "n": 443,
+       "form": "routing",
+       "losses": "heavy"
+      }
+     ],
+     "arrows": [
+      {
+       "side": "A",
+       "kind": "move",
+       "p": [
+        [
+         -300,
+         -1300
+        ],
+        [
+         -500,
+         -850
+        ]
+       ]
+      },
+      {
+       "side": "A",
+       "kind": "fire",
+       "p": [
+        [
+         700,
+         -350
+        ],
+        [
+         650,
+         300
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "t": "10:30",
+     "label": "Their reserve wheels",
+     "text": "Their second line wheels to its left behind the burning village and comes on in good order.",
+     "units": [
+      {
+       "id": "B9",
+       "e": -1250,
+       "n": -500,
+       "facing": 160,
+       "form": "line"
+      },
+      {
+       "id": "B10",
+       "e": -967,
+       "n": -300,
+       "facing": 160,
+       "form": "line"
+      },
+      {
+       "id": "B11",
+       "e": -683,
+       "n": -100,
+       "facing": 160,
+       "form": "line"
+      },
+      {
+       "id": "B12",
+       "e": -400,
+       "n": 100,
+       "facing": 160,
+       "form": "line"
+      },
+      {
+       "id": "B13",
+       "e": -117,
+       "n": 300,
+       "facing": 160,
+       "form": "line"
+      },
+      {
+       "id": "B14",
+       "e": 167,
+       "n": 500,
+       "facing": 160,
+       "form": "line"
+      },
+      {
+       "id": "B15",
+       "e": 450,
+       "n": 700,
+       "facing": 160,
+       "form": "line"
+      }
+     ],
+     "arrows": [
+      {
+       "side": "B",
+       "kind": "move",
+       "p": [
+        [
+         0,
+         700
+        ],
+        [
+         -150,
+         250
+        ],
+        [
+         -350,
+         -50
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "t": "11:30",
+     "label": "Our left gives way",
+     "text": "Taken in flank, the battalions in the village fall back; the right withdraws in order toward Czaslau.",
+     "units": [
+      {
+       "id": "A1",
+       "e": -400,
+       "n": -1700,
+       "form": "routing",
+       "losses": "heavy"
+      },
+      {
+       "id": "A2",
+       "e": -129,
+       "n": -1507,
+       "form": "routing",
+       "losses": "heavy"
+      },
+      {
+       "id": "A3",
+       "e": 143,
+       "n": -1314,
+       "form": "routing",
+       "losses": "heavy"
+      },
+      {
+       "id": "A4",
+       "e": 414,
+       "n": -1121,
+       "form": "routing",
+       "losses": "heavy"
+      },
+      {
+       "id": "A5",
+       "e": 686,
+       "n": -1179,
+       "form": "line"
+      },
+      {
+       "id": "A6",
+       "e": 957,
+       "n": -986,
+       "form": "line"
+      },
+      {
+       "id": "A7",
+       "e": 1229,
+       "n": -793,
+       "form": "line"
+      },
+      {
+       "id": "A8",
+       "e": 1500,
+       "n": -600,
+       "form": "line"
+      },
+      {
+       "id": "A9",
+       "e": -750,
+       "n": -1920,
+       "form": "column"
+      },
+      {
+       "id": "A10",
+       "e": -433,
+       "n": -1703,
+       "form": "column"
+      },
+      {
+       "id": "A11",
+       "e": -117,
+       "n": -1487,
+       "form": "column"
+      },
+      {
+       "id": "A12",
+       "e": 200,
+       "n": -1270,
+       "form": "column"
+      },
+      {
+       "id": "A13",
+       "e": 517,
+       "n": -1053,
+       "form": "column"
+      },
+      {
+       "id": "A14",
+       "e": 833,
+       "n": -837,
+       "form": "column"
+      },
+      {
+       "id": "A15",
+       "e": 1150,
+       "n": -620,
+       "form": "column"
+      }
+     ],
+     "arrows": [
+      {
+       "side": "A",
+       "kind": "retreat",
+       "p": [
+        [
+         -400,
+         -900
+        ],
+        [
+         -250,
+         -1500
+        ],
+        [
+         0,
+         -1950
+        ]
+       ]
+      },
+      {
+       "side": "B",
+       "kind": "charge",
+       "p": [
+        [
+         -500,
+         -200
+        ],
+        [
+         -550,
+         -650
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "hidden": {
+   "chronicle": "Test chronicle: an account from Bohemia.",
+   "decisions": [
+    {
+     "who": "test",
+     "knows": "test",
+     "wants": "test",
+     "decides": "test"
+    }
+   ],
+   "fortune_used": [
+    {
+     "roll": 50,
+     "for": "test",
+     "outcome": "test"
+    }
+   ]
+  }
+ }
+}

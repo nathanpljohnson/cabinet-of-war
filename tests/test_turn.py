@@ -14,7 +14,7 @@ def run():
     return json.loads(out.stdout)
 
 
-@pytest.mark.parametrize("name", ["answers", "winter", "dismissed", "living", "ending", "journey", "battle", "fever"])
+@pytest.mark.parametrize("name", ["answers", "winter", "dismissed", "living", "ending", "journey", "battle", "account", "fever"])
 def test_good_mocks_are_accepted(run, name):
     m = run["mocks"][name]
     assert m["errors"] == []
@@ -23,8 +23,9 @@ def test_good_mocks_are_accepted(run, name):
 
 
 def test_good_mocks_have_no_warnings(run):
-    for name in ["answers", "winter", "dismissed", "living", "ending", "journey", "battle", "fever"]:
+    for name in ["answers", "winter", "dismissed", "living", "ending", "journey", "battle", "account", "fever"]:
         assert run["mocks"][name]["warns"] == [], name
+    assert run["mocks"]["account"]["fixes"] == []
 
 
 def test_time_cannot_run_backwards(run):
@@ -196,16 +197,19 @@ def test_new_battle_replaces_the_field(run):
 
 def test_ground_is_drawn_from_the_reply(run):
     b = run["battle"]
-    assert b["cells"] == {"village": 3, "hamlet": 3, "wood": 1, "stream": 2, "bridge": 0, "ford": 0}
+    c = b["cells"]
+    assert (c["village"], c["hamlet"], c["wood"], c["stream"]) == (3, 3, 1, 2)
+    assert c["bridge"] != 2 and c["ford"] != 2  # the crossings are dry
+    # the field is cleared where the armies stand (the blank test field is all wood)
     assert b["unitCells"] == [0]
-    assert b["same"] and b["relief"] == 5.5 and b["size"] == [198, 132, 132, 198]
+    assert b["same"] and b["kind"] == "wooded hills" and b["rivers"] >= 1 and b["size"] == [198, 132, 132, 198]
     assert {"Neudorf", "Lindenau", "the Fasanerie", "the Mühlbach", "the windmill hill"} <= set(b["names"])
-    assert b["mollwitz"] is None and b["keyChanges"] and b["packet"] == "ground"
+    assert b["packet"] == "ground"
 
 
 def test_bad_battle_is_made_safe(run):
     bad = run["battle"]["bad"]
-    assert bad["kind"] == "farmland" and bad["villages"] == ["Ok:village"]
+    assert bad["kind"] == "marsh" and bad["villages"] == ["Ok:village"]
     assert bad["units"] == ["X3:0"]
     assert any("both sides" in w for w in bad["warns"])
 
@@ -226,6 +230,93 @@ def test_movements_need_a_line_and_known_status(run):
 def test_preview_field_never_goes_as_the_live_battle(run):
     # campaigning makes a battle possible, but the opening's Mollwitz preview must not be sent as if it were one
     assert run["preview"] == {"units": False, "note": True, "title": None}
+
+
+def test_grounds_library_matches_rules(run):
+    g = run["grounds"]
+    assert g["ids"] == g["index"] and g["kinds"] == g["indexKinds"]
+    # the opening preview goes to the adjudicator as a note only (no ground, no units): see test_preview_field_never_goes_as_the_live_battle
+    assert g["opening"] == "mollwitz" and g.get("live") is None and g["inlineIsMollwitz"]
+    assert g["packetHasIds"]
+
+
+def test_grounds_files_are_whole(run):
+    for f in run["grounds"]["files"]:
+        assert (f["cols"], f["cell"], f["w"], f["h"], f["rows"]) == (198, 30, 5940, 3960, 132), f["id"]
+        assert f["len"] == [198] and set(f["chars"]) <= set("012345"), f["id"]
+        assert f["relief"] and f["outer"] and f["sources"] and f["notes"], f["id"]
+
+
+def test_ground_choice_is_checked(run):
+    g = run["grounds"]
+    assert g["lib"]["warns"] == [] and g["lib"]["ground"] == "prague"
+    assert g["kind"]["warns"] == [] and g["kind"]["ground"] == {"kind": "marsh"}
+    assert any("Unknown battle ground" in w for w in g["unknownId"]["warns"]) and g["unknownId"]["ground"] == {"kind": "open plain", "asked": "atlantis"}
+    assert g["unknownKind"]["ground"] == {"kind": "open plain", "asked": "tundra"}
+    assert g["aliasKind"]["ground"] == {"kind": "marsh"}
+    assert any("no ground was given" in w for w in g["noGround"])
+
+
+def test_a_line_wheels_on_its_flank(run):
+    w = run["march"]["wheel"]
+    assert w["to"]["facing"] == 90 and w["pivotBefore"] == pytest.approx(w["pivotAfter"], abs=1e-6)
+    assert w["small"]["facing"] == 348  # at most 12 degrees a step, toward the left
+
+
+def test_units_push_apart(run):
+    s = run["march"]["sep"]
+    assert s["apart"] is None and s["overlap"]["depth"] == pytest.approx(4) and s["overlap"]["y"] == pytest.approx(1)
+
+
+def test_columns_go_round_water_and_take_roads(run):
+    m = run["march"]
+    assert m["route"]["wet"] == 0 and m["route"]["ford"]
+    assert [p[1] for p in m["road"]["pts"][:-1]] == [-45, -45] and m["road"]["pts"][1][0] - m["road"]["pts"][0][0] >= 300
+
+
+def test_troop_types(run):
+    m = run["march"]
+    assert m["troops"] == ["inf", "gd", "lt", "cav", "lc", "art"]
+    assert [(t["type"], t.get("kind")) for t in m["types"]] == [("inf", "gd"), ("inf", "lt"), ("cav", "lc"), ("inf", None), ("cav", None), ("art", None)]
+    assert (m["north"], m["east"]) == (0, 90)
+
+
+def test_troop_types_in_replies(run):
+    t = run["grounds"]["troops"]
+    assert [(u.get("type"), u.get("kind")) for u in t["units"]] == [("cav", "lc"), ("inf", None), (None, None)]
+    assert any("pandour" in f for f in t["fixes"])
+
+
+def test_an_account_phase_by_phase(run):
+    n = run["mocks"]["account"]["next"]
+    assert n["ground"] == "chotusitz" and [p[0] for p in n["phases"]] == ["07:30", "08:30", "09:30", "10:30", "11:30"]
+    b = run["badAccount"]
+    assert len(b["phases"]) == 1 and [u["id"] for u in b["phases"][0]["units"]] == ["A1", "B1"]
+    assert b["phases"][0]["units"][0]["form"] == "line" and b["phases"][0]["units"][1]["losses"] == "heavy"
+    assert b["phases"][0]["arrows"] == [{"side": "A", "kind": "move", "p": [[0, 0], [1, 1]]}]
+    assert len(b["fixes"]) == 5 and b["packet"] == "08:00 x"
+
+
+def test_crests_hide_what_stands_behind_them(run):
+    l = run["lie"]
+    assert l["behind"] and not l["onTop"] and not l["flat"] and not l["fromTop"] and not l["close"]
+    assert l["farBeyond"]  # 3 km on, the ridge still masks a man's height: the line of sight grazes it
+
+
+def test_slopes_slow_a_march(run):
+    p = run["lie"]["pace"]
+    assert p["level"] == 1 and p["down4"] == 1
+    assert p["up10cav"] < p["up10"] < 1 and p["up10art"] < p["up10cav"]
+    assert p["up10"] < p["up10road"] < 1 and p["down15"] < 1 and p["cliff"] == pytest.approx(.35)
+
+
+def test_towns_have_works_and_bridges(run):
+    f = {x["id"]: x for x in run["grounds"]["files"]}
+    assert [t[1] for t in f["brieg"]["towns"]] == ["bastioned"] and f["brieg"]["towns"][0][2] >= 6
+    assert [t[0] for t in f["prague"]["towns"]] == ["Old and New Town", "Lesser Town and Hradschin"]
+    assert [t[1] for t in f["linz"]["towns"]] == ["walled"]  # Urfahr was an open market
+    assert "Charles Bridge" in f["prague"]["named"] and "The Danube bridge" in f["linz"]["named"]
+    assert f["mollwitz"]["towns"] == [] and f["brieg"]["bridges"] > 0
 
 
 def test_abed_is_checked(run):

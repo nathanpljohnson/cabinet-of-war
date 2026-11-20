@@ -7,8 +7,9 @@ import { createSound } from './sound.js';
 import { travel, loc, roadKm, travelDays, letterDays, placeOn, groupsOn, abedOn, bedsideOn } from './places.js';
 import { personOf } from './people.js';
 import { initCampaign } from './campaign.js';
-import { makeGround, groundKey } from './ground.js';
 import { createPost } from './post.js';
+import { syncGround as loadOnTable } from './ground.js';
+import { install as installMarch } from './march.js';
 
 /* Cabinet of War: the 3D world over the desk's engine. Views: room (walk), map (the desk's live map, reached by leaning
    over the map table), field (3D battlefield, reached by zooming the map into it), hall (conference chamber).
@@ -279,13 +280,10 @@ async function mapToRoom() {
   const tp = activeTable || world.region.tablePose; camera.up.set(0, 0, -1); const lift = tweenCamera(o.pos, o.quat, 1.2, true, { l0: V3(tp.x, tp.y, tp.z), l1: cam.tgt.clone(), u0: V3(0, 0, -1), u1: V3(0, 1, 0) }); setView('trans'); tick(0); await fadeCanvas(true, 380);
   await lift; setView('room');
 }
-// the ground the table battle is fought over: Mollwitz keeps its mapped grid; a battle the adjudicator described gets one drawn
-// from its ground (w3d/ground.js). TER is the desk engine's grid, read by its rules and by the 3D field.
-const TER0 = JSON.parse(JSON.stringify(TER));
-function syncGround() {
-  const bd = state.battleDemo, k = groundKey(bd); if (TER.key === k) return;
-  const g = makeGround(bd); for (const f of Object.keys(TER)) delete TER[f]; Object.assign(TER, g || JSON.parse(JSON.stringify(TER0)), { key: k });
-  drawGroundOnMap();
+// the battle's ground on the table (w3d/ground.js swaps TER in place); the desk map's drawn ground follows it
+let groundDrawn = null;
+async function syncGround(bd = state.battleDemo) {
+  const g = await loadOnTable(bd); if (g && groundDrawn !== g.key) { groundDrawn = g.key; drawGroundOnMap(); } return g;
 }
 // on the desk's map the drawn ground lies over the real one, under the units, whenever the battle is shown (Mollwitz: the real map is the ground)
 const groundLayer = L.layerGroup();
@@ -296,10 +294,10 @@ function drawGroundOnMap() {
   const CW = 1188, CH = Math.round(CW * TER.h / TER.w), cv = document.createElement('canvas'); cv.width = CW; cv.height = CH;
   const x = cv.getContext('2d'), img = x.createImageData(CW, CH), D = img.data, N = makeNoise(1741);
   const mix = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
-  const FIELD = [214, 200, 156], PASTURE = [178, 178, 124], PLOUGH = [190, 158, 116], WOOD = [104, 122, 76], WATER = [112, 150, 160], VILLAGE = [178, 112, 84];
+  const FIELD = [214, 200, 156], PASTURE = [178, 178, 124], PLOUGH = [190, 158, 116], WOOD = [104, 122, 76], WATER = [112, 150, 160], VILLAGE = [178, 112, 84], MARSH = [150, 160, 120], VINE = [168, 160, 96];
   for (let j = 0; j < CH; j++) for (let i = 0; i < CW; i++) {
     const wx = -TER.w / 2 + (i + .5) / CW * TER.w, wz = -TER.h / 2 + (j + .5) / CH * TER.h, t = terrainAt(wx + 18 * N(wx / 95, wz / 95), -(wz + 18 * N(wx / 95 + 31, wz / 95 - 17)));
-    let col = t === 1 ? WOOD : t === 2 ? WATER : t === 3 ? VILLAGE : mix(mix(FIELD, PASTURE, Math.max(0, Math.min(1, .5 + N.fbm(wx / 500, wz / 500, 3) * 1.6))), PLOUGH, Math.max(0, Math.min(1, N(wx / 160 + 7, wz / 160 - 3) * 1.4)) * .45);
+    let col = t === 1 ? WOOD : t === 2 ? WATER : t === 3 ? VILLAGE : t === 4 ? MARSH : t === 5 ? VINE : mix(mix(FIELD, PASTURE, Math.max(0, Math.min(1, .5 + N.fbm(wx / 500, wz / 500, 3) * 1.6))), PLOUGH, Math.max(0, Math.min(1, N(wx / 160 + 7, wz / 160 - 3) * 1.4)) * .45);
     const k = 1 + N(wx / 40, wz / 40) * .05, o = (j * CW + i) * 4; D[o] = col[0] * k; D[o + 1] = col[1] * k; D[o + 2] = col[2] * k; D[o + 3] = 255;
   }
   x.putImageData(img, 0, 0); x.filter = 'blur(1px)'; x.drawImage(cv, 0, 0); x.filter = 'none';
@@ -313,9 +311,11 @@ const battleCentreIn = m => m.getBounds().contains(lo(state.battleDemo.center, 0
 // the ground is painted for the season: of the battle itself when you read an account of it, else of today
 const fieldSeason = () => { const bd = state.battleDemo || {}; const bdd = bd.date || (bd.aftermath || {}).date; if ((account || aftermath) && bdd) { const m = new Date(bdd + 'T12:00:00').getMonth(); return m === 11 || m <= 1 ? 'winter' : 'open'; } return worldCues().season; };
 async function ensureBattle() {
-  syncGround(); if (battle && (battle.season !== fieldSeason() || battle.groundKey !== TER.key)) { battle.dispose(); battle = null; }
+  // the field is rebuilt when the season or the ground changes (state.battleDemo.ground, w3d/ground.js)
+  let ground; try { ground = await syncGround(state.battleDemo); } catch (e) { console.warn(e); toast('The ground could not be laid out: ' + e.message); ground = window.__ground; }
+  if (battle && (battle.season !== fieldSeason() || battle.groundKey !== (ground && ground.key))) { battle.dispose(); battle = null; }
   if (battle) return battle; showLoading('Laying out the field…'); await actors.ready;
-  const season = fieldSeason(), mod = await import('./battle3d.js'); battle = await mod.createBattle({ renderer, actors, quality: Q(), makeSky, makeLights, toast, onRise: (x, z) => fieldToMap(x, z), winter: season === 'winter' }); battle.season = season; battle.groundKey = TER.key;
+  const season = fieldSeason(), mod = await import('./battle3d.js'); battle = await mod.createBattle({ renderer, actors, quality: Q(), makeSky, makeLights, toast, onRise: (x, z) => fieldToMap(x, z), winter: season === 'winter', ground }); battle.season = season; battle.groundKey = ground && ground.key;
   hideLoading(); return battle;
 }
 async function mapToField() {
@@ -623,7 +623,7 @@ async function rebuild() { showLoading('Replanting…'); await sleep(30); await 
 /* ---------- loop ---------- */
 const clk = new THREE.Clock(); let frames = 0, acc = 0, ftimes = [], shadowTick = 0, paperTick = 0;
 const perf = { fps: 0, ms: 0, calls: 0, tris: 0 };
-function loop() { requestAnimationFrame(loop); if (state.battleDemo) syncGround(); const dt = Math.min(.05, clk.getDelta()); if (mode === 'map' && state.turn !== lastTurn) { lastTurn = state.turn; onNewTurn(); } if (mode === 'loading' || mode === 'map' || document.hidden) { sound.update(dt, uTime.value, 1e9, 1e9, true); return; } tick(dt); }
+function loop() { requestAnimationFrame(loop); const dt = Math.min(.05, clk.getDelta()); if (mode === 'map' && state.turn !== lastTurn) { lastTurn = state.turn; onNewTurn(); } if (mode === 'loading' || mode === 'map' || document.hidden) { sound.update(dt, uTime.value, 1e9, 1e9, true); return; } tick(dt); }
 function tick(dt) {
   const t0 = performance.now(); adaptResolution(dt);
   uTime.value += dt; setWindTime(uTime.value);
@@ -688,18 +688,25 @@ function beginAsHeir() {
 
 /* ---------- boot ---------- */
 let shell = null; const sound = createSound();
+installMarch(); // lines, columns, giving way and troop types for the desk's battle engine (w3d/march.js)
 (async function boot() {
   // original-desk bug: a persisted battleDemo._sim makes initSim() skip setting BS.mem, so runPhase() throws after a reload
   if (!BS.mem) BS.mem = battleMem();
   // a new campaign begun as the heir of the last one
   try { const lg = JSON.parse(localStorage.getItem('cabinet-of-war:w3d-legacy') || 'null'); if (lg && state.turn === 0 && !state.legacy) { state.legacy = lg; state.player.name = 'The heir of ' + lg.from; state.player.note = 'A new campaign as the heir of ' + lg.from + '; the adjudicator decides who that is. ' + (state.player.note || ''); persistState(); } } catch { }
-  // older saves predate the open-ground deployment (see src/w3d_build.py); move an un-fought battle the same way
-  { const bd = state.battleDemo, SHIFT = { A: [360, -690], B: [300, -360] };
-    if (bd.id === 'bd-demo' && !bd.deployment && !BS.log.length && !draft.battleResult) {
-      for (const u of bd.units) { const [de, dn] = SHIFT[u.side]; u.e += de; u.n += dn; if (u.seenE != null) { u.seenE += de; u.seenN += dn; } }
-      for (const o of bd.options || []) for (const a of o.arrows || []) { const [de, dn] = SHIFT[a.side]; a.from = [a.from[0] + de, a.from[1] + dn]; a.to = [a.to[0] + de, a.to[1] + dn]; }
-      bd.deployment = 'Armies moved as whole formations to open ground (older save).'; draft.armyOrders = {}; persistState(); saveDraft();
-    } }
+  // older saves predate the open-ground deployment and the Mollwitz ground turned north-up (game-v13, src/w3d_build.py):
+  // move an un-fought opening battle the same way, and name its ground
+  { const bd = state.battleDemo;
+    if (bd && bd.id === 'bd-demo' && !bd.ground) {
+      const SHIFT = bd.deployment ? { A: [0, 660], B: [0, 660] } : { A: [360, -30], B: [300, 300] };
+      if (!BS.log.length && !draft.battleResult) {
+        for (const u of bd.units) { const [de, dn] = SHIFT[u.side]; u.e += de; u.n += dn; if (u.seenE != null) { u.seenE += de; u.seenN += dn; } }
+        for (const o of bd.options || []) for (const a of o.arrows || []) { const [de, dn] = SHIFT[a.side]; a.from = [a.from[0] + de, a.from[1] + dn]; a.to = [a.to[0] + de, a.to[1] + dn]; }
+        bd.deployment = 'Armies moved as whole formations to open ground (older save).'; draft.armyOrders = {}; saveDraft();
+      }
+      bd.ground = 'mollwitz'; persistState();
+    }
+    syncGround(bd).catch(e => console.warn('ground', e)); }
   body.classList.add('w3d-on', 'w3d-room');
   showLoading('Raising the country…'); syncGfxUi();
   shell = createShell({ act, onSeal, clock });
@@ -712,7 +719,7 @@ let shell = null; const sound = createSound();
     const pick = D.filter(([, p]) => Math.random() < p).map(([id, , text]) => ({ id, text })); state.hidden = Object.assign(state.hidden || {}, { divergences: pick.length ? pick : [{ id: 'history', text: 'Events follow their historical course unless the player’s actions change them.' }] }); persistState(); }
   loadClock();
   // the keeper of the campaign: packet, reply, saves, the book (w3d/campaign.js)
-  await initCampaign({ toast, onChange: () => { shell.refresh(); if (world) world.region.setLetters(shell.unread().length); refreshHud(); } });
+  await initCampaign({ toast, onChange: () => { syncGround(state.battleDemo).catch(e => console.warn('ground', e)); shell.refresh(); if (world) world.region.setLetters(shell.unread().length); refreshHud(); } });
 
   scene.background = new THREE.Color(0xf1d9b0); scene.fog = new THREE.Fog(0xe8d4b2, 110, 1500);
   skyMesh = makeSky(scene, sunDir); lights = makeLights(scene, sunDir, 75, Q().shadows); cloudG = clouds(scene, Math.random);
@@ -726,6 +733,8 @@ let shell = null; const sound = createSound();
   if (state.turn === 0 && !opened) opening();
   loop();
   window.__w3d = { get mode() { return mode; }, perf, get world() { return world; }, get battle() { return battle; }, get sick() { return sick; }, get shell() { return shell; }, pl, cam, camera, renderer, act, goView, keys, mockReply, drawSightings, lightCheck, post, gfx: () => Q(),
+    // dev: put a ground on the table and look at it (read-only, as an account): __w3d.ground('prague') or ground({kind:'marsh'}, [lat, lon])
+    async ground(g, center) { if (mode === 'field') await fieldToRoom(); if (mode !== 'room') await goView('room'); state.battleDemo.ground = g; if (center) state.battleDemo.center = center; account = true; aftermath = false; await roomToField(); return battle.debug.ground && { key: battle.debug.ground.key, exag: battle.debug.exag, notes: battle.debug.ground.notes }; },
     // dev: pin the hour, weather, season and camera for like-for-like screenshots
     async look({ h, weather, season, x, z, ry, yaw, pitch, dist } = {}) { shell.closeTop(); introOn = false; if (season !== undefined && season !== forcedSeason) { forcedSeason = season; await buildWorld(); applyGfx(); } if (weather !== undefined) forcedWeather = weather; if (h != null) { clockH = h; world.region.setHour(h); } Object.assign(pl, Object.fromEntries(Object.entries({ x, z, ry }).filter(e => e[1] != null))); Object.assign(cam, Object.fromEntries(Object.entries({ yaw, pitch, dist }).filter(e => e[1] != null))); applyAtmosphere(); shadowsDirty(); for (let i = 0; i < 200; i++) tick(1 / 60); shadowKey = ''; tick(1 / 60); },
     step(n = 1, dt = 1 / 60) { for (let i = 0; i < n; i++) tick(dt); renderer.getContext().finish(); } };
