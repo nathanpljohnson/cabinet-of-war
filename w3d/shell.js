@@ -131,7 +131,7 @@ export function createShell({ act, onSeal, clock }) {
   });
 
   /* ---------- the day's dispatch: one entry per order ---------- */
-  const ref = i => 'T' + state.turn + '-' + (i + 1);
+  const ref = i => 'T' + state.turn + '-' + (i + 1), ownRef = () => 'T' + state.turn + '-0'; // T<n>-0 is the order in his own words
   const W = () => draft.w3d || (draft.w3d = { own: ensureCase().text || '', items: [] }); // per turn: the desk replaces draft on a new turn
   function itemLine(it) {
     if (it.kind === 'journey' || it.kind === 'inspect') return it.text;
@@ -142,8 +142,8 @@ export function createShell({ act, onSeal, clock }) {
     return re + own + (it.inPerson ? 'To ' + name + ', given in person at ' + it.at + ': ' : 'To ' + name + ' at ' + it.at + ', by letter (about ' + it.days + ' day' + (it.days > 1 ? 's' : '') + ' on the road): ') + it.text;
   }
   function compose() {
-    const w = W(), lines = w.items.map((it, i) => '[' + ref(i) + '] ' + itemLine(it));
-    ensureCase().text = [w.own.trim(), w.memoir && w.memoir.trim() ? 'From my memoirs, written this turn:\n' + w.memoir.trim() : '', lines.length ? 'Orders given today (references in brackets):\n' + lines.join('\n') : ''].filter(Boolean).join('\n\n');
+    const w = W(), lines = w.items.map((it, i) => '[' + ref(i) + '] ' + itemLine(it)), own = w.own.trim();
+    ensureCase().text = [own ? '[' + ownRef() + '] ' + own : '', w.memoir && w.memoir.trim() ? 'From my memoirs, written this turn:\n' + w.memoir.trim() : '', lines.length ? 'Orders given today (references in brackets):\n' + lines.join('\n') : ''].filter(Boolean).join('\n\n');
     saveDraft(); renderCase(); refresh(); if (!$('sh-sheet').hidden) renderSheet();
   }
   function setItem(it) { const w = W(); it.id = it.id || 'i' + Date.now().toString(36) + Math.floor(Math.random() * 1e3); const k = w.items.findIndex(x => x.id === it.id); if (k >= 0) w.items[k] = it; else w.items.push(it); compose(); return it.id; }
@@ -361,7 +361,7 @@ export function createShell({ act, onSeal, clock }) {
   }
 
   /* ---------- notebook: matters in hand, the situation, what you know ---------- */
-  function recordSent() { const w = W(), sent = store(SENT_KEY, []).filter(s => s.turn !== state.turn); sent.push({ turn: state.turn, date: state.date, at: locName(travel.here()), orders: w.items.map((it, i) => ({ ref: ref(i), line: itemLine(it), to: it.to || null, text: it.text })), own: w.own.trim().slice(0, 160) }); keep(SENT_KEY, sent.slice(-8)); }
+  function recordSent() { const w = W(), sent = store(SENT_KEY, []).filter(s => s.turn !== state.turn); sent.push({ turn: state.turn, date: state.date, at: locName(travel.here()), orders: [...(w.own.trim() ? [{ ref: ownRef(), line: 'In my own words: ' + w.own.trim(), to: null, text: w.own.trim() }] : []), ...w.items.map((it, i) => ({ ref: ref(i), line: itemLine(it), to: it.to || null, text: it.text }))], own: w.own.trim().slice(0, 160) }); keep(SENT_KEY, sent.slice(-8)); }
   function matters() {
     const a = acted(), out = [];
     for (const r of seenLetters()) if (!a[r.id]) out.push({ k: 'letter', r });
@@ -386,7 +386,7 @@ export function createShell({ act, onSeal, clock }) {
         const sub = el('div', 'sh-orders');
         for (const o of x.os) { const ans = o.ref ? answersTo(o.ref) : [], row = el('div', ans.length ? 'sh-o-ok' : 'sh-o-wait'); row.append(el('span', 'sh-o-ref', o.ref ? o.ref.split('-').pop() : '·'), el('span', 'sh-o-t', o.line.length > 110 ? o.line.slice(0, 110) + '…' : o.line));
           for (const { r, sure } of ans) { const lb = el('button', 'sh-o-lnk' + (sure ? '' : ' sh-o-maybe'), (sure ? 'Answered by ' : 'Probably answered by ') + fromName(r) + ' →'); lb.onclick = () => showLetters(r.id); row.append(lb); }
-          if (!ans.length) row.append(el('span', 'sh-o-st', state.turn > x.s.turn ? 'no answer yet' : /, given in person at /.test(o.line) ? 'given' : 'on the road')); sub.append(row); }
+          if (!ans.length) row.append(el('span', 'sh-o-st', state.turn > x.s.turn ? 'no answer yet' : /, given in person at |^In my own words: /.test(o.line) ? 'given' : 'on the road')); sub.append(row); }
         if (!x.os.length) sub.append(el('div', 'sh-o-wait', x.s.own || 'standing orders'));
         li.append(sub); const b = el('button', null, 'Settled'); b.onclick = () => { const all = store(SENT_KEY, []); const t = all.find(s => s.turn === x.s.turn); if (t) t.settled = true; keep(SENT_KEY, all); showNotebook(); refresh(); }; li.append(b); }
       if (x.k === 'council') { li.innerHTML = '<b>Your advisers await your decision</b> · ' + esc(state.decision.title); const b = el('button', null, 'Read their counsel'); b.onclick = () => showPanel('council'); li.append(b); }
