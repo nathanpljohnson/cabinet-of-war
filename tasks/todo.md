@@ -62,3 +62,10 @@
 
 ## Review
 17 fixes on the branch (one blocker: every audience refused; one leak path: the Mollwitz preview sent as the live field once campaigning). Open: illness in 3D (design), one global tempo (design), context budget (~35k tokens a turn), scenes not rare, no price/weather baselines. Untested: table battle, endings, urgent letters, forged letters.
+
+# Bedchamber and a leaner packet (20 Nov 2026)
+- [x] Illness: `player.abed {from, to?}` (or "ill"/"gravely ill" for the whole turn) puts the day in the bedchamber; visitors are those whereabouts put with him plus his household; orders to them are in person "at my bedside", anyone else by note; map and accounts open from bed; he cannot rise, ride out or attend the Conference
+- [x] Reply checks for abed; contract and reply format; mock `fever`; tests
+- [x] Browser: the fever turn (bed 25–28 Oct, visitors on the 26th and 27th, up on the 29th), map from bed and back, the order card at the bedside, lying flat when gravely ill; bedchamber light rows pass LIGHT_FLOOR (day and night, summer and winter)
+- [x] Packet: cast, locations and fortresses as tables (−24% on those lists)
+- [x] Packet: rules in a Claude Project (versioned rules file; packet about half as long); the page says to start a fresh chat each turn

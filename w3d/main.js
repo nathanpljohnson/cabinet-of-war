@@ -4,7 +4,8 @@ import { buildRegion } from './region.js';
 import { setWindTime, disposeTree, makeNoise } from './lib.js';
 import { createShell, locName, fmtDate } from './shell.js';
 import { createSound } from './sound.js';
-import { travel, loc, roadKm, travelDays, letterDays, placeOn, groupsOn } from './places.js';
+import { travel, loc, roadKm, travelDays, letterDays, placeOn, groupsOn, abedOn, bedsideOn } from './places.js';
+import { personOf } from './people.js';
 import { initCampaign } from './campaign.js';
 import { makeGround, groundKey } from './ground.js';
 import { createPost } from './post.js';
@@ -28,7 +29,7 @@ const saveGfx = () => { try { localStorage.setItem(KEY, JSON.stringify(gfx)); } 
 for (const id of ['w3d', 'w3d-float', 'w3d-shell', 'w3d-back']) document.getElementById(id)?.remove();
 const root = document.createElement('div'); root.id = 'w3d';
 root.innerHTML = `<canvas id="w3d-c" tabindex="0" aria-label="3D view. WASD to walk, drag to look, E to interact."></canvas>
-<div class="w3d-prompt" id="w3d-prompt" hidden></div><div class="w3d-overheard" id="w3d-overheard"></div><div class="w3d-help" id="w3d-help"></div>`;
+<div class="w3d-prompt" id="w3d-prompt" hidden></div><div class="w3d-overheard" id="w3d-overheard"></div><div class="w3d-help" id="w3d-help"></div><div class="w3d-bedside" id="w3d-bedside" aria-label="At your bedside"></div>`;
 const float = document.createElement('div'); float.id = 'w3d-float';
 float.innerHTML = `<div class="w3d-toast" id="w3d-toast" role="status" aria-live="polite"></div>
 <div class="w3d-panel" id="w3d-gfx" hidden>
@@ -109,7 +110,7 @@ const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, .3, 600
 const sunDir = new THREE.Vector3(.74, .36, .28).normalize();
 const uTime = { value: 0 };
 let world = null, actors = null, player, aide, steed, followTrail = [], lights, skyMesh, cloudG;
-let mode = 'loading', mapFrom = 'room', battle = null, hall = null, builtFor = null, builtMode = null, builtCues = null, account = false, aftermath = false, introOn = false;
+let mode = 'loading', mapFrom = 'room', battle = null, hall = null, sick = null, sickKey = null, builtFor = null, builtMode = null, builtCues = null, account = false, aftermath = false, introOn = false;
 // what the state says the world looks like where you are (the reply contract keeps state.world; defaults follow the date)
 /* ---------- the hour: a turn is days you live through. Time passes as you walk (an hour every 40 s), and what you
    do takes time; letting the day pass brings the next morning's post. Light, people and the Conference follow it. ---------- */
@@ -124,8 +125,8 @@ function advanceClock(hours) {
   if (Math.floor(clockH) !== Math.floor(before)) { onHour(Math.floor(clockH)); }
   if (Math.abs(clockH - before) >= .25 || Math.floor(clockH * 4) !== Math.floor(before * 4)) applyAtmosphere();
 }
-function onHour(h) { world && world.region.setHour(clockH); if (mode === 'room' && h >= 6 && h <= 21) sound.cue('bell', h > 12 ? h - 12 : h); if (h === 20) toast('Evening. The Conference sits; the courtyard empties.'); if (h === 22) toast(shell.passDay ? 'Night. Let the day pass when you are ready for the morning post.' : 'Night.'); }
-async function newDay() { clockH = 8.5; saveClock(); if (world && (builtFor !== travel.here() || builtCues !== JSON.stringify(worldCues()))) { showLoading('The next morning…'); await sleep(40); await buildWorld(); hideLoading(); } world && world.region.setHour(clockH); applyAtmosphere(); }
+function onHour(h) { world && world.region.setHour(clockH); if (mode === 'room' && h >= 6 && h <= 21) sound.cue('bell', h > 12 ? h - 12 : h); if (h === 20) toast(mode === 'sick' ? 'Evening. Your visitors take their leave; the candle is lit.' : 'Evening. The Conference sits; the courtyard empties.'); if (h === 22) toast(shell.passDay ? 'Night. Let the day pass when you are ready for the morning post.' : 'Night.'); }
+async function newDay() { clockH = 8.5; saveClock(); if (world && (builtFor !== travel.here() || builtCues !== JSON.stringify(worldCues()))) { showLoading('The next morning…'); await sleep(40); await buildWorld(); hideLoading(); } world && world.region.setHour(clockH); sick && sick.setHour(clockH); applyAtmosphere(); }
 const today = () => shell ? shell.today : state.date;
 // the day's weather where you are: the adjudicator's (state.world.weather, by date); without it, a fair guess from the date
 function weatherToday() {
@@ -249,7 +250,7 @@ function stepInteract() {
 
 /* ---------- one world: views and the transitions between them ---------- */
 const body = document.body, sleep = ms => new Promise(r => setTimeout(r, ms));
-function setView(v) { mode = v; dyn.grace = 1.5; if (v === 'map') drawSightings(); body.classList.remove('w3d-room', 'w3d-map', 'w3d-field', 'w3d-hall'); body.classList.add('w3d-' + v); if (v !== 'room') { nearest = null; $3('w3d-prompt').hidden = true; } refreshHud(); if (v !== 'map') canvas.focus(); }
+function setView(v) { mode = v; dyn.grace = 1.5; if (v === 'map') drawSightings(); body.classList.remove('w3d-room', 'w3d-map', 'w3d-field', 'w3d-hall', 'w3d-sick'); body.classList.add('w3d-' + v); if (v !== 'room') { nearest = null; $3('w3d-prompt').hidden = true; } refreshHud(); if (v !== 'map') canvas.focus(); }
 async function fadeCanvas(on, ms = 420) { root.style.transition = 'opacity ' + ms + 'ms ease'; root.style.opacity = on ? '1' : '0'; await sleep(ms + 20); }
 
 // the map table: its sheet shows zoom-6 tiles x32–37, y20–23; lean over it, then cross-fade to the same view on the live map
@@ -328,18 +329,49 @@ async function fieldToMap(x, z) {
   const m = desk.map; m.invalidateSize(); m.setView(lo(state.battleDemo.center, x, -z), 13, { animate: false });
   setView('map');
 }
-async function roomToField() { if (mode !== 'room') return; mode = 'trans'; await fadeCanvas(false, 300); const b = await ensureBattle(); b.setReadOnly(account); b.setAftermath(aftermath); body.classList.toggle('w3d-account', account); b.enter(); setView('field'); tick(0); await fadeCanvas(true, 400); }
-async function fieldToRoom() { if (mode !== 'field') return; mode = 'trans'; await fadeCanvas(false, 300); battle.leave(); account = false; aftermath = false; battle.setReadOnly(false); battle.setAftermath(false); body.classList.remove('w3d-account'); setView('room'); tick(0); await fadeCanvas(true, 400); }
+async function roomToField() { if (mode !== 'room' && mode !== 'sick') return; mode = 'trans'; await fadeCanvas(false, 300); const b = await ensureBattle(); b.setReadOnly(account); b.setAftermath(aftermath); body.classList.toggle('w3d-account', account); b.enter(); setView('field'); tick(0); await fadeCanvas(true, 400); }
+async function fieldToRoom() { if (mode !== 'field') return; mode = 'trans'; await fadeCanvas(false, 300); battle.leave(); account = false; aftermath = false; battle.setReadOnly(false); battle.setAftermath(false); body.classList.remove('w3d-account'); if (homeView() === 'sick') await buildSick(); setView(homeView()); tick(0); await fadeCanvas(true, 400); }
 async function enterHall() {
   if (mode !== 'room') return; nearest = null; $3('w3d-prompt').hidden = true; mode = 'trans'; await fadeCanvas(false, 350);
   if (!hall) { const m = await import('./interior.js'); hall = m.createInterior({ renderer }); }
   setView('hall'); tick(0); await fadeCanvas(true, 450); shell.showPanel('council');
 }
+/* ---------- in bed: on the days the adjudicator keeps him abed (places.js abedOn) the day is lived in the bedchamber,
+   and whoever is here that day comes to the bedside. The code shows the fact; it never decides that he is ill. ---------- */
+const abedToday = () => !introOn && !!shell && abedOn(today());
+function bedsideVisitors() {
+  const cues = worldCues(), st = cues.standing || {};
+  return bedsideOn(today(), travel.here()).map(c => {
+    const look = personOf(c.id).look, kind = look ? (cues.mourning && ['minister', 'courtier'].includes(look.kind) ? 'mourner' : look.kind) : c.id === (state.household || {}).spouse ? 'lady' : ['steward', 'secretary'].includes(c.id) ? 'clerk' : cues.mourning ? 'mourner' : 'courtier';
+    return { id: c.id, name: c.name, office: c.office || '', kind, look, away: st[c.id] === 'cool' || st[c.id] === 'hostile' };
+  });
+}
+async function buildSick() {
+  const v = bedsideVisitors(), grave = state.player.health === 'gravely ill', winter = worldCues().season === 'winter';
+  const key = [today(), grave, winter, v.map(x => x.id + (x.away ? '~' : '')).join(',')].join('|'); if (sick && sickKey === key) return;
+  const m = await import('./interior.js'); if (sick) sick.dispose();
+  sick = m.createSickroom({ renderer, visitors: v, grave, winter }); sick.setHour(clockH); sickKey = key; drawBedside(v);
+}
+function drawBedside(v) {
+  const b = $3('w3d-bedside'), esc = t => String(t).replace(/[<>&]/g, '');
+  b.innerHTML = '<div class="eyebrow">At your bedside</div>' + (v.length ? '' : '<p>No one has come today. Your secretary takes your letters; the physician is within call.</p>');
+  for (const x of v) { const bt = document.createElement('button'); bt.innerHTML = esc(x.name) + '<small>' + esc(x.away ? 'keeps by the door' : x.office) + '</small>'; bt.onclick = () => act('talk:' + x.id); b.append(bt); }
+}
+async function enterSick() {
+  if (mode !== 'room') return; nearest = null; $3('w3d-prompt').hidden = true; keys.clear(); mode = 'trans'; await fadeCanvas(false, 350);
+  await buildSick(); setView('sick'); tick(0); await fadeCanvas(true, 450);
+}
+async function leaveSick() { if (mode !== 'sick') return; mode = 'trans'; await fadeCanvas(false, 300); setView('room'); tick(0); await fadeCanvas(true, 400); }
+// where the day is lived when he comes back from the map or an account: his bed, or the courtyard
+const homeView = () => abedToday() && sick ? 'sick' : 'room';
 async function leaveHall() { if (mode !== 'hall') return; mode = 'trans'; shell.closePanel(); await fadeCanvas(false, 300); pl.x = -188.5; pl.z = -10; pl.ry = Math.PI / 2; setView('room'); tick(0); await fadeCanvas(true, 400); }
 
 async function goView(v) {
   if (mode === v || mode === 'trans' || mode === 'loading') return;
   nearest = null; $3('w3d-prompt').hidden = true;
+  if (v === 'map' && mode === 'sick') { mapFrom = 'sick'; mode = 'trans'; shell.closePanel(); await fadeCanvas(false, 350); const m = desk.map; m.invalidateSize(); m.setView([latOf(22), lngOf(35)], 6, { animate: false }); setView('map'); toast('Your secretary spreads the map on the coverlet.'); return; }
+  if (v === 'room' && mode === 'map' && mapFrom === 'sick') { setView('trans'); body.classList.remove('w3d-map'); await buildSick(); setView('sick'); tick(0); return fadeCanvas(true); }
+  if (v === 'room' && mode === 'sick') { toast(state.player.health === 'gravely ill' ? 'You cannot rise.' : 'You keep to your bed today.'); return; }
   if (v === 'map') { if (mode === 'room') return roomToMap(); if (mode === 'field') { const b = battle.debug.cam; return fieldToMap(b.tx, b.tz); } if (mode === 'hall') { await leaveHall(); return roomToMap(); } }
   if (v === 'room') { if (mode === 'map') { if (mapFrom === 'field') { setView('trans'); body.classList.remove('w3d-map'); setView('room'); tick(0); return fadeCanvas(true); } return mapToRoom(); } if (mode === 'field') return fieldToRoom(); if (mode === 'hall') return leaveHall(); }
   if (v === 'field' && travel.mode() !== 'field' && !account) { toast('You are not with the army. Battles reach you as accounts in your letters.'); return; }
@@ -368,23 +400,23 @@ function act(a) {
   if (a.startsWith('go:')) { const id = a.slice(3); return id === 'cancel' ? journey(state.player.locationId, state.player.mode) : journey(id, travel.mode()); }
   if (a.startsWith('join:')) return journey(travel.here(), a.slice(5));
   if (a === 'travel') return shell.showTravel();
-  if (a.startsWith('talk:')) { const c = state.cast.find(x => x.id === a.slice(5)); if (c) shell.showTalk([c]); return; }
+  if (a.startsWith('talk:')) { const c = state.cast.find(x => x.id === a.slice(5)); if (c) shell.showTalk(mode === 'sick' ? [c, ...bedsideVisitors().filter(v => v.id !== c.id).map(v => state.cast.find(x => x.id === v.id)).filter(Boolean)] : [c]); return; }
   if (a === 'chamberlain') return shell.showTalk(state.cast.filter(c => c.id === 'maria_theresa' || c.id === 'francis_stephen'), true);
   if (a.startsWith('inspect:')) return shell.showInspect(a.slice(8));
   if (a.startsWith('toast:')) return toast(a.slice(6));
   if (a === 'gfx') { const p = $3('w3d-gfx'); p.hidden = !p.hidden; return; }
   if (a === 'room' || a === 'map' || a === 'field') return goView(a);
-  if (a === 'battle') return goView(mode === 'field' ? 'room' : 'field');
+  if (a === 'battle') return mode === 'sick' ? toast('You are in no state to ride out.') : goView(mode === 'field' ? 'room' : 'field');
   if (a === 'aftermathTable') { if (mode !== 'field' || !battle) return; state.battleDemo.aftermath = window.__campaign.aftermathOfTable(); persistState(); aftermath = true; battle.setAftermath(true); refreshHud(); return; }
-  if (a === 'aftermath') { if (!(state.battleDemo || {}).aftermath) return toast('Nothing is known yet of the ground after the battle.'); account = true; aftermath = true; return mode === 'room' ? roomToField() : goView('room').then(() => roomToField()); }
-  if (a === 'account') { account = travel.mode() !== 'field'; return mode === 'room' ? roomToField() : goView('room').then(() => roomToField()); }
+  if (a === 'aftermath') { if (!(state.battleDemo || {}).aftermath) return toast('Nothing is known yet of the ground after the battle.'); account = true; aftermath = true; return mode === 'room' || mode === 'sick' ? roomToField() : goView('room').then(() => roomToField()); }
+  if (a === 'account') { account = travel.mode() !== 'field'; return mode === 'room' || mode === 'sick' ? roomToField() : goView('room').then(() => roomToField()); }
   if (a.startsWith('hours:')) return advanceClock(+a.slice(6));
   if (a.startsWith('sound:')) return sound.cue(a.slice(6));
   if (a === 'archive') return shell.showLetters(null, 'archive');
   if (a === 'heir') return beginAsHeir();
   if (a.startsWith('post:')) { const n = +a.slice(5); newDay().then(() => world.region.setLetters(shell.unread().length)); if (n) sound.cue('letters'); pendingArrival = n > 0; shell.refresh(); world.region.setLetters(shell.unread().length); refreshHud(); if (n) toast(fmtDate(shell.today) + ' — the day passes.'); return; }
   if (a.startsWith('sighting:')) return showSighting(a.slice(9));
-  if (a === 'hall') return enterHall();
+  if (a === 'hall') return mode === 'sick' ? toast('The council must come to you, or wait.') : enterHall();
   if (a === 'orders') return shell.toggleSheet();
   if (a === 'notebook') return shell.showNotebook();
   if (['council', 'record', 'staff', 'army', 'reports'].includes(a)) { shell.showPanel(a); if (a === 'reports') world && world.region.setLetters(shell.unread().length); }
@@ -396,7 +428,8 @@ const courierSave = v => { try { v ? localStorage.setItem(COURIER_KEY, JSON.stri
 function onSeal() {
   const c = world.region.courierRide; if (c.state === 'home') c.depart(mode !== 'room');
   courierSave({ away: true, turn: state.turn });
-  toast('Your orders are sealed and copied. The courier rides with them; paste the reply on the order sheet when it comes.');
+  let inProject = false; try { inProject = JSON.parse(localStorage.getItem('cabinet-of-war:w3d-rules-in-project') || 'false'); } catch { }
+  toast('Your orders are sealed and copied. Paste them into a fresh chat' + (inProject ? ' in your Claude Project' : '') + '; the courier rides with them. Paste the reply on the order sheet when it comes.');
 }
 function syncCourierOnBoot() {
   const s = courierSaved(); if (!s || !s.away) return;
@@ -482,12 +515,16 @@ function applyAtmosphere(night) {
 async function lightCheck() {
   const gl = renderer.getContext(), keep = { h: clockH, pl: { ...pl }, cam: { yaw: cam.yaw, pitch: cam.pitch, dist: cam.dist } }, rows = [];
   shell.closeTop(); Object.assign(pl, { x: -172, z: -8, ry: 1.6 }); Object.assign(cam, { yaw: -1.5, pitch: .22, dist: 10 }); for (let i = 0; i < 240; i++) tick(1 / 60); // let the camera arrive before measuring
-  const measure = (label, night) => { applyAtmosphere(night); for (let i = 0; i < 3; i++) tick(1 / 60);
-    const w = gl.drawingBufferWidth, h = gl.drawingBufferHeight, px = new Uint8Array(w * h * 4); tick(1 / 60); gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  const measure = (label, night) => { applyAtmosphere(night); for (let i = 0; i < 3; i++) tick(1 / 60); read(label, () => tick(1 / 60)); };
+  const read = (label, draw) => {
+    const w = gl.drawingBufferWidth, h = gl.drawingBufferHeight, px = new Uint8Array(w * h * 4); draw(); gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
     let s = 0, dark = 0, n = 0; for (let i = 0; i < px.length; i += 16) { const L = .2126 * px[i] + .7152 * px[i + 1] + .0722 * px[i + 2]; s += L; if (L < 28) dark++; n++; }
     const mean = Math.round(s / n), nearBlackPct = Math.round(dark / n * 100); rows.push({ label, mean, nearBlackPct, ok: mean >= LIGHT_FLOOR.mean && nearBlackPct <= LIGHT_FLOOR.nearBlackPct }); };
   for (const wx of ['clear', 'overcast', 'mist', 'rain', 'snow', 'storm']) for (const h of [6, 9, 12, 17.5, 19, 20.5, 22, 2]) { forcedWeather = wx; clockH = h; world.region.setHour(h); measure(wx + ' ' + h + 'h'); }
   forcedWeather = null; measure('opening night', true);
+  // the bedchamber, by day and by candlelight, with the curtains of a winter's day
+  { const m = await import('./interior.js'), sr = m.createSickroom({ renderer, visitors: [], grave: false, winter: true });
+    for (const h of [9, 12, 17.5, 20.5, 2]) { sr.setHour(h); renderer.shadowMap.needsUpdate = true; read('bedchamber ' + h + 'h', () => sr.frame(1 / 60)); } sr.dispose(); }
   clockH = keep.h; world.region.setHour(clockH); Object.assign(pl, keep.pl); Object.assign(cam, keep.cam); applyAtmosphere();
   return { floor: LIGHT_FLOOR, pass: rows.every(r => r.ok), rows };
 }
@@ -503,6 +540,7 @@ addEventListener('keydown', e => {
     if (typing(e)) { e.target.blur(); }
     if (shell.closeTop()) { e.stopImmediatePropagation(); return; }
     if (mode === 'map') { if (typeof toolMode !== 'undefined' && toolMode) return; e.stopImmediatePropagation(); goView(mapFrom === 'field' ? 'field' : 'room'); return; }
+    if (mode === 'sick') { e.stopImmediatePropagation(); return; }
     if (mode === 'hall') { e.stopImmediatePropagation(); goView('room'); return; }
   }
   if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -526,7 +564,8 @@ canvas.addEventListener('pointermove', e => {
   if (!drag || mode !== 'room') return; drag.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
   cam.yaw -= e.movementX * .005; cam.pitch = Math.min(1.25, Math.max(.05, cam.pitch + e.movementY * .004));
 });
-canvas.addEventListener('pointerup', e => { const d = drag; drag = null; if (mode === 'field') { battle.pointerUp(e, d); return; } if (d && d.moved < 6 && mode === 'room') clickWorld(e); });
+canvas.addEventListener('pointerup', e => { const d = drag; drag = null; if (mode === 'field') { battle.pointerUp(e, d); return; }
+  if (mode === 'sick' && sick) { const r = canvas.getBoundingClientRect(), id = sick.pick((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); if (id) act('talk:' + id); return; } if (d && d.moved < 6 && mode === 'room') clickWorld(e); });
 canvas.addEventListener('wheel', e => { e.preventDefault(); if (mode === 'field') { battle.wheel(e); return; } if (mode !== 'room') return; cam.dist = Math.min(26, Math.max(3, cam.dist * (1 + Math.sign(e.deltaY) * .1))); }, { passive: false });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 function clickWorld(e) {
@@ -556,8 +595,10 @@ function refreshHud() {
   if (mode === 'field') shell.refresh('field', (aftermath ? 'The field after the battle · ' : 'The field · ') + (S.battleDemo.place || '').split('—')[0].trim(), aftermath ? 'What lies on the ground · Esc to ride back' : account ? 'An account of a battle you were not at · Esc to put it down' : travel.mode() === 'field' ? 'Your orders are the fight itself · scroll far out to rise onto the map' : 'At court this is a rehearsal on the table; the adjudicator decides · scroll far out to rise onto the map');
   else if (mode === 'map') shell.refresh('map', 'The map table', (battleCentreIn(desk.map) && desk.map.getZoom() >= 10 ? 'Zoom in on the battle ground to go down into the field · ' : '') + 'Right-click a place to add it to your orders · scroll out or Esc to stand up');
   else if (mode === 'hall') shell.refresh('room', 'The Conference chamber', 'The council in session · Esc to step back outside');
+  else if (mode === 'sick') shell.refresh('room', 'Your bedchamber · ' + locName(travel.here()), (state.player.health === 'gravely ill' ? 'You are gravely ill' : 'You keep to your bed') + ' · those who come to you stand at your bedside');
   else shell.refresh(view, travel.onRoad() ? 'A post-house on the road to ' + locName(state.player.locationId) : world ? world.region.zoneName(pl.x, pl.z) : 'Headquarters', ({ 'winter quarters': 'Winter quarters · ', campaigning: 'The armies are in the field · ', truce: 'A truce · ' }[(state.world || {}).tempo] || '') + (worldCues().season === 'winter' ? 'Snow on the ground · ' : '') + ({ clear: 'fair weather', haze: 'a hazy day', overcast: 'grey skies', mist: 'mist on the fields', rain: 'rain', snow: 'snow falling', storm: 'a storm blowing' }[atmos] || 'fair weather').replace(/^./, c => worldCues().season === 'winter' ? c : c.toUpperCase()));
-  $3('w3d-help').innerHTML = mode === 'field' && aftermath ? 'Drag to look · <kbd>WASD</kbd> or right-drag to ride over the ground · wheel to rise · <kbd>Esc</kbd> ride back'
+  $3('w3d-help').innerHTML = mode === 'sick' ? 'Click someone at your bedside to give orders in person · <kbd>M</kbd> map · <kbd>R</kbd> letters · <kbd>O</kbd> dispatch · <kbd>N</kbd> notebook · <kbd>T</kbd> travel'
+    : mode === 'field' && aftermath ? 'Drag to look · <kbd>WASD</kbd> or right-drag to ride over the ground · wheel to rise · <kbd>Esc</kbd> ride back'
     : mode === 'field' && account ? 'Drag to turn · right-drag or <kbd>WASD</kbd> to pan · wheel to zoom · click a formation to read what is known of it · <kbd>Esc</kbd> put the account down'
     : mode === 'field'
     ? 'Click a formation · Shift-click to add · drag to rotate · right-drag or WASD to pan · wheel to zoom · <kbd>M</kbd>ove <kbd>F</kbd>ace <kbd>H</kbd>old then click the ground · <kbd>Enter</kbd> run 15 minutes · <kbd>Tab</kbd> map'
@@ -588,7 +629,7 @@ function tick(dt) {
   uTime.value += dt; setWindTime(uTime.value);
   if (toastT > 0 && (toastT -= dt) <= 0) $3('w3d-toast').classList.remove('on');
   if (state.turn !== lastTurn) { const first = lastTurn === null; lastTurn = state.turn; if (!first) onNewTurn(); }
-  const room = mode === 'room' || (mode === 'trans' && !body.classList.contains('w3d-field') && !body.classList.contains('w3d-hall') && world);
+  const room = mode === 'room' || (mode === 'trans' && !body.classList.contains('w3d-field') && !body.classList.contains('w3d-hall') && !body.classList.contains('w3d-sick') && world);
   if (room) {
     stepPlayer(dt); stepCamera(dt); if (mode === 'room') stepInteract(); stepCourierArrival();
     if (mode === 'room' && !shell.papersOpen && !introOn && clockH < 23.5) { const b = clockH; clockH += dt / 40; if (Math.floor(clockH * 4) !== Math.floor(b * 4)) { saveClock(); applyAtmosphere(); } if (Math.floor(clockH) !== Math.floor(b)) onHour(Math.floor(clockH)); }
@@ -602,11 +643,16 @@ function tick(dt) {
     const R = world.region; sound.update(dt, uTime.value, Math.min(...R.fires.map(([x, z]) => Math.hypot(x - pl.x, z - pl.z))), Math.hypot(R.camp.x - pl.x, R.camp.z - pl.z), shell.papersOpen, { night: clockH < 6.5 || clockH > 19.5 || introOn });
   } else if (body.classList.contains('w3d-field')) { battle.frame(dt, uTime.value); sound.update(dt, uTime.value, 1e9, 120, shell.papersOpen); }
   else if (body.classList.contains('w3d-hall')) { renderer.shadowMap.needsUpdate = true; hall.frame(dt); sound.update(dt, uTime.value, 1e9, 1e9, true); }
+  else if (body.classList.contains('w3d-sick') && sick) {
+    if (mode === 'sick' && !shell.papersOpen && clockH < 23.5) { const b = clockH; clockH += dt / 40; if (Math.floor(clockH * 4) !== Math.floor(b * 4)) { saveClock(); sick.setHour(clockH); } if (Math.floor(clockH) !== Math.floor(b)) onHour(Math.floor(clockH)); }
+    renderer.shadowMap.needsUpdate = true; sick.frame(dt); sound.update(dt, uTime.value, 1e9, 1e9, true); }
   frames++; acc += dt; ftimes.push(performance.now() - t0); if (ftimes.length > 120) ftimes.shift();
   if (acc > .5) {
     perf.fps = Math.round(frames / acc); perf.ms = +(ftimes.reduce((a, b) => a + b, 0) / ftimes.length).toFixed(2); perf.calls = renderer.info.render.calls; perf.tris = renderer.info.render.triangles; frames = 0; acc = 0;
     if (gfx.fps) $3('w3d-stats').textContent = perf.fps + ' fps · cpu ' + perf.ms + ' ms · ' + perf.calls + ' draws · ' + Math.round(perf.tris / 1000) + 'k tris · ' + renderer.domElement.width + '×' + renderer.domElement.height;
     refreshHud();
+    // the bed: taken to on the days he is abed, left when he rises; the visitors change with the day
+    if (mode === 'room' && world && abedToday()) enterSick(); else if (mode === 'sick') { if (!abedToday()) leaveSick(); else buildSick(); }
   }
 }
 
@@ -679,7 +725,7 @@ let shell = null; const sound = createSound();
   let opened = false; try { opened = !!localStorage.getItem(INTRO_KEY); } catch { }
   if (state.turn === 0 && !opened) opening();
   loop();
-  window.__w3d = { get mode() { return mode; }, perf, get world() { return world; }, get battle() { return battle; }, get shell() { return shell; }, pl, cam, camera, renderer, act, goView, keys, mockReply, drawSightings, lightCheck, post, gfx: () => Q(),
+  window.__w3d = { get mode() { return mode; }, perf, get world() { return world; }, get battle() { return battle; }, get sick() { return sick; }, get shell() { return shell; }, pl, cam, camera, renderer, act, goView, keys, mockReply, drawSightings, lightCheck, post, gfx: () => Q(),
     // dev: pin the hour, weather, season and camera for like-for-like screenshots
     async look({ h, weather, season, x, z, ry, yaw, pitch, dist } = {}) { shell.closeTop(); introOn = false; if (season !== undefined && season !== forcedSeason) { forcedSeason = season; await buildWorld(); applyGfx(); } if (weather !== undefined) forcedWeather = weather; if (h != null) { clockH = h; world.region.setHour(h); } Object.assign(pl, Object.fromEntries(Object.entries({ x, z, ry }).filter(e => e[1] != null))); Object.assign(cam, Object.fromEntries(Object.entries({ yaw, pitch, dist }).filter(e => e[1] != null))); applyAtmosphere(); shadowsDirty(); for (let i = 0; i < 200; i++) tick(1 / 60); shadowKey = ''; tick(1 / 60); },
     step(n = 1, dt = 1 / 60) { for (let i = 0; i < n; i++) tick(dt); renderer.getContext().finish(); } };

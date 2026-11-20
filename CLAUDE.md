@@ -11,7 +11,8 @@ Solo historical strategy game (Habsburg monarchy, October 1740) in a 3D browser 
 | Continuity checks (dead men writing, canon, standing) | `w3d/continuity.js` |
 | Letters, dispatch, notebook, book of the campaign | `w3d/shell.js` |
 | 3D place: people, scene tags, whereabouts groups, winter quarters / campaigning, the post-house on the road, fortress works | `w3d/region.js` |
-| Per-place look (river, church, landmark, `fortress`), bastion trace, where you are on a day of the turn | `w3d/places.js` |
+| Per-place look (river, church, landmark, `fortress`), bastion trace, where you are on a day of the turn, the days he keeps to his bed (`abedOn`) and who is at his bedside (`bedsideOn`) | `w3d/places.js` |
+| The Conference chamber, and the bedchamber where he lives the days he is abed (`createSickroom`; visitors are those whereabouts put with him, plus his household) | `w3d/interior.js` |
 | Table battle and the ride over the field afterwards (`setAftermath`) | `w3d/battle3d.js` |
 | A battle's ground: kinds, villages, woods, streams, heights → the 30 m grid (`TER`) the rules and the 3D field use; Mollwitz keeps its mapped grid | `w3d/ground.js` (pure, tested) |
 | Views, weather, precipitation, day/night, boot | `w3d/main.js` |
@@ -33,6 +34,7 @@ python3 -m pytest -q tests                              # reply format, merge ru
 The `.glb` files in `w3d/assets` hold only the clips the game plays (`src/slim_glb.py`, list in `KEEP`). To use another clip, restore the full file from git (`git show 6447ec8:w3d/assets/<file> > w3d/assets/<file>`), add the name to `KEEP`, and re-run the script.
 
 ## The turn loop
+Each packet stands alone; the player starts a fresh chat each turn. The packet sends cast, locations and fortresses as pipe tables (`TABLES` in `turn.js`), not JSON. With "My Claude Project holds the rules" (Notebook → The record) the packet leaves out the contract, the reply format and the almanac's systems and names the rules version (`rulesVersion`); the player adds `rulesText()` to the project once per version.
 Seal → packet (contract + orders + fortune + active almanac plots + the record's seal + live state) → Claude → reply `{kind:"turn", schemaVersion:3, seal, changes:{…}}` with only what changed → `checkReply` (errors, fixes, warnings; a wrong seal is refused) → `mergeTurn` → `checkContinuity` → accept → the record's next link (`state.record.chain`) + book entry + campaign file download.
 Every ten turns the packet asks for a chronicle volume (`hidden.volumes`, append-only).
 Merge rules are in `turn.js` (`BY_ID`, `APPEND`, per-turn fields). Change the rules there and in `replyFormat()` together, then run the tests.

@@ -3,7 +3,7 @@
    letters; the notebook holds matters in hand, your secretary's remarks, your staff's knowledge and the record. You give orders; you do not converse:
    every order, journey, inspection or answer to a letter is an entry in the day's dispatch, composed into the
    desk's own orders text (draft.case.text), so the packet for the adjudicator is unchanged in form. */
-import { travel, loc, roadKm, letterDays, travelDays, placeOn, playerOn, routeDays } from './places.js';
+import { travel, loc, roadKm, letterDays, travelDays, placeOn, playerOn, routeDays, abedOn, abedDays, bedsideOn } from './places.js';
 import { choose, choiceFor, trustOf, setTrust, book } from './campaign.js';
 import { personOf } from './people.js';
 const $ = id => document.getElementById(id);
@@ -81,7 +81,7 @@ export function createShell({ act, onSeal, clock }) {
   const RULERS = new Set(['maria_theresa', 'francis_stephen']), ruler = c => !!c && (RULERS.has(c.id) || /\b(King|Queen|Elector|Emperor|Empress|Tsar|Tsarina|Sultan)\b/.test(c.name || ''));
   const whereNow = c => placeOn(c, today());
   // your steward travels with you; on the road no one else is about
-  function presentHere(c) { if (c.id === 'steward') return !c.dead; return !travel.onRoad() && whereNow(c) === travel.here() && !ruler(c) && c.id !== 'own-forces' && !c.dead; }
+  function presentHere(c) { if (c.id === 'steward') return !c.dead; if (abedOn(today())) return !travel.onRoad() && bedsideOn(today(), travel.here()).some(x => x.id === c.id); return !travel.onRoad() && whereNow(c) === travel.here() && !ruler(c) && c.id !== 'own-forces' && !c.dead; }
 
   /* ---------- the desk's own content, moved in ---------- */
   const place = $('place'); if (place) $('sh-card-body').append(place);
@@ -153,7 +153,7 @@ export function createShell({ act, onSeal, clock }) {
   function orderTo(to, text, ref, purse) {
     const here = travel.here(), c = cast(to);
     if (to === 'staff' || !c) return setItem({ kind: 'order', to: 'staff', text, ref, purse });
-    const inPerson = presentHere(c); return setItem({ kind: 'order', to, text, ref, purse, inPerson, at: inPerson ? locName(here) : locName(whereNow(c)), days: inPerson ? 0 : Math.max(1, days(here, whereNow(c))) });
+    const inPerson = presentHere(c); return setItem({ kind: 'order', to, text, ref, purse, inPerson, at: inPerson ? locName(here) + (abedOn(today()) ? ', at my bedside' : '') : locName(whereNow(c)), days: inPerson ? 0 : Math.max(1, days(here, whereNow(c))) });
   }
   // older lines written straight into the text (before the dispatch had entries)
   function appendOrder(line) { setItem({ kind: 'inspect', text: line }); }
@@ -184,7 +184,7 @@ export function createShell({ act, onSeal, clock }) {
     if (!ul.children.length) li('Nothing else — standing orders apply.');
     const to = $('sh-to'), was = to.value; to.replaceChildren(new Option('My staff (here)', 'staff'));
     const people = (S.cast || []).filter(c => c.id !== 'own-forces' && !ruler(c) && !c.dead);
-    for (const c of people.filter(presentHere)) to.append(new Option(c.name + ' — here, in person', c.id));
+    for (const c of people.filter(presentHere)) to.append(new Option(c.name + (abedOn(today()) ? ' — at your bedside, in person' : ' — here, in person'), c.id));
     for (const c of people.filter(c => !presentHere(c))) to.append(new Option(c.name + ' — ' + locName(whereNow(c)) + ', by letter ~' + Math.max(1, days(here, whereNow(c))) + ' d', c.id));
     if (was) to.value = was;
     const wk = $('sh-wake'); if (!wk.options.length) for (const t of WAKE) wk.append(new Option(t, t)); wk.value = w.wake || WAKE[0];
@@ -205,14 +205,15 @@ export function createShell({ act, onSeal, clock }) {
   // the days worth living through: the post, your own setting out and arriving, anyone to be seen where you are, and the day you are woken
   const turnFrom = () => (state.span && state.span.from) || null;
   function eventDays() { const from = turnFrom(), seenThere = (state.whereabouts || []).filter(w => w && w.date && w.place === playerOn(w.date)).map(w => w.date);
-    return [...new Set([...postDays(), ...routeDays(), ...seenThere, state.date].filter(d => d && (!from || d >= from) && d <= state.date))].sort(); }
+    return [...new Set([...postDays(), ...routeDays(), ...abedDays(), ...seenThere, state.date].filter(d => d && (!from || d >= from) && d <= state.date))].sort(); }
   function today() { const p = store(POST_KEY, null); if (p && p.turn === state.turn) return p.upto; const d = turnFrom() || eventDays()[0] || state.date; keep(POST_KEY, { turn: state.turn, upto: d }); return d; }
   const onTheRoad = () => post().filter(r => arrives(r) > today());
   const nextDay = () => eventDays().find(d => d > today()) || null;
   const shownDate = () => today();
   function passDay() { for (const r of seen()) if (r.urgent && !choiceFor(r.id)) { const d = r.urgent.options.find(o => o.default) || r.urgent.options[r.urgent.options.length - 1]; choose(r, d.id, true); act('toast:The day passed without your answer to “' + r.title + '”; ' + d.label.replace(/^./, x => x.toLowerCase()) + '.'); }
-    const was = playerOn(today()), next = nextDay(); if (!next) return 0; keep(POST_KEY, { turn: state.turn, upto: next });
+    const was = playerOn(today()), bedWas = abedOn(today()), next = nextDay(); if (!next) return 0; keep(POST_KEY, { turn: state.turn, upto: next });
     const now = playerOn(next); if (now !== was) act('toast:' + (now === 'road' ? 'You set out on the road to ' + locName(state.player.locationId) + '.' : 'You arrive at ' + locName(now) + '.'));
+    if (abedOn(next) !== bedWas) act('toast:' + (abedOn(next) ? 'You keep to your bed.' : 'You are out of your bed again.'));
     return post().filter(r => arrives(r) === next).length; }
   const seen = () => post().filter(r => arrives(r) <= today());
   const seenLetters = () => seen().filter(r => r.kind !== 'gazette');
@@ -483,7 +484,7 @@ export function createShell({ act, onSeal, clock }) {
   function showTalk(people, viaChamberlain) {
     let who = people[0];
     const draw = () => {
-      const b = card(viaChamberlain ? 'The Hofburg · through the chamberlain' : 'In person · ' + locName(travel.here()), who.name, who.office || '');
+      const b = card(viaChamberlain ? 'The Hofburg · through the chamberlain' : (abedOn(today()) ? 'At your bedside · ' : 'In person · ') + locName(travel.here()), who.name, who.office || '');
       if (people.length > 1) { const tabs = el('div', 'sh-tabs'); for (const p of people) { const t = el('button', p === who ? 'on' : null, p.name); t.onclick = () => { who = p; draw(); }; tabs.append(t); } b.insertBefore(tabs, b.children[1]); }
       const manner = { warm: 'They greet you warmly.', cordial: '', cool: 'They keep a polite distance.', hostile: 'They turn away as you approach, and answer shortly.' }[((state.hidden || {}).standing || {})[who.id]];
       if (manner) b.append(el('p', 'sh-manner', manner));

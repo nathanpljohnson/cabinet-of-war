@@ -14,7 +14,7 @@ def run():
     return json.loads(out.stdout)
 
 
-@pytest.mark.parametrize("name", ["answers", "winter", "dismissed", "living", "ending", "journey", "battle"])
+@pytest.mark.parametrize("name", ["answers", "winter", "dismissed", "living", "ending", "journey", "battle", "fever"])
 def test_good_mocks_are_accepted(run, name):
     m = run["mocks"][name]
     assert m["errors"] == []
@@ -23,7 +23,7 @@ def test_good_mocks_are_accepted(run, name):
 
 
 def test_good_mocks_have_no_warnings(run):
-    for name in ["answers", "winter", "dismissed", "living", "ending", "journey", "battle"]:
+    for name in ["answers", "winter", "dismissed", "living", "ending", "journey", "battle", "fever"]:
         assert run["mocks"][name]["warns"] == [], name
 
 
@@ -226,3 +226,24 @@ def test_movements_need_a_line_and_known_status(run):
 def test_preview_field_never_goes_as_the_live_battle(run):
     # campaigning makes a battle possible, but the opening's Mollwitz preview must not be sent as if it were one
     assert run["preview"] == {"units": False, "note": True, "title": None}
+
+
+def test_abed_is_checked(run):
+    a = run["abed"]
+    assert a["badFix"] and a["badGone"]
+    assert a["openWarn"] and a["sickWarns"] == 0 and a["clamped"] == "1740-10-21"
+    assert a["fmt"] and a["contract"]
+
+
+def test_fever_mock_keeps_him_abed(run):
+    n = run["mocks"]["fever"]
+    assert n["errors"] == [] and n["warns"] == []
+
+
+def test_packet_tables_and_rules_in_a_project(run):
+    l = run["lean"]
+    assert l["tablesInFull"] and l["notInJson"] == [] and l["everyCast"]
+    assert l["pipe"] == "id | dead | note\na |  | x / y\nb | true"
+    # with the rules in a Claude Project the packet names their version and leaves them out
+    assert l["names"] and l["noContract"] and l["header"] and l["lean"] < l["full"] * 0.6
+    assert l["rulesHave"] and l["rulesNoState"] and len(l["v"]) == 8
