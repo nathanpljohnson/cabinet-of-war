@@ -142,17 +142,21 @@
    "via": "courier",
    "source": "the garrison returns at Glogau",
    "claim": "inference",
-   "text": "Your Excellency will forgive plain figures. In all Silesia I can count something above three thousand foot and six hundred horse fit for duty, scattered in garrisons too small to hold a determined attack. The works at Glogau want repair; Brieg and Neisse are no better provided. Talk across the Brandenburg border has been loud since the new King came to the throne. I ask for orders and for money before I ask for men.",
+   "text": "Your Excellency will forgive plain figures. The rolls of all Silesia show some seven thousand men, the garrisons included. Fit for duty and free to leave their walls I can count something above three thousand foot and six hundred horse, scattered in garrisons too small to hold a determined attack. The works at Glogau want repair; Brieg and Neisse are no better provided. Talk across the Brandenburg border has been loud since the new King came to the throne. I ask for orders and for money before I ask for men.",
    "enclosure": {
     "kind": "return",
-    "title": "Return of troops fit for duty in Silesia",
+    "title": "Return of troops in Silesia",
     "rows": [
      [
-      "Foot, all garrisons",
+      "On the rolls, all garrisons (Glatz apart)",
+      "about 7,000"
+     ],
+     [
+      "Foot fit for duty",
       "about 3,000"
      ],
      [
-      "Horse",
+      "Horse fit for duty",
       "about 600"
      ],
      [
@@ -272,7 +276,7 @@
  },
  "knowledge": [
   {
-   "text": "A courier riding post covers Vienna to Breslau in about four or five days; the ordinary post is slower.",
+   "text": "An express courier riding post covers Vienna to Breslau in about three days; the ordinary post takes about twice as long.",
    "claim": "inference"
   },
   {
@@ -297,7 +301,7 @@
    "claim": "inference"
   }
  ],
- "forcesNote": "Garrison returns from Silesia are enclosed with Count Wallis's letter of 16 October.",
+ "forcesNote": "Garrison returns from Silesia are enclosed with Count Wallis's letter of 16 October: about 7,000 on the rolls (the official history counts 7,359 in late December, Glatz apart), some 3,600 fit to take the field.",
  "remarks": [
   "The court is in mourning; the ministers expect to be consulted before anyone goes to Her Majesty.",
   "Count Neipperg is your kinsman by marriage. Whatever you do for him, the Grand Duke will remember — and so will those who blame him for Belgrade."

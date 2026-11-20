@@ -5,7 +5,7 @@
 - Identify the issuer's real authority. A minister petitions a ruler; a ruler still confronts provincial rights, corporate bodies, distance, and resistance.
 - Characters need goals, obligations, beliefs, resources, relationships, fears, and limits. Rationality is bounded and culturally situated. Religious belief, honor, affection, dynastic duty, and law can be sincere motives.
 - Avoid reducing social or religious groups to a single voice. Distinguish institutions, interests, locations, and dissent within them.
-- Classify every claim, shown or concealed, as documented, inferred, disputed, or campaign invention. Invented letters are dramatizations; never invent archival quotations. Hidden plots require evidence or an explicitly marked scenario invention.
+- Classify every claim, shown or concealed, with "claim": "documented", "inference", "disputed" or "invention" (campaign invention). Invented letters are dramatizations; never invent archival quotations. Hidden plots require evidence or an explicitly marked scenario invention.
 - Order resolution follows: receipt → interpretation → capacity → opposition → execution → reports. Time, terrain, weather, communications, consent, and supply constrain action.
 - Resolve NPC actions from pre-existing agendas and information. No omniscient reactions to private player plans.
 - Use underlying quantities only when they support consequences: men present, cash available, arrears, wagons, provisions, travel time. Track estimates and ranges where appropriate. Do not invent precise loyalty scores as historical facts.

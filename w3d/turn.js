@@ -214,6 +214,8 @@ export function activePlots(almanac, threads, date) {
 }
 // a live thread gets its whole model; one only due for a check gets what tells whether it has begun
 const compactPlot = (p, live) => { const o = {}; for (const k of live ? ['id', 'title', 'window', 'actors', 'preconditions', 'historical', 'levers', 'signals', 'failure_modes'] : ['id', 'title', 'window', 'preconditions', 'signals']) if (p[k] != null) o[k] = p[k]; return o; };
+// the packet names the weekday: the adjudicator places Masses, Council days and the Diarium by it (Gregorian, as the Habsburg lands used)
+export const longDate = d => new Date(d + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 export const KEEP = { ledgerTurns: 3, canon: 40, dispatches: 12, memory: 5 };
 const GIST = 420; // characters of each letter's text the packet carries after the opening
 export function liveState(state) {
@@ -256,7 +258,7 @@ Return ONE JSON object and nothing else:
 - Cleared unless you give them again: reports, gazette, overheard, whereabouts, decision, scene, world.weather, world.scene, hidden.decisions, hidden.fortune_used.
 - Never change: ${PLAYER_KEYS.join(', ')}.
 - Player-facing text holds only what the character could know. Keep ids stable.
-- Optional, give only when they apply: gazette (the Diarium issues of this turn), weather (only the days it changes; each day keeps the last weather given), overheard, whereabouts, decision (only a real fork), scene (an audience he asked for: {"id","title","setting","participants":[{"id","name"}],"lines":[{"who","text"}] with "player" as the player's id,"commitments":["…"],"status":"closed"}).
+- Optional, give only when they apply: gazette (the Diarium issues of this turn), weather (only the days it changes; each day keeps the last weather given), overheard, whereabouts, decision (only a real fork), scene (an audience he asked for: {"id","title","setting","participants":[{"id","name"}],"lines":[{"who","text"}]; his part goes as narration (who "Narration") or in the words of his orders (who "player"),"commitments":["…"],"status":"closed"}).
 - A journey: give player.locationId where he ends the turn, and player.route [{"date","place"}] (place a location id or "road") if he stops anywhere or arrives on a day other than the distance implies. Without a route he is on the road from the first day of the turn and arrives after the usual days for the distance.
 - A battle account (a report with "battle": true) needs battleDemo for that battle. The same battle (same id): move or remove its units by id. A new battle takes a new id and replaces the whole field: give id, title, place, center [lat, lon], date, ground and every unit of both sides ({"id","side":"A" his | "B" the enemy,"type":"inf"|"cav"|"art","name","e","n","facing"}, metres east and north of center, within ±${FIELD.w / 2} and ±${FIELD.h / 2}; facing in degrees, 0 = north). For a battle outside this campaign, write an ordinary letter instead.
 - battleDemo.ground describes the ground the page draws and the table battle is fought over: {"kind": ${Object.keys(GROUND_KINDS).map(k => '"' + k + '"').join(' | ')}, "villages":[{"name","e","n","size": ${Object.keys(VILLAGE_SIZES).map(k => '"' + k + '"').join(' | ')}}], "woods":[{"name","e","n","w","d"}] (w, d its extent in metres east–west and north–south), "streams":[{"name","kind":"stream"|"river","path":[[e,n],…],"crossings":[[e,n]]}] (bridges and fords), "heights":[{"name","e","n","r","h"}] (radius and height in metres)}. Name the features the account mentions and put them where it says; the kind fills in the rest. Woods and villages slow troops and give cover; water stops them except at crossings.
@@ -284,7 +286,7 @@ export function buildPacket({ state, contract, orders, almanac, fortune, wake, t
     + (rest ? (shown.length ? '\n' : '') + '(' + rest + ' other threads are dormant and not due for a check within 30 days, or closed; the page keeps them. Wake one by giving its id with a new status.)' : '');
   const soon = addDays(date, 120), cal = ((almanac || {}).calendar || []).filter(c => c.d >= date && c.d <= soon).map(c => '- ' + c.d + ': ' + c.e + ' (' + c.c + ')').join('\n');
   const tr = Object.entries(trust || {}), trusts = tr.filter(([, v]) => v === 'trust').map(([k]) => k), doubts = tr.filter(([, v]) => v === 'doubt').map(([k]) => k);
-  return '# CABINET OF WAR — turn ' + state.turn + ' → ' + (state.turn + 1) + '\n\nAct as a historian and impartial adjudicator. This packet is self-contained: the current state, his orders, this turn\'s fortune and the parts of the almanac now in play.\n\n'
+  return '# CABINET OF WAR — turn ' + state.turn + ' → ' + (state.turn + 1) + ' · ' + longDate(state.date) + '\n\nAct as a historian and impartial adjudicator. This packet is self-contained: the current state, his orders, this turn\'s fortune and the parts of the almanac now in play.\n\n'
     + contract.trim()
     + '\n\n## When to wake him\n' + (wake || 'When there is news he must decide on.')
     + (endRequested ? '\n\n## He ends his service\nHe asks to end his service here. End the campaign this turn: set "ended" and write the epilogue.' : '')
