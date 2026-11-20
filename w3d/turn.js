@@ -131,6 +131,12 @@ export function checkReply(prev, reply, ctx = {}) {
   if (w && isObj(w.weather)) for (const [d, k] of Object.entries(w.weather)) if (!WEATHER.includes(k)) { fixes.push('Unknown weather "' + k + '" on ' + d + ' was left out.'); delete w.weather[d]; }
   if (w && isObj(w.scene)) for (const [place, tags] of Object.entries(w.scene)) { if (!Array.isArray(tags)) { delete w.scene[place]; continue; }
     const bad = tags.filter(t => !SCENE_TAGS.includes(t)); if (bad.length) { fixes.push('Unknown scene tags at ' + place + ' were left out: ' + bad.join(', ') + '.'); w.scene[place] = tags.filter(t => SCENE_TAGS.includes(t)); } }
+  // an audience: the format gives its shape; the page also keeps a revision and needs lists it can walk
+  if (ch.scene != null && !isObj(ch.scene)) { fixes.push('The scene was not an object and was left out.'); delete ch.scene; }
+  if (isObj(ch.scene)) { const sc = ch.scene;
+    for (const k of ['lines', 'commitments', 'participants']) if (!Array.isArray(sc[k])) sc[k] = [];
+    if (typeof sc.revision !== 'number') sc.revision = 1;
+    if (!sc.lines.length) warns.push('The scene "' + (sc.title || sc.id || '') + '" has no lines.'); }
   const h = isObj(ch.hidden) ? ch.hidden : {};
   if (ctx.fortune && ctx.fortune.length && !(Array.isArray(h.fortune_used) && h.fortune_used.length)) warns.push('The reply does not say how this turn’s fortune was used (hidden.fortune_used).');
   if (!(Array.isArray(h.decisions) && h.decisions.length)) warns.push('The reply does not record what the other powers decided (hidden.decisions).');
@@ -247,7 +253,7 @@ Return ONE JSON object and nothing else:
 - Cleared unless you give them again: reports, gazette, overheard, whereabouts, decision, scene, world.weather, world.scene, hidden.decisions, hidden.fortune_used.
 - Never change: ${PLAYER_KEYS.join(', ')}.
 - Player-facing text holds only what the character could know. Keep ids stable.
-- Optional, give only when they apply: gazette (the Diarium issues of this turn), weather (only the days it changes; each day keeps the last weather given), overheard, whereabouts, decision (only a real fork), scene (an audience he asked for: {"id","title","setting","participants":[{"id","name"}],"lines":[{"who","text"}],"commitments":["…"],"status":"closed"}).
+- Optional, give only when they apply: gazette (the Diarium issues of this turn), weather (only the days it changes; each day keeps the last weather given), overheard, whereabouts, decision (only a real fork), scene (an audience he asked for: {"id","title","setting","participants":[{"id","name"}],"lines":[{"who","text"}] with "player" as the player's id,"commitments":["…"],"status":"closed"}).
 - A journey: give player.locationId where he ends the turn, and player.route [{"date","place"}] (place a location id or "road") if he stops anywhere or arrives on a day other than the distance implies. Without a route he is on the road from the first day of the turn and arrives after the usual days for the distance.
 - A battle account (a report with "battle": true) needs battleDemo for that battle. The same battle (same id): move or remove its units by id. A new battle takes a new id and replaces the whole field: give id, title, place, center [lat, lon], date, ground and every unit of both sides ({"id","side":"A" his | "B" the enemy,"type":"inf"|"cav"|"art","name","e","n","facing"}, metres east and north of center, within ±${FIELD.w / 2} and ±${FIELD.h / 2}; facing in degrees, 0 = north). For a battle outside this campaign, write an ordinary letter instead.
 - battleDemo.ground describes the ground the page draws and the table battle is fought over: {"kind": ${Object.keys(GROUND_KINDS).map(k => '"' + k + '"').join(' | ')}, "villages":[{"name","e","n","size": ${Object.keys(VILLAGE_SIZES).map(k => '"' + k + '"').join(' | ')}}], "woods":[{"name","e","n","w","d"}] (w, d its extent in metres east–west and north–south), "streams":[{"name","kind":"stream"|"river","path":[[e,n],…],"crossings":[[e,n]]}] (bridges and fords), "heights":[{"name","e","n","r","h"}] (radius and height in metres)}. Name the features the account mentions and put them where it says; the kind fills in the rest. Woods and villages slow troops and give cover; water stops them except at crossings.
