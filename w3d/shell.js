@@ -386,7 +386,7 @@ export function createShell({ act, onSeal, clock }) {
         const sub = el('div', 'sh-orders');
         for (const o of x.os) { const ans = o.ref ? answersTo(o.ref) : [], row = el('div', ans.length ? 'sh-o-ok' : 'sh-o-wait'); row.append(el('span', 'sh-o-ref', o.ref ? o.ref.split('-').pop() : '·'), el('span', 'sh-o-t', o.line.length > 110 ? o.line.slice(0, 110) + '…' : o.line));
           for (const { r, sure } of ans) { const lb = el('button', 'sh-o-lnk' + (sure ? '' : ' sh-o-maybe'), (sure ? 'Answered by ' : 'Probably answered by ') + fromName(r) + ' →'); lb.onclick = () => showLetters(r.id); row.append(lb); }
-          if (!ans.length) row.append(el('span', 'sh-o-st', state.turn > x.s.turn ? 'no answer yet' : 'on the road')); sub.append(row); }
+          if (!ans.length) row.append(el('span', 'sh-o-st', state.turn > x.s.turn ? 'no answer yet' : /, given in person at /.test(o.line) ? 'given' : 'on the road')); sub.append(row); }
         if (!x.os.length) sub.append(el('div', 'sh-o-wait', x.s.own || 'standing orders'));
         li.append(sub); const b = el('button', null, 'Settled'); b.onclick = () => { const all = store(SENT_KEY, []); const t = all.find(s => s.turn === x.s.turn); if (t) t.settled = true; keep(SENT_KEY, all); showNotebook(); refresh(); }; li.append(b); }
       if (x.k === 'council') { li.innerHTML = '<b>Your advisers await your decision</b> · ' + esc(state.decision.title); const b = el('button', null, 'Read their counsel'); b.onclick = () => showPanel('council'); li.append(b); }

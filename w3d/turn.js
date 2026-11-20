@@ -215,12 +215,15 @@ export function activePlots(almanac, threads, date) {
 // a live thread gets its whole model; one only due for a check gets what tells whether it has begun
 const compactPlot = (p, live) => { const o = {}; for (const k of live ? ['id', 'title', 'window', 'actors', 'preconditions', 'historical', 'levers', 'signals', 'failure_modes'] : ['id', 'title', 'window', 'preconditions', 'signals']) if (p[k] != null) o[k] = p[k]; return o; };
 export const KEEP = { ledgerTurns: 3, canon: 40, dispatches: 12, memory: 5 };
+const GIST = 260; // characters of each letter's text the packet carries after the opening
 export function liveState(state) {
   const s = clone(state); for (const k of STATIC_KEYS) delete s[k];
   if (s.hidden) { delete s.hidden.world; delete s.hidden.threads; } // threads go as the index above the state
   delete s.record; delete s.span; // the seal goes above the state; the span is the page's
-  // last turn's own output: the adjudicator wrote it and the merge clears it; only an index of the letters goes back
-  s.reports = (s.reports || []).map(r => ({ id: r.id, from_id: r.from_id, dated: r.dated, title: r.title, ...(r.re ? { re: r.re } : {}) }));
+  // the letters he is answering. The opening's were written by the page, so they go whole; later ones the adjudicator wrote,
+  // and go as an index with the gist (the figures he is acting on), so a fresh chat does not contradict them
+  const gist = t => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > GIST ? t.slice(0, t.lastIndexOf(' ', GIST)) + ' …' : t; };
+  s.reports = (s.reports || []).map(r => ({ id: r.id, from_id: r.from_id, dated: r.dated, title: r.title, ...(r.re ? { re: r.re } : {}), ...(state.turn ? { gist: gist(r.text) } : { text: r.text }) }));
   for (const k of ['gazette', 'whereabouts', 'overheard']) delete s[k];
   if (s.decision) s.decision = { id: s.decision.id, title: s.decision.title };
   if (s.scene && s.scene.status === 'closed') delete s.scene;

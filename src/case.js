@@ -31,7 +31,7 @@ function packetOrders(){
 }
 async function resolve(){
   const orders=packetOrders(),pk=window.__campaign?await window.__campaign.packet(orders):'# CABINET OF WAR\n\n'+rules.contract+'\n\n'+orders+'\n\n## Current state (JSON)\n'+JSON.stringify(state)+'\n';
-  await copy(pk,'Orders copied. Paste them into Claude, then paste the reply back under Orders → Reply received.');
+  await copy(pk,'Orders copied. Paste them into Claude, then paste its reply back into the game when the courier returns.');
 }
 function initCase(){
   ensureCase();$('toggleC').onclick=()=>$('case').classList.contains('on')?closeCase():openCase();$('case-close').onclick=closeCase;$('case-tabs').hidden=true;
