@@ -4510,26 +4510,51 @@
   "routes": [
     {
       "id": "danube",
-      "name": "Danube trade route",
+      "name": "The Danube from Regensburg to Buda",
       "kind": "river",
-      "goods": "grain, salt, timber, wine, iron",
-      "claim": "inference",
+      "goods": "salt, timber, grain, wine, iron, stone and livestock downstream; passengers and troops on the Ulm boats",
+      "claim": "documented",
+      "source": "Danube boats and cargo: Ulm city archive on the Ulmer Schachtel; tolls at Aschach (registers 1706–1740): FWF project P30029. Upstream traffic was slight: barges were hauled by teams of horses.",
       "pts": [
         [
           49.0134,
           12.1016
         ],
         [
+          48.881,
+          12.573
+        ],
+        [
           48.5667,
           13.4667
+        ],
+        [
+          48.383,
+          14.017
         ],
         [
           48.3069,
           14.2858
         ],
         [
-          48.4167,
-          15.6
+          48.24,
+          14.524
+        ],
+        [
+          48.176,
+          15.087
+        ],
+        [
+          48.227,
+          15.332
+        ],
+        [
+          48.41,
+          15.603
+        ],
+        [
+          48.33,
+          16.055
         ],
         [
           48.2082,
@@ -4540,12 +4565,12 @@
           17.1077
         ],
         [
-          47.6875,
-          17.6504
+          47.763,
+          18.124
         ],
         [
-          47.7636,
-          18.1236
+          47.785,
+          18.74
         ],
         [
           47.4979,
@@ -4555,206 +4580,414 @@
     },
     {
       "id": "elbe",
-      "name": "Bohemia–Saxony Elbe route",
+      "name": "The Bohemian Elbe: Melnik to Dresden",
       "kind": "river",
-      "goods": "linen, glass, grain; Leipzig fair goods",
+      "goods": "Bohemian produce downstream to Saxony (goods indicative; not yet sourced)",
       "claim": "inference",
+      "source": "Large boats began at Melnik; a general water toll from 1719 (B. Poláček, 'A Brief History of River Navigation in Bohemia up to the 19th Century'). The towns between are the river's own; cargoes are not sourced.",
       "pts": [
         [
-          50.0755,
-          14.4378
+          50.35,
+          14.474
         ],
         [
-          50.5333,
-          14.1333
+          50.42,
+          14.262
         ],
         [
-          51.0504,
-          13.7373
+          50.535,
+          14.131
         ],
         [
-          51.3397,
-          12.3731
-        ]
-      ]
-    },
-    {
-      "id": "silesia",
-      "name": "Vienna–Silesia road",
-      "kind": "road",
-      "goods": "cloth, linen, iron, grain",
-      "claim": "inference",
-      "pts": [
-        [
-          48.2082,
-          16.3738
+          50.66,
+          14.032
         ],
         [
-          49.1951,
-          16.6068
+          50.773,
+          14.196
         ],
         [
-          49.5938,
-          17.2509
+          50.962,
+          13.94
         ],
         [
-          49.9387,
-          17.9026
-        ],
-        [
-          50.4714,
-          17.3333
-        ],
-        [
-          50.8606,
-          17.4719
-        ],
-        [
-          51.1079,
-          17.0385
-        ]
-      ]
-    },
-    {
-      "id": "prague",
-      "name": "Vienna–Prague road",
-      "kind": "road",
-      "goods": "administration, cloth, glass",
-      "claim": "inference",
-      "pts": [
-        [
-          48.2082,
-          16.3738
-        ],
-        [
-          48.8556,
-          16.0489
-        ],
-        [
-          49.3961,
-          15.5912
-        ],
-        [
-          49.9481,
-          15.2658
-        ],
-        [
-          50.0755,
-          14.4378
-        ]
-      ]
-    },
-    {
-      "id": "nuremberg",
-      "name": "Prague–Nuremberg road",
-      "kind": "road",
-      "goods": "glass, metalwork, textiles",
-      "claim": "inference",
-      "pts": [
-        [
-          50.0755,
-          14.4378
-        ],
-        [
-          49.7475,
-          13.3776
-        ],
-        [
-          50.0795,
-          12.3705
-        ],
-        [
-          49.4521,
-          11.0767
-        ]
-      ]
-    },
-    {
-      "id": "adriatic",
-      "name": "Vienna–Adriatic road",
-      "kind": "road",
-      "goods": "wine, mercury, iron, colonial goods",
-      "claim": "inference",
-      "pts": [
-        [
-          48.2082,
-          16.3738
-        ],
-        [
-          47.0707,
-          15.4395
-        ],
-        [
-          46.0569,
-          14.5058
+          51.05,
+          13.738
         ]
       ]
     },
     {
       "id": "salt",
-      "name": "Salzach salt route",
+      "name": "Salzkammergut salt to Bohemia",
       "kind": "salt",
-      "goods": "salt",
-      "claim": "inference",
+      "goods": "salt of the Crown's monopoly: by boat down the Traun and the Danube, then by the Bohemian salt carters' wagons",
+      "claim": "documented",
+      "source": "Salt went by water down the Traun and Danube to Linz and Mauthausen, then by cart via Freistadt to the depot at Budweis; the route Gmunden–Mauthausen–Budweis from the monopoly of 1692 (history of the Budweis–Linz–Gmunden horse railway; Český Krumlov regional encyclopedia, 'Salt Route').",
       "pts": [
         [
-          47.6803,
-          13.0975
+          47.918,
+          13.799
         ],
         [
-          47.8095,
-          13.055
+          48.093,
+          13.873
         ],
         [
-          48.1351,
-          11.582
+          48.157,
+          14.025
+        ],
+        [
+          48.27,
+          14.33
+        ],
+        [
+          48.24,
+          14.524
+        ],
+        [
+          48.511,
+          14.505
+        ],
+        [
+          48.738,
+          14.496
+        ],
+        [
+          48.975,
+          14.474
         ]
       ]
     },
     {
-      "id": "krakow",
-      "name": "Moravia–Cracow road",
+      "id": "trieste",
+      "name": "The Trieste road over the Semmering",
       "kind": "road",
-      "goods": "cloth, salt, cattle",
+      "goods": "the Emperor's commercial and military road to the free port of Trieste (free port 1719; the Semmering stretch rebuilt from 1728)",
       "claim": "inference",
+      "source": "Charles VI had the Semmering road made in 1728 to join Austria to Trieste rather than Venice (UNESCO Semmering Railway nomination; habsburger.net, 'Through the Monarchy by mail coach'). The towns south of the pass are inferred, not sourced.",
       "pts": [
         [
-          49.5938,
-          17.2509
+          48.2082,
+          16.3738
         ],
         [
-          49.7478,
-          18.6322
+          47.813,
+          16.243
         ],
         [
-          50.0647,
-          19.945
+          47.633,
+          15.83
+        ],
+        [
+          47.607,
+          15.672
+        ],
+        [
+          47.41,
+          15.27
+        ],
+        [
+          47.071,
+          15.439
+        ],
+        [
+          46.557,
+          15.646
+        ],
+        [
+          46.231,
+          15.26
+        ],
+        [
+          46.056,
+          14.506
+        ],
+        [
+          45.963,
+          14.295
+        ],
+        [
+          45.776,
+          14.214
+        ],
+        [
+          45.65,
+          13.777
         ]
       ]
     },
     {
-      "id": "breslau-dresden",
-      "name": "Breslau–Dresden road",
+      "id": "prague",
+      "name": "The post road Vienna–Prague",
       "kind": "road",
-      "goods": "linen, wool, grain",
+      "goods": "the post, travellers and carriers between the two capitals",
       "claim": "inference",
+      "source": "Post schedules run Vienna–Iglau–Czaslau–Prague (Wienbibliothek, digitised post schedules, mostly 19th-century); J. G. Seume walked Deutschbrod–Iglau–Znaim in 1802. Stations before 1743 are not confirmed (see V. Klíma, Moravian post routes 1743–1790).",
       "pts": [
         [
-          51.1079,
-          17.0385
+          48.2082,
+          16.3738
         ],
         [
-          51.1,
-          15.0
+          48.384,
+          16.211
         ],
         [
-          51.0504,
-          13.7373
+          48.563,
+          16.079
+        ],
+        [
+          48.856,
+          16.049
+        ],
+        [
+          49.396,
+          15.591
+        ],
+        [
+          49.608,
+          15.58
+        ],
+        [
+          49.911,
+          15.392
+        ],
+        [
+          50.028,
+          15.2
+        ],
+        [
+          50.074,
+          14.86
+        ],
+        [
+          50.087,
+          14.421
+        ]
+      ]
+    },
+    {
+      "id": "silesia",
+      "name": "Vienna to Breslau by Brünn and Olmütz",
+      "kind": "road",
+      "goods": "the post and the army's road to Silesia",
+      "claim": "inference",
+      "source": "Brünn and Olmütz lie on the Moravian post network (V. Klíma, Moravian post routes 1743–1790). Beyond Olmütz the line follows the way Neipperg's army took into Silesia in 1741, by Freudenthal and Zuckmantel to Neisse (Royal Collection, 'Map of Silesia and march routes 1741'). Not surveyed.",
+      "pts": [
+        [
+          48.2082,
+          16.3738
+        ],
+        [
+          48.805,
+          16.637
+        ],
+        [
+          48.975,
+          16.524
+        ],
+        [
+          49.195,
+          16.608
+        ],
+        [
+          49.279,
+          16.997
+        ],
+        [
+          49.472,
+          17.111
+        ],
+        [
+          49.594,
+          17.251
+        ],
+        [
+          49.731,
+          17.299
+        ],
+        [
+          49.976,
+          17.466
+        ],
+        [
+          50.276,
+          17.4
+        ],
+        [
+          50.474,
+          17.333
+        ],
+        [
+          50.705,
+          17.385
+        ],
+        [
+          50.858,
+          17.468
+        ],
+        [
+          50.952,
+          17.29
+        ],
+        [
+          51.108,
+          17.038
+        ]
+      ]
+    },
+    {
+      "id": "via-regia",
+      "name": "The High Road (Via Regia): Breslau to Leipzig",
+      "kind": "road",
+      "goods": "the trade between the Breslau and Leipzig fairs: Silesian linen and cloth west, manufactures east",
+      "claim": "documented",
+      "source": "Route by Neumarkt, Liegnitz, Haynau, Bunzlau, Lauban, Görlitz, Bautzen, Kamenz, Königsbrück, Großenhain and Oschatz (Via Regia Lusatiae Superioris; via-regia.org, Saxony). Goods are indicative.",
+      "pts": [
+        [
+          51.108,
+          17.038
+        ],
+        [
+          51.169,
+          16.583
+        ],
+        [
+          51.208,
+          16.161
+        ],
+        [
+          51.264,
+          15.937
+        ],
+        [
+          51.259,
+          15.567
+        ],
+        [
+          51.118,
+          15.29
+        ],
+        [
+          51.153,
+          14.987
+        ],
+        [
+          51.181,
+          14.424
+        ],
+        [
+          51.268,
+          14.093
+        ],
+        [
+          51.264,
+          13.906
+        ],
+        [
+          51.29,
+          13.524
+        ],
+        [
+          51.3,
+          13.106
+        ],
+        [
+          51.238,
+          12.725
+        ],
+        [
+          51.34,
+          12.375
+        ]
+      ]
+    },
+    {
+      "id": "golden-road",
+      "name": "The Golden Road: Prague to Nuremberg",
+      "kind": "road",
+      "goods": "the old trade between Prague and Nuremberg",
+      "claim": "inference",
+      "source": "Charles IV's road through Bohemian land, still shown by Etzlaub c.1500 by Weiden and Bärnau; stages Pilsen–Mies (Stříbro)–Tachau (Nuremberg tourism, 'The Golden Road'; Historisches Lexikon Bayerns). Its use in 1740 is not confirmed.",
+      "pts": [
+        [
+          50.087,
+          14.421
+        ],
+        [
+          49.747,
+          13.378
+        ],
+        [
+          49.753,
+          12.997
+        ],
+        [
+          49.798,
+          12.633
+        ],
+        [
+          49.811,
+          12.443
+        ],
+        [
+          49.676,
+          12.161
+        ],
+        [
+          49.502,
+          11.746
+        ],
+        [
+          49.452,
+          11.077
+        ]
+      ]
+    },
+    {
+      "id": "oxen",
+      "name": "The ox drive from Hungary to Vienna",
+      "kind": "drove",
+      "goods": "Hungarian grey oxen for Vienna's meat market (a trade already shrinking in the 18th century)",
+      "claim": "inference",
+      "source": "Drove road Ungarisch Altenburg–Straßsommerein–Nickelsdorf–Zurndorf, one branch by Parndorf to Bruck an der Leitha (Burgenländische Heimatblätter 61); Vienna's intake of cattle (Hungarian Historical Review 2022/3). The dating of this course to 1740 is not confirmed.",
+      "pts": [
+        [
+          47.869,
+          17.27
+        ],
+        [
+          47.912,
+          17.157
+        ],
+        [
+          47.94,
+          17.07
+        ],
+        [
+          47.963,
+          16.966
+        ],
+        [
+          47.996,
+          16.863
+        ],
+        [
+          48.025,
+          16.778
+        ],
+        [
+          48.139,
+          16.476
+        ],
+        [
+          48.2082,
+          16.3738
         ]
       ]
     }
   ],
-  "routesNote": "Corridors are approximate lines through major cities along well-known trade corridors; waypoints are not surveyed road geometry. Goods lists are indicative and need sourcing.",
+  "routesNote": "Each route is drawn through the towns on it, not along surveyed road or river geometry. Every route names its source; where a stretch, its date or its cargo is not sourced, the route says so and is marked inference.",
   "movements": [
     {
       "id": "mv1",

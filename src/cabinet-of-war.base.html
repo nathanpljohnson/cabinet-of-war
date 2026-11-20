@@ -1145,11 +1145,13 @@ let seasonName='autumn';
 function badge(c){const lab={documented:'Documented',inference:'Inference',disputed:'Disputed',invention:'Invention',demo:'Demo'}[c]||c;return '<span class="claim '+(['documented','inference','disputed','invention','demo'].includes(c)?c:'demo')+'">'+lab+'</span>'}
 function pathKm(pts){let d=0;for(let i=1;i<pts.length;i++)d+=map.distance(pts[i-1],pts[i]);return d/1000}
 function arrowHead(a,b,col){const k=Math.cos(b[0]*Math.PI/180),brg=Math.atan2((b[1]-a[1])*k,(b[0]-a[0]))*180/Math.PI;return L.marker(b,{interactive:false,keyboard:false,icon:L.divIcon({className:'',html:'<div class="ahead" style="transform:rotate('+brg+'deg);border-bottom-color:'+col+'"></div>',iconSize:[0,0]})})}
+// trade routes are the page's, not the campaign's: drawn from the shipped opening, so older saves get the sourced lines too
+function pageRoutes(){try{return JSON.parse($('initial-state').textContent).routes||state.routes||[]}catch{return state.routes||[]}}
 function initRoutes(){
-  const RC={river:'#7cc6d8',road:'#8a5a2a',salt:'#f6efe0'};
-  for(const r of state.routes||[]){const pts=spline(r.pts,8),c=RC[r.kind]||'#8a5a2a',km=Math.round(pathKm(r.pts)*1.12);
+  const RC={river:'#7cc6d8',road:'#8a5a2a',salt:'#f6efe0',drove:'#c9a24a'};routesLayer.clearLayers();
+  for(const r of pageRoutes()){const pts=spline(r.pts,8),c=RC[r.kind]||'#8a5a2a',km=Math.round(pathKm(r.pts)*1.12);
     const days=Math.round(km/(KMD.wagon*.9));
-    const html='<b>'+r.name+'</b><br>'+r.goods+'<br>≈ '+km+' km · wagons ≈ '+days+' days · foot ≈ '+Math.round(km/KMD.foot)+' days<br>'+badge(r.claim)+' <span class="meta">approximate corridor</span>';
+    const html='<b>'+r.name+'</b><br>'+r.goods+'<br>≈ '+km+' km · wagons ≈ '+days+' days · foot ≈ '+Math.round(km/KMD.foot)+' days<br>'+badge(r.claim)+' <span class="meta">drawn through its towns, not surveyed</span>'+(r.source?'<br><span class="meta">Source: '+r.source.replace(/[<>&]/g,'')+'</span>':'');
     L.polyline(pts,{color:'#f4e8c8',weight:6,opacity:.7,interactive:false}).addTo(routesLayer);
     L.polyline(pts,{color:c,weight:3,opacity:.95,interactive:true}).bindPopup(html).addTo(routesLayer);
     L.polyline(pts,{color:'#2a1808',weight:2,opacity:.8,dashArray:'1 14',lineCap:'round',className:'flow2',interactive:false}).addTo(routesLayer);
