@@ -208,3 +208,11 @@ def test_bad_battle_is_made_safe(run):
     assert bad["kind"] == "farmland" and bad["villages"] == ["Ok:village"]
     assert bad["units"] == ["X3:0"]
     assert any("both sides" in w for w in bad["warns"])
+
+
+def test_packet_caps_canon_by_size_and_memory(run):
+    c = run["caps"]
+    # the latest facts, as many as fit in about 5,000 characters, and a note that the page keeps the rest
+    assert 20 <= c["canon"] <= 26 and c["chars"] <= 5200 and c["last"] == "fact 59"
+    assert "earlier entries are kept by the page" in c["note"]
+    assert c["memory"] == ["4", "5", "6"]

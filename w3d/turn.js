@@ -216,7 +216,7 @@ export function activePlots(almanac, threads, date) {
 const compactPlot = (p, live) => { const o = {}; for (const k of live ? ['id', 'title', 'window', 'actors', 'preconditions', 'historical', 'levers', 'signals', 'failure_modes'] : ['id', 'title', 'window', 'preconditions', 'signals']) if (p[k] != null) o[k] = p[k]; return o; };
 // the packet names the weekday: the adjudicator places Masses, Council days and the Diarium by it (Gregorian, as the Habsburg lands used)
 export const longDate = d => new Date(d + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
-export const KEEP = { ledgerTurns: 3, canon: 40, dispatches: 12, memory: 5 };
+export const KEEP = { ledgerTurns: 3, canon: 40, canonChars: 5000, dispatches: 12, memory: 3 }; // canon is capped by size too: its entries lengthen as the story thickens
 export function liveState(state) {
   const s = clone(state); for (const k of STATIC_KEYS) delete s[k];
   if (s.hidden) { delete s.hidden.world; delete s.hidden.threads; } // threads go as the index above the state
@@ -230,7 +230,8 @@ export function liveState(state) {
   const h = s.hidden || {}; delete h.decisions; delete h.fortune_used;
   const t = state.turn || 0, older = (n, all) => all > n ? ' (' + (all - n) + ' earlier entries are kept by the page)' : '';
   if (Array.isArray(s.ledger)) { const all = s.ledger.length; s.ledger = s.ledger.filter(e => !(e && e.turn) || e.turn > t - KEEP.ledgerTurns); if (s.ledger.length < all) s.ledgerNote = 'Recent entries only' + older(s.ledger.length, all) + '.'; }
-  if (Array.isArray(h.canon) && h.canon.length > KEEP.canon) { h.canonNote = 'The latest ' + KEEP.canon + ' settled facts' + older(KEEP.canon, h.canon.length) + '; the page checks every reply against all of them.'; h.canon = h.canon.slice(-KEEP.canon); }
+  if (Array.isArray(h.canon)) { let n = 0, size = 0; for (let i = h.canon.length - 1; i >= 0 && n < KEEP.canon; i--) { size += String(h.canon[i]).length; if (size > KEEP.canonChars && n) break; n++; }
+    if (n < h.canon.length) { h.canonNote = 'The latest ' + n + ' settled facts' + older(n, h.canon.length) + '; the page checks every reply against all of them.'; h.canon = h.canon.slice(-n); } }
   if (Array.isArray(h.dispatches) && h.dispatches.length > KEEP.dispatches) h.dispatches = h.dispatches.slice(-KEEP.dispatches);
   if (isObj(h.memory)) for (const k of Object.keys(h.memory)) if (Array.isArray(h.memory[k])) h.memory[k] = h.memory[k].slice(-KEEP.memory);
   const bd = s.battleDemo; // the table battle's ground, compactly: change units by id ({"id", "e", "n", "facing"}) when a battle moves them

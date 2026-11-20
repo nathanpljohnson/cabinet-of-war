@@ -63,4 +63,6 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
   const badB = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], battleDemo: { id: 'bd-x', ground: { kind: 'swamp', villages: [{ name: 'Far', e: 9000, n: 0 }, { name: 'Ok', e: 0, n: 0, size: 'city' }] }, units: [{ id: 'X1', side: 'C', type: 'inf', e: 0, n: 0 }, { id: 'X2', side: 'A', type: 'inf', e: 0, n: 99999 }, { id: 'X3', side: 'A', type: 'cav', e: 10, n: 10 }] } });
   const bb = checkReply(opening, badB, {}); out.battle.bad = { fixes: bb.fixes, warns: bb.warns, kind: badB.changes.battleDemo.ground.kind, villages: badB.changes.battleDemo.ground.villages.map(v => v.name + ':' + v.size), units: badB.changes.battleDemo.units.map(u => u.id + ':' + u.facing) };
 }
+{ const big = JSON.parse(JSON.stringify(opening)); big.turn = 9; big.hidden.canon = Array.from({ length: 60 }, (_, i) => 'fact ' + i + ' ' + 'x'.repeat(190)); big.hidden.memory = { a: ['1', '2', '3', '4', '5', '6'] };
+  const lb = liveState(big); out.caps = { canon: lb.hidden.canon.length, chars: lb.hidden.canon.join('').length, last: lb.hidden.canon[lb.hidden.canon.length - 1].slice(0, 7), note: lb.hidden.canonNote || '', memory: lb.hidden.memory.a }; }
 console.log(JSON.stringify(out));
