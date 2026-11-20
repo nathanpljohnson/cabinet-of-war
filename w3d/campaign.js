@@ -104,6 +104,8 @@ function addToBook(prev, next) {
   book.push({ turn: prev.turn, date: prev.date, to: next.date, title: prev.title, briefing: prev.briefing, at: prev.player.locationId,
     letters: (prev.reports || []).map(r => ({ from: ((prev.cast || []).find(c => c.id === r.from_id) || {}).name || r.from || '', place: r.place, dated: r.dated, title: r.title, text: r.text, battle: !!r.battle, source: r.source || '' })),
     orders: (sent.orders || []).map(o => o.line || o), own: sent.own || '', choices: choicesNow().map(c => c.title + ': ' + c.label),
+    course: (() => { const o = prev.decision && typeof draft !== 'undefined' && (prev.decision.options || []).find(x => x.id === draft.option); return o ? o.title : ''; })(),
+    audience: prev.scene && (prev.scene.lines || []).length ? { title: prev.scene.title, setting: prev.scene.setting, lines: prev.scene.lines.map(l => ({ who: l.who === 'player' || l.who === 'You' ? 'You' : l.who === 'Narration' ? '' : (((prev.cast || []).find(c => c.id === l.who) || (prev.scene.participants || []).find(x => x.id === l.who) || {}).name || l.who), text: l.text })), commitments: (prev.scene.commitments || []).map(c => typeof c === 'string' ? c : c.text) } : null,
     gazette: (prev.gazette || []).flatMap(g => (g.items || []).map(i => ({ date: g.date, head: i.head, text: i.text }))), purse: (prev.household || {}).purse || '',
     secret: { chronicle: (next.hidden || {}).chronicle || '', decisions: (next.hidden || {}).decisions || [], fortune: (next.hidden || {}).fortune_used || [], canon: newCanon,
       volumes: ((next.hidden || {}).volumes || []).filter(v => !((prev.hidden || {}).volumes || []).some(x => x.n === v.n)) } });
