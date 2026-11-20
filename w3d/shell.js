@@ -77,10 +77,11 @@ export function createShell({ act, onSeal, clock }) {
   const fromName = r => (cast(r.from_id) || {}).name || r.from || 'Unknown';
   const short = d => new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   const days = (a, b) => { const A = loc(a), B = loc(b); return A && B && a !== b ? letterDays(roadKm(A, B)) : 0; };
-  const RULERS = new Set(['maria_theresa', 'francis_stephen']);
+  // the Queen and the co-regent are petitioned, not ordered; a foreign sovereign is not written to by a minister at all
+  const RULERS = new Set(['maria_theresa', 'francis_stephen']), ruler = c => !!c && (RULERS.has(c.id) || /\b(King|Queen|Elector|Emperor|Empress|Tsar|Tsarina|Sultan)\b/.test(c.name || ''));
   const whereNow = c => placeOn(c, today());
   // your steward travels with you; on the road no one else is about
-  function presentHere(c) { if (c.id === 'steward') return !c.dead; return !travel.onRoad() && whereNow(c) === travel.here() && !RULERS.has(c.id) && c.id !== 'own-forces' && !c.dead; }
+  function presentHere(c) { if (c.id === 'steward') return !c.dead; return !travel.onRoad() && whereNow(c) === travel.here() && !ruler(c) && c.id !== 'own-forces' && !c.dead; }
 
   /* ---------- the desk's own content, moved in ---------- */
   const place = $('place'); if (place) $('sh-card-body').append(place);
@@ -131,7 +132,7 @@ export function createShell({ act, onSeal, clock }) {
   });
 
   /* ---------- the day's dispatch: one entry per order ---------- */
-  const ref = i => 'T' + state.turn + '-' + (i + 1);
+  const ref = i => 'T' + state.turn + '-' + (i + 1), ownRef = () => 'T' + state.turn + '-0'; // T<n>-0 is the order in his own words
   const W = () => draft.w3d || (draft.w3d = { own: ensureCase().text || '', items: [] }); // per turn: the desk replaces draft on a new turn
   function itemLine(it) {
     if (it.kind === 'journey' || it.kind === 'inspect') return it.text;
@@ -142,8 +143,8 @@ export function createShell({ act, onSeal, clock }) {
     return re + own + (it.inPerson ? 'To ' + name + ', given in person at ' + it.at + ': ' : 'To ' + name + ' at ' + it.at + ', by letter (about ' + it.days + ' day' + (it.days > 1 ? 's' : '') + ' on the road): ') + it.text;
   }
   function compose() {
-    const w = W(), lines = w.items.map((it, i) => '[' + ref(i) + '] ' + itemLine(it));
-    ensureCase().text = [w.own.trim(), w.memoir && w.memoir.trim() ? 'From my memoirs, written this turn:\n' + w.memoir.trim() : '', lines.length ? 'Orders given today (references in brackets):\n' + lines.join('\n') : ''].filter(Boolean).join('\n\n');
+    const w = W(), lines = w.items.map((it, i) => '[' + ref(i) + '] ' + itemLine(it)), own = w.own.trim();
+    ensureCase().text = [own ? '[' + ownRef() + '] ' + own : '', w.memoir && w.memoir.trim() ? 'From my memoirs, written this turn:\n' + w.memoir.trim() : '', lines.length ? 'Orders given today (references in brackets):\n' + lines.join('\n') : ''].filter(Boolean).join('\n\n');
     saveDraft(); renderCase(); refresh(); if (!$('sh-sheet').hidden) renderSheet();
   }
   function setItem(it) { const w = W(); it.id = it.id || 'i' + Date.now().toString(36) + Math.floor(Math.random() * 1e3); const k = w.items.findIndex(x => x.id === it.id); if (k >= 0) w.items[k] = it; else w.items.push(it); compose(); return it.id; }
@@ -182,7 +183,7 @@ export function createShell({ act, onSeal, clock }) {
     if (BS.log.length || draft.battleResult) li('Table battle: ' + (draft.battleResult ? draft.battleResult.outcome : BS.log.length + ' phase(s) fought'));
     if (!ul.children.length) li('Nothing else — standing orders apply.');
     const to = $('sh-to'), was = to.value; to.replaceChildren(new Option('My staff (here)', 'staff'));
-    const people = (S.cast || []).filter(c => c.id !== 'own-forces' && !RULERS.has(c.id) && !c.dead);
+    const people = (S.cast || []).filter(c => c.id !== 'own-forces' && !ruler(c) && !c.dead);
     for (const c of people.filter(presentHere)) to.append(new Option(c.name + ' — here, in person', c.id));
     for (const c of people.filter(c => !presentHere(c))) to.append(new Option(c.name + ' — ' + locName(whereNow(c)) + ', by letter ~' + Math.max(1, days(here, whereNow(c))) + ' d', c.id));
     if (was) to.value = was;
@@ -354,14 +355,14 @@ export function createShell({ act, onSeal, clock }) {
   }
   function composeOn(r, acts) { // orders on a letter: to its writer (in person or by letter), or to your own staff
     const f = el('form', 'sh-compose'), to = el('select'), t = el('textarea'); t.rows = 3; t.placeholder = 'Your orders on this letter…';
-    const c = cast(r.from_id); if (c && !RULERS.has(c.id)) to.append(new Option(presentHere(c) ? 'To ' + c.name + ', in person' : 'To ' + c.name + ' at ' + locName(whereNow(c)) + ', by letter ~' + Math.max(1, days(travel.here(), whereNow(c))) + ' d', c.id));
+    const c = cast(r.from_id); if (c && !ruler(c)) to.append(new Option(presentHere(c) ? 'To ' + c.name + ', in person' : 'To ' + c.name + ' at ' + locName(whereNow(c)) + ', by letter ~' + Math.max(1, days(travel.here(), whereNow(c))) + ' d', c.id));
     to.append(new Option('To my staff', 'staff'));
     const go = el('button', 'sh-primary', 'Add to the dispatch'); f.append(to, t, go); acts.replaceChildren(f); t.focus();
     f.onsubmit = e => { e.preventDefault(); if (!t.value.trim()) return; orderTo(to.value, t.value.trim(), r.id); setActed(r.id, 'ordered'); act('toast:Added to the day’s dispatch.'); showLetters(r.id); };
   }
 
   /* ---------- notebook: matters in hand, the situation, what you know ---------- */
-  function recordSent() { const w = W(), sent = store(SENT_KEY, []).filter(s => s.turn !== state.turn); sent.push({ turn: state.turn, date: state.date, at: locName(travel.here()), orders: w.items.map((it, i) => ({ ref: ref(i), line: itemLine(it), to: it.to || null, text: it.text })), own: w.own.trim().slice(0, 160) }); keep(SENT_KEY, sent.slice(-8)); }
+  function recordSent() { const w = W(), sent = store(SENT_KEY, []).filter(s => s.turn !== state.turn); sent.push({ turn: state.turn, date: state.date, at: locName(travel.here()), orders: [...(w.own.trim() ? [{ ref: ownRef(), line: 'In my own words: ' + w.own.trim(), to: null, text: w.own.trim() }] : []), ...w.items.map((it, i) => ({ ref: ref(i), line: itemLine(it), to: it.to || null, text: it.text }))], own: w.own.trim().slice(0, 160) }); keep(SENT_KEY, sent.slice(-8)); }
   function matters() {
     const a = acted(), out = [];
     for (const r of seenLetters()) if (!a[r.id]) out.push({ k: 'letter', r });
@@ -386,7 +387,7 @@ export function createShell({ act, onSeal, clock }) {
         const sub = el('div', 'sh-orders');
         for (const o of x.os) { const ans = o.ref ? answersTo(o.ref) : [], row = el('div', ans.length ? 'sh-o-ok' : 'sh-o-wait'); row.append(el('span', 'sh-o-ref', o.ref ? o.ref.split('-').pop() : '·'), el('span', 'sh-o-t', o.line.length > 110 ? o.line.slice(0, 110) + '…' : o.line));
           for (const { r, sure } of ans) { const lb = el('button', 'sh-o-lnk' + (sure ? '' : ' sh-o-maybe'), (sure ? 'Answered by ' : 'Probably answered by ') + fromName(r) + ' →'); lb.onclick = () => showLetters(r.id); row.append(lb); }
-          if (!ans.length) row.append(el('span', 'sh-o-st', state.turn > x.s.turn ? 'no answer yet' : 'on the road')); sub.append(row); }
+          if (!ans.length) row.append(el('span', 'sh-o-st', state.turn > x.s.turn ? 'no answer yet' : /, given in person at |^In my own words: /.test(o.line) ? 'given' : 'on the road')); sub.append(row); }
         if (!x.os.length) sub.append(el('div', 'sh-o-wait', x.s.own || 'standing orders'));
         li.append(sub); const b = el('button', null, 'Settled'); b.onclick = () => { const all = store(SENT_KEY, []); const t = all.find(s => s.turn === x.s.turn); if (t) t.settled = true; keep(SENT_KEY, all); showNotebook(); refresh(); }; li.append(b); }
       if (x.k === 'council') { li.innerHTML = '<b>Your advisers await your decision</b> · ' + esc(state.decision.title); const b = el('button', null, 'Read their counsel'); b.onclick = () => showPanel('council'); li.append(b); }
@@ -439,7 +440,9 @@ export function createShell({ act, onSeal, clock }) {
     if (e) h.push('<section class="bk-epi"><h3>' + esc(e.title || 'The verdict of history') + '</h3><p>' + esc(e.text || '') + '</p>' + (e.verdict ? '<p class="bk-verdict">' + esc(e.verdict) + '</p>' : '') + '</section>');
     cs.forEach((c, i) => {
       h.push('<section class="bk-ch"><div class="bk-n">Chapter ' + (i + 1) + (c.current ? ' · this turn' : '') + '</div><h3>' + esc(c.title || '') + '</h3><p class="bk-when">' + esc(fmtDate(c.date)) + (c.to ? ' – ' + esc(fmtDate(c.to)) : '') + ' · at ' + esc(locName(c.at)) + '</p><p>' + esc(c.briefing || '') + '</p>');
-      const os = [...(c.orders || []), ...(c.own ? [c.own] : [])]; if (os.length) h.push('<h4>Your orders</h4><ol class="bk-orders">' + os.map(o => '<li>' + esc(o) + '</li>').join('') + '</ol>');
+      const os = [...(c.orders || []), ...(c.own && !(c.orders || []).some(o => /^In my own words: /.test(o)) ? [c.own] : [])]; if (os.length) h.push('<h4>Your orders</h4><ol class="bk-orders">' + os.map(o => '<li>' + esc(o) + '</li>').join('') + '</ol>');
+      if (c.course) h.push('<h4>The course you took in council</h4><p>' + esc(c.course) + '</p>');
+      if (c.audience) { const a = c.audience; h.push('<h4>' + esc(a.title || 'An audience') + '</h4>' + (a.setting ? '<p class="bk-when">' + esc(a.setting) + '</p>' : '') + a.lines.map(l => '<p>' + (l.who ? '<b>' + esc(l.who) + ':</b> ' : '<i>') + esc(l.text) + (l.who ? '' : '</i>') + '</p>').join('') + ((a.commitments || []).length ? '<ul>' + a.commitments.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '')); }
       if ((c.choices || []).length) h.push('<h4>What you answered at once</h4><ul>' + c.choices.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>');
       if ((c.gazette || []).length) h.push('<h4>In the Diarium</h4><ul class="bk-gz">' + c.gazette.map(g => '<li><b>' + esc(g.head) + '</b> — ' + esc(g.text) + '</li>').join('') + '</ul>');
       if ((c.letters || []).length) h.push('<h4>Letters</h4>' + c.letters.map(l => '<details' + (l.battle || forFile ? ' open' : '') + ' class="bk-letter' + (l.battle ? ' bk-battle' : '') + '"><summary><b>' + esc(l.title) + '</b> — ' + esc(l.from || 'unsigned') + ', ' + esc(locName(l.place)) + ', ' + esc(fmtDate(l.dated)) + '</summary><p>' + esc(l.text) + '</p>' + (l.source ? '<p class="bk-src">Their source: ' + esc(l.source) + '</p>' : '') + '</details>').join(''));

@@ -98,6 +98,10 @@ def test_packet(run):
     p = run["packet"]
     assert p["hasContract"] and p["hasTrust"]
     assert p["bytes"] < 60_000
+    # the opening letters were written by the page: the adjudicator gets them whole
+    assert p["openingLetters"]
+    # orders from earlier turns that are still unanswered go with their references
+    assert p["waiting"] and p["noWaiting"]
     for k in p["staticKeys"]:
         assert k not in p["live"]
     assert p["active"], "some plots are in play at the opening"
@@ -155,7 +159,9 @@ def test_packet_after_a_turn_is_lean(run):
     assert a["span"] == {"from": "1740-10-21", "at": "vienna"}
     for k in ["gazette", "whereabouts", "overheard", "span", "record"]:
         assert k not in a["live"]
-    assert set(a["reportKeys"]) <= {"id", "from_id", "dated", "title", "re"}
+    assert set(a["reportKeys"]) <= {"id", "from_id", "dated", "title", "re", "text"}
+    # a fresh chat sees what each letter said, not only its title
+    assert a["texts"] and all(a["texts"])
     assert "decisions" not in a["hiddenKeys"] and "fortune_used" not in a["hiddenKeys"]
     assert "rel-papal-neutrality-1741" not in a["active"]  # its thread says not before June 1741
     assert a["battleUnits"] and not a["openingUnits"]  # units go only once an enemy commander is named
@@ -202,3 +208,21 @@ def test_bad_battle_is_made_safe(run):
     assert bad["kind"] == "farmland" and bad["villages"] == ["Ok:village"]
     assert bad["units"] == ["X3:0"]
     assert any("both sides" in w for w in bad["warns"])
+
+
+def test_packet_caps_canon_by_size_and_memory(run):
+    c = run["caps"]
+    # the latest facts, as many as fit in about 5,000 characters, and a note that the page keeps the rest
+    assert 20 <= c["canon"] <= 26 and c["chars"] <= 5200 and c["last"] == "fact 59"
+    assert "earlier entries are kept by the page" in c["note"]
+    assert c["memory"] == ["4", "5", "6"]
+
+
+def test_movements_need_a_line_and_known_status(run):
+    m = run["moves"]
+    assert m["ids"] == ["m1:reported:1740-12-11"] and m["fixes"] == 2 and m["fmt"]
+
+
+def test_preview_field_never_goes_as_the_live_battle(run):
+    # campaigning makes a battle possible, but the opening's Mollwitz preview must not be sent as if it were one
+    assert run["preview"] == {"units": False, "note": True, "title": None}

@@ -1,6 +1,6 @@
 // Runs the reply pipeline (w3d/turn.js, w3d/continuity.js) on the opening state and the mock replies; prints JSON for pytest.
 import { readFileSync } from 'node:fs';
-import { parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue } from '../w3d/turn.js';
+import { replyFormat, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue } from '../w3d/turn.js';
 import { checkContinuity } from '../w3d/continuity.js';
 import { makeGround, groundKey } from '../w3d/ground.js';
 const root = new URL('../', import.meta.url), read = p => readFileSync(new URL(p, root), 'utf8');
@@ -28,7 +28,8 @@ const lc = checkReply(opening, late, { orderRefs: ['T0-1'] });
 out.fixes = { fixes: lc.fixes, warns: lc.warns, letter: late.changes.reports[0], urgent: late.changes.reports[1], world: late.changes.world };
 // the packet
 const packet = buildPacket({ state: opening, contract, orders: '## Orders of the day\nTest orders.', almanac, fortune: rollFortune(opening.campaignId, 0), wake: 'When the first answers arrive.', trust: { 'a Breslau merchant': 'doubt' }, choices: [], endRequested: false });
-out.packet = { bytes: packet.length, oldStateBytes: JSON.stringify(opening).length, hasContract: packet.includes('## Fortune'), hasTrust: packet.includes('Doubts: a Breslau merchant'), live: Object.keys(liveState(opening)), staticKeys: STATIC_KEYS, active: activePlots(almanac, opening.hidden.threads, opening.date).map(p => p.id), fortune: [rollFortune('x', 3), rollFortune('x', 3), rollFortune('x', 4)] };
+const pkW = buildPacket({ state: opening, contract, orders: '', almanac, fortune: [], waiting: [{ ref: 'T0-2', line: 'To Wallis: hold Glogau.' }] });
+out.packet = { waiting: pkW.includes('## Earlier orders with no answer yet') && pkW.includes('[T0-2] To Wallis: hold Glogau.'), noWaiting: !packet.includes('## Earlier orders with no answer yet'),  bytes: packet.length, oldStateBytes: JSON.stringify(opening).length, hasContract: packet.includes('## Fortune'), hasTrust: packet.includes('Doubts: a Breslau merchant'), openingLetters: liveState(opening).reports.every(r => r.text), live: Object.keys(liveState(opening)), staticKeys: STATIC_KEYS, active: activePlots(almanac, opening.hidden.threads, opening.date).map(p => p.id), fortune: [rollFortune('x', 3), rollFortune('x', 3), rollFortune('x', 4)] };
 // a branch may touch only world, remarks, cast, standing and memory
 const sb = JSON.parse(JSON.stringify(s0)); applyBranch(sb, { remarks: ['r'], date: '1999-01-01', hidden: { standing: { a: 'cool' }, canon: ['no'] } }); out.branch = sb;
 // the sealed record
@@ -43,7 +44,7 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
   n1.hidden.threads = n1.hidden.threads.map(t => t.id === 'rel-papal-neutrality-1741' ? { ...t, status: 'dormant', next_check: '1741-06-01' } : t);
   const ls = liveState(n1), pk = buildPacket({ state: n1, contract, orders: '## Orders of the day\nTest.', almanac, fortune: [] });
   out.after = { span: n1.span, live: Object.keys(ls), reportKeys: [...new Set((ls.reports || []).flatMap(r => Object.keys(r)))], hiddenKeys: Object.keys(ls.hidden), bytes: pk.length,
-    active: activePlots(almanac, n1.hidden.threads, n1.date).map(p => p.id), battleUnits: !!(ls.battleDemo || {}).units, openingUnits: !!(liveState(opening).battleDemo || {}).units, openingBytes: packet.length };
+    active: activePlots(almanac, n1.hidden.threads, n1.date).map(p => p.id), texts: (ls.reports || []).map(r => r.text), battleUnits: !!(ls.battleDemo || {}).units, openingUnits: !!(liveState(opening).battleDemo || {}).units, openingBytes: packet.length };
   const rt = reply(opening, { date: '1740-10-30', title: 't', briefing: 'b', reports: [], player: { locationId: 'breslau', route: [{ date: '1740-10-22', place: 'road' }, { date: '1740-10-27', place: 'breslau' }, { date: '1741-01-01', place: 'breslau' }, { date: '1740-10-25', place: 'atlantis' }] }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } });
   const rc = checkReply(opening, rt, {}); out.route = { fixes: rc.fixes, route: rt.changes.player.route };
   out.salt = [rollFortune('c', 1, 8, 'aa'), rollFortune('c', 1, 8, 'aa'), rollFortune('c', 1, 8, 'bb'), rollFortune('c', 1)];
@@ -62,4 +63,9 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
   const badB = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], battleDemo: { id: 'bd-x', ground: { kind: 'swamp', villages: [{ name: 'Far', e: 9000, n: 0 }, { name: 'Ok', e: 0, n: 0, size: 'city' }] }, units: [{ id: 'X1', side: 'C', type: 'inf', e: 0, n: 0 }, { id: 'X2', side: 'A', type: 'inf', e: 0, n: 99999 }, { id: 'X3', side: 'A', type: 'cav', e: 10, n: 10 }] } });
   const bb = checkReply(opening, badB, {}); out.battle.bad = { fixes: bb.fixes, warns: bb.warns, kind: badB.changes.battleDemo.ground.kind, villages: badB.changes.battleDemo.ground.villages.map(v => v.name + ':' + v.size), units: badB.changes.battleDemo.units.map(u => u.id + ':' + u.facing) };
 }
+{ const big = JSON.parse(JSON.stringify(opening)); big.turn = 9; big.hidden.canon = Array.from({ length: 60 }, (_, i) => 'fact ' + i + ' ' + 'x'.repeat(190)); big.hidden.memory = { a: ['1', '2', '3', '4', '5', '6'] };
+  const lb = liveState(big); out.caps = { canon: lb.hidden.canon.length, chars: lb.hidden.canon.join('').length, last: lb.hidden.canon[lb.hidden.canon.length - 1].slice(0, 7), note: lb.hidden.canonNote || '', memory: lb.hidden.memory.a }; }
+{ const mv = reply(opening, { date: '1740-12-11', title: 't', briefing: 'b', reports: [], movements: [{ id: 'm1', label: 'Prussian regiments towards Crossen', side: 'prussia', status: 'heard', pts: [[52.52, 13.40], [52.05, 15.10]] }, { id: 'm2', label: 'bad', pts: [[52, 13]] }] });
+  const mc = checkReply(opening, mv, {}); out.moves = { ids: mv.changes.movements.map(m => m.id + ':' + m.status + ':' + m.reported), fixes: mc.fixes.filter(f => /Movement/.test(f)).length, fmt: replyFormat(opening).includes('"status":"confirmed"|"reported"|"rumour"') }; }
+{ const camp = JSON.parse(JSON.stringify(opening)); camp.world = { ...(camp.world || {}), tempo: 'campaigning' }; const bd = liveState(camp).battleDemo; out.preview = { units: !!bd.units, note: /preview field/.test(bd.note || ''), title: bd.title || null }; }
 console.log(JSON.stringify(out));

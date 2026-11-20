@@ -356,6 +356,8 @@ async function journey(to, pmode) {
     const km = to !== from ? roadKm(A, B) : 0;
     line = to !== from ? 'Journey: I leave ' + A.name + ' for ' + B.name + ' as soon as this dispatch is sealed, riding post with a small household — about ' + km + ' km by road, some ' + travelDays(km) + ' day' + (travelDays(km) > 1 ? 's' : '') + '.' + (pmode === 'field' ? ' There I join the army in camp.' : '') + ' Letters are to follow me on the road.'
       : pmode === 'field' ? 'I leave court and join the army in camp near ' + A.name + ' as soon as this dispatch is sealed.' : 'I leave the army and return to court at ' + A.name + ' as soon as this dispatch is sealed.';
+    // ill, he may still go; the adjudicator decides what the road does to him (code supplies the fact, not the outcome)
+    const sick = ['ill', 'gravely ill'].includes(state.player.health); if (sick) { line += ' I am ' + state.player.health + ' and go against my doctor’s advice.'; toast('You are ' + state.player.health + '. Your doctor would keep you in bed; the journey goes in your orders all the same.'); }
     shell.setItem({ id: 'journey', kind: 'journey', text: line }); travel.set({ turn: state.turn, to, mode: pmode, line });
   }
   refreshHud(); shell.refresh();
@@ -545,7 +547,8 @@ desk.map.on('zoomend', () => { if (mode === 'map' && travel.mode() === 'field' &
 
 /* ---------- HUD ---------- */
 let toastT = 0;
-function toast(m) { const t = $3('w3d-toast'); t.textContent = m; t.classList.add('on'); toastT = 5; }
+// a toast that comes hard on another's heels joins it, so 'You arrive at …' is not lost under the courier's hoofbeats
+function toast(m) { const t = $3('w3d-toast'), fresh = t.classList.contains('on') && toastT > 3.5 && t.textContent && !t.textContent.includes(m); t.textContent = fresh ? t.textContent + ' ' + m : m; t.classList.add('on'); toastT = 5; }
 new MutationObserver(() => { const s = $3('status').textContent; if (s && mode !== 'map') toast(s); }).observe($3('status'), { childList: true, characterData: true, subtree: true });
 function refreshHud() {
   if (!shell) return; const S = state;
@@ -657,7 +660,7 @@ let shell = null; const sound = createSound();
   // the commission, the world and the secretary's remarks came with the 3D page's opening state; older saves at turn 0 take them from it
   // a campaign still at its opening takes the researched opening (letters, counsel, people, household, rival, canon)
   if (state.turn === 0) { const init = JSON.parse(document.getElementById('initial-state').textContent);
-    if ((state.openingVersion || 1) < (init.openingVersion || 1)) { for (const k of ['openingVersion', 'mandate', 'world', 'remarks', 'household', 'reports', 'decision', 'knowledge', 'forces', 'forcesNote', 'sourcesAppendix', 'cast', 'locations', 'player']) if (init[k] != null) state[k] = init[k]; state.hidden = Object.assign(state.hidden || {}, { standing: init.hidden.standing, rival: init.hidden.rival, memory: init.hidden.memory, canon: init.hidden.canon }); draft.option = ''; persistState(); saveDraft(); } }
+    if ((state.openingVersion || 1) < (init.openingVersion || 1)) { for (const k of ['openingVersion', 'mandate', 'world', 'remarks', 'household', 'reports', 'decision', 'knowledge', 'forces', 'forcesNote', 'sourcesAppendix', 'cast', 'locations', 'player']) if (init[k] != null) state[k] = init[k]; state.hidden = Object.assign(state.hidden || {}, { standing: init.hidden.standing, rival: init.hidden.rival, memory: init.hidden.memory, canon: init.hidden.canon, purse: init.hidden.purse }); draft.option = ''; persistState(); saveDraft(); } }
   // this campaign's departures from history, drawn once and kept hidden: knowing the history helps, but is not a walkthrough
   if (!(state.hidden || {}).divergences) { const D = [['frederick_waits', .22, 'Frederick waits until spring 1741 before moving on Silesia.'], ['bavaria_first', .15, 'Bavaria moves on Upper Austria before Prussia moves on Silesia.'], ['saxony_early', .2, 'Saxony joins the coalition against the succession early.'], ['fleury_dies', .12, 'Cardinal Fleury dies in the winter of 1740–41, and French policy is decided by younger, bolder men.'], ['prussian_offer', .25, 'Frederick’s offer — support for the succession in return for Silesia — is sincere and could be negotiated down.']];
     const pick = D.filter(([, p]) => Math.random() < p).map(([id, , text]) => ({ id, text })); state.hidden = Object.assign(state.hidden || {}, { divergences: pick.length ? pick : [{ id: 'history', text: 'Events follow their historical course unless the player’s actions change them.' }] }); persistState(); }

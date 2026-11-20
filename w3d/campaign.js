@@ -34,10 +34,13 @@ function migrate() {
 /* ---------- the packet ---------- */
 const sentOrders = () => store(SENT_KEY, []).flatMap(s => (s.orders || []).filter(o => o && o.ref).map(o => o.ref));
 const choicesNow = () => store(CHOICE_KEY, []).filter(c => c.turn === state.turn);
+// orders of the last three turns that no letter has answered: the adjudicator needs their references to answer them later
+const waiting = () => { const arch = Object.values(store(P + 'w3d-archive', {})), done = new Set([...arch, ...(state.reports || [])].flatMap(r => r.re || []));
+  return store(SENT_KEY, []).filter(s => s.turn < state.turn && s.turn >= state.turn - 3).flatMap(s => (s.orders || []).filter(o => o && o.ref && !done.has(o.ref) && !/^Journey: /.test(o.line || ''))); };
 export const fortune = () => rollFortune(state.campaignId, state.turn, 8, (state.record || {}).salt || '');
 async function packet(orders) {
   const w = draft.w3d || {};
-  return buildPacket({ state, contract, orders, almanac, fortune: fortune(), wake: w.wake, trust: state.trust, choices: choicesNow(), endRequested: !!w.end, purse: (w.items || []).filter(i => i.purse).map(i => i.text) });
+  return buildPacket({ state, contract, orders, almanac, fortune: fortune(), wake: w.wake, trust: state.trust, choices: choicesNow(), waiting: waiting(), endRequested: !!w.end, purse: (w.items || []).filter(i => i.purse).map(i => i.text) });
 }
 
 /* ---------- reading the reply ---------- */
@@ -104,6 +107,8 @@ function addToBook(prev, next) {
   book.push({ turn: prev.turn, date: prev.date, to: next.date, title: prev.title, briefing: prev.briefing, at: prev.player.locationId,
     letters: (prev.reports || []).map(r => ({ from: ((prev.cast || []).find(c => c.id === r.from_id) || {}).name || r.from || '', place: r.place, dated: r.dated, title: r.title, text: r.text, battle: !!r.battle, source: r.source || '' })),
     orders: (sent.orders || []).map(o => o.line || o), own: sent.own || '', choices: choicesNow().map(c => c.title + ': ' + c.label),
+    course: (() => { const o = prev.decision && typeof draft !== 'undefined' && (prev.decision.options || []).find(x => x.id === draft.option); return o ? o.title : ''; })(),
+    audience: prev.scene && (prev.scene.lines || []).length ? { title: prev.scene.title, setting: prev.scene.setting, lines: prev.scene.lines.map(l => ({ who: l.who === 'player' || l.who === 'You' ? 'You' : l.who === 'Narration' ? '' : (((prev.cast || []).find(c => c.id === l.who) || (prev.scene.participants || []).find(x => x.id === l.who) || {}).name || l.who), text: l.text })), commitments: (prev.scene.commitments || []).map(c => typeof c === 'string' ? c : c.text) } : null,
     gazette: (prev.gazette || []).flatMap(g => (g.items || []).map(i => ({ date: g.date, head: i.head, text: i.text }))), purse: (prev.household || {}).purse || '',
     secret: { chronicle: (next.hidden || {}).chronicle || '', decisions: (next.hidden || {}).decisions || [], fortune: (next.hidden || {}).fortune_used || [], canon: newCanon,
       volumes: ((next.hidden || {}).volumes || []).filter(v => !((prev.hidden || {}).volumes || []).some(x => x.n === v.n)) } });
