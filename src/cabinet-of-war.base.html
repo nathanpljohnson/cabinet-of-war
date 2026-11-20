@@ -1673,13 +1673,14 @@ function renderCounsel(){
 function renderScene(){
   const p=$('p-scene');p.replaceChildren();const s=state.scene;
   if(!s){p.append(el('p','No conversation is open.','briefing'));return}
-  p.append(el('div',(s.status==='concluded'?'Ended':'In conversation'),'eyebrow'),el('h2',s.title,'dh'),el('p',s.setting,'ctx'));
-  const chips=el('div',null,'chips');for(const pt of s.participants){const c=el('span',null,'chip');c.append(seal(pt.name),pt.name);const cl=claim(pt.claim);if(cl)c.append(cl);c.title='Wants: '+pt.wants;chips.append(c)}p.append(chips);
+  const ended=s.status==='concluded'||s.status==='closed',who=w=>w==='You'||w==='player'?'You':w==='Narration'?w:((state.cast||[]).find(c=>c.id===w)||(s.participants||[]).find(x=>x.id===w)||{name:w}).name;
+  p.append(el('div',(ended?'Ended':'In conversation'),'eyebrow'),el('h2',s.title,'dh'),el('p',s.setting,'ctx'));
+  const chips=el('div',null,'chips');for(const pt of s.participants||[]){if(pt.id==='player')continue;const c=el('span',null,'chip');c.append(seal(pt.name),pt.name);const cl=claim(pt.claim);if(cl)c.append(cl);if(pt.wants)c.title='Wants: '+pt.wants;chips.append(c)}p.append(chips);
   const log=el('div',null,'convo');
-  for(const l of s.lines){const you=l.who==='You',narr=l.who==='Narration';const b=el('div',null,'bub'+(you?' you':narr?' narr':''));if(!you&&!narr)b.append(el('b',l.who));b.append(document.createTextNode(l.text));log.append(b)}
+  for(const l of s.lines||[]){const name=who(l.who),you=name==='You',narr=name==='Narration';const b=el('div',null,'bub'+(you?' you':narr?' narr':''));if(!you&&!narr)b.append(el('b',name));b.append(document.createTextNode(l.text));log.append(b)}
   p.append(log);
-  if(s.commitments.length){const cm=el('div',null,'chips');for(const c of s.commitments)cm.append(el('span',(c.binding?'● ':'○ ')+c.by+': '+c.text,'chip tiny'));p.append(cm)}
-  if(s.status==='concluded'){p.append(el('p','The conversation has ended. Its consequences count when you send your dispatches.','note'));return}
+  if((s.commitments||[]).length){const cm=el('div',null,'chips');for(const c of s.commitments)cm.append(el('span',typeof c==='string'?'○ '+c:(c.binding?'● ':'○ ')+(c.by?who(c.by)+': ':'')+c.text,'chip tiny'));p.append(cm)}
+  if(ended){p.append(el('p','The conversation has ended. Its consequences count when you send your dispatches.','note'));return}
   const t=el('textarea',null,null,{id:'reply',placeholder:'Say your piece…',rows:'3'});t.value=draft.reply||'';t.oninput=()=>{draft.reply=t.value;saveDraft()};p.append(t);
   const row=el('div',null,'row');const b=el('button','Speak (copy to Claude)','btn seal');b.onclick=sendScene;row.append(b);p.append(row);
   const det=el('details');det.append(el('summary','Paste Claude’s reply'));const ta=el('textarea',null,null,{id:'scene-in',placeholder:'Paste the scene reply here'});det.append(ta);const ib=el('button','Apply','btn');ib.onclick=()=>applyScene(ta.value,ta);det.append(ib);p.append(det);

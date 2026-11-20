@@ -1,0 +1,250 @@
+{
+"source": "Overture Maps Foundation, divisions, release 2026-10-21.0 (ODbL; includes OpenStreetMap data)",
+"points": [
+{
+"name": "Chmielów",
+"de": null,
+"class": "village",
+"lat": 51.07143,
+"lon": 16.74118
+},
+{
+"name": "Wnorów",
+"de": null,
+"class": "hamlet",
+"lat": 51.07277,
+"lon": 16.71394
+},
+{
+"name": "Stoszyce",
+"de": null,
+"class": "village",
+"lat": 51.0747,
+"lon": 16.77911
+},
+{
+"name": "Małkowice",
+"de": null,
+"class": "village",
+"lat": 51.07651,
+"lon": 16.82279
+},
+{
+"name": "Romnów",
+"de": null,
+"class": "village",
+"lat": 51.08007,
+"lon": 16.80467
+},
+{
+"name": "Lisowice",
+"de": null,
+"class": "village",
+"lat": 51.08319,
+"lon": 16.74063
+},
+{
+"name": "Bogdaszowice",
+"de": null,
+"class": "village",
+"lat": 51.0859,
+"lon": 16.78349
+},
+{
+"name": "Kębłowice",
+"de": null,
+"class": "village",
+"lat": 51.08709,
+"lon": 16.85168
+},
+{
+"name": "Sikorzyce",
+"de": null,
+"class": "village",
+"lat": 51.08934,
+"lon": 16.69879
+},
+{
+"name": "Skałka",
+"de": null,
+"class": "village",
+"lat": 51.09268,
+"lon": 16.82917
+},
+{
+"name": "Ramułtowice",
+"de": null,
+"class": "village",
+"lat": 51.095,
+"lon": 16.72677
+},
+{
+"name": "Gałówek",
+"de": null,
+"class": "hamlet",
+"lat": 51.09768,
+"lon": 16.81563
+},
+{
+"name": "Ilnica",
+"de": null,
+"class": "hamlet",
+"lat": 51.10004,
+"lon": 16.71789
+},
+{
+"name": "Budziszów",
+"de": null,
+"class": "village",
+"lat": 51.10136,
+"lon": 16.6936
+},
+{
+"name": "Jarząbkowice",
+"de": null,
+"class": "village",
+"lat": 51.1027,
+"lon": 16.7663
+},
+{
+"name": "Karczyce",
+"de": null,
+"class": "village",
+"lat": 51.10298,
+"lon": 16.745
+},
+{
+"name": "Samotwór",
+"de": null,
+"class": "village",
+"lat": 51.10302,
+"lon": 16.83285
+},
+{
+"name": "Gałów",
+"de": null,
+"class": "village",
+"lat": 51.11112,
+"lon": 16.81459
+},
+{
+"name": "Zakrzyce",
+"de": null,
+"class": "village",
+"lat": 51.11349,
+"lon": 16.7783
+},
+{
+"name": "Pustynka",
+"de": null,
+"class": "hamlet",
+"lat": 51.11666,
+"lon": 16.71368
+},
+{
+"name": "Łowęcice",
+"de": null,
+"class": "village",
+"lat": 51.11946,
+"lon": 16.74627
+},
+{
+"name": "Radakowice",
+"de": null,
+"class": "village",
+"lat": 51.12921,
+"lon": 16.74247
+},
+{
+"name": "Lutynia",
+"de": null,
+"class": "village",
+"lat": 51.135,
+"lon": 16.78297
+},
+{
+"name": "Kolonia Wschód",
+"de": null,
+"class": "hamlet",
+"lat": 51.13546,
+"lon": 16.79832
+},
+{
+"name": "Wojczyce",
+"de": "Polkendorf",
+"class": "village",
+"lat": 51.14043,
+"lon": 16.68502
+},
+{
+"name": "Wróblowice",
+"de": null,
+"class": "village",
+"lat": 51.15756,
+"lon": 16.78357
+},
+{
+"name": "Błonie",
+"de": null,
+"class": "village",
+"lat": 51.15971,
+"lon": 16.75005
+},
+{
+"name": "Źródła",
+"de": null,
+"class": "village",
+"lat": 51.16051,
+"lon": 16.72459
+},
+{
+"name": "Krępice",
+"de": null,
+"class": "village",
+"lat": 51.16224,
+"lon": 16.81238
+},
+{
+"name": "Kokorzyce",
+"de": null,
+"class": "village",
+"lat": 51.16838,
+"lon": 16.79535
+},
+{
+"name": "Kadłub",
+"de": null,
+"class": "village",
+"lat": 51.17381,
+"lon": 16.69621
+},
+{
+"name": "Żurawiniec",
+"de": null,
+"class": "village",
+"lat": 51.17555,
+"lon": 16.81417
+},
+{
+"name": "Siemichów",
+"de": null,
+"class": "hamlet",
+"lat": 51.17667,
+"lon": 16.70611
+},
+{
+"name": "Przydroże",
+"de": null,
+"class": "hamlet",
+"lat": 51.18596,
+"lon": 16.6897
+},
+{
+"name": "Mrozów",
+"de": null,
+"class": "village",
+"lat": 51.1878,
+"lon": 16.78944
+}
+]
+}

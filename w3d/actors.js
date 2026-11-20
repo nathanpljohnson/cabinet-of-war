@@ -24,6 +24,8 @@ export const OUTFITS = {
   burgher: { coat: 0x6a4a2e, facing: 0x6a4a2e, vest: 0x9a8a5a, breeches: 0x4a3a2a, legs: 0xd8d0c0, bootTop: .12, hat: 0x2a2018, hatTrim: 0x2a2018, wig: 0x6a5a48 },
   labourer: { coat: 0xe2dccb, facing: 0xe2dccb, vest: 0x7a5a3a, breeches: 0x5a4a38, legs: 0x8a7a64, bootTop: .12, hat: null, wig: 0x5a4030 },
   woman: { coat: 0x8a3a2e, facing: 0xeee8da, vest: 0xeee8da, breeches: 0x3a4a5a, legs: 0x3a4a5a, bootTop: .12, hat: null, wig: 0x6a4a30, gown: 0x3a4a5a, cap: true },
+  // in his bed: nightshirt and nightcap (the bedchamber, interior.js)
+  invalid: { coat: 0xf1ece2, facing: 0xf1ece2, vest: 0xf1ece2, breeches: 0xf1ece2, legs: 0xf1ece2, bootTop: .12, hat: null, wig: 0xe8e2d6, cap: true },
   lady: { coat: 0xb8c8d8, facing: 0xf2eee4, vest: 0xf2eee4, breeches: 0xb8c8d8, legs: 0xb8c8d8, bootTop: .12, hat: null, wig: 0xe8e2d6, gown: 0xa8b8cc },
 };
 const SKIN = new THREE.Color(0xd8a684), STOCK = new THREE.Color(0x1d1a18), SHOE = new THREE.Color(0x15110d);

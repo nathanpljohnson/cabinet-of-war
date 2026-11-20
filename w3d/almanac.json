@@ -154,6 +154,27 @@
     "rumour_pool"
    ],
    "research": "research/verified/politics.md"
+  },
+  {
+   "id": "winter1740",
+   "name": "Weather, bread and prices, winter 1740–41",
+   "claim": "provisional: secondary narratives and search snippets only; no primary source opened (research/dec1740-baselines.md)",
+   "summary": "A hard year: 1740 was the coldest in central Europe for centuries and its harvest late. In Lower Silesia heavy rain fell about 18–20 Dec 1740, then hard frost. Whether the Oder or a fortress ditch was frozen is unknown: let a witness see it, never assert it. A soldier's bread is about 2 lb a day; horse rations, wagon loads and 1740 prices have no baseline here, so say dear, short or doubled, never an invented figure.",
+   "rules": [
+    "Weather, late December 1740, Lower Silesia: torrents of rain about 18–20 Dec, roads turned to mud, then a ringing frost (Reddaway 1904; Carlyle; Ranke; secondary, quoted in search results). Treat as the likely course, not a script.",
+    "Climate: November 1739 to October 1740 the coldest twelve months in central Europe since 1421; cold, wet summer and late harvest; the cold winter recurred in 1740/41 (Brönnimann et al. 2024, Clim. Past 20:2219, reported; EGU 2018 abstract). Snow lay at Mollwitz on 10 April 1741; its depth is disputed.",
+    "Unknown, do not assert: the ice of the Oder and of the ditches at Glogau, Brieg, Neisse and Breslau in Dec 1740 – Mar 1741. A frozen ditch helps a storm and stops boats; an open one floods works. Decide it from the weather you give and let a character report it.",
+    "Rations: the Prussian bread ration is reported as 2 Prussian pounds (about 0.94 kg) a day; about 1 kg is the general European figure (Perjés 1970). The Austrian 1740 portion is not found (1.75 lb of flour is from 1792–97). Horse rations, wagon loads, bread days carried: no baseline.",
+    "Prices: no verified 1740 Vienna, Prague or Breslau grain price. Bohemian grain prices rose from 1740 to a peak in 1746 (Brázdil et al. 2024, reported); Dresden bakers still bought Bohemian grain in autumn 1740 (2 Tlr 22 Gr wheat, 2 Tlr 5 Gr rye a Strich, snippet), so dearth was not uniform. Vienna's dearth and unrest in autumn 1740 rest on popular sources only.",
+    "Pay: a private about 6–8 kr a day plus bread (Teuber 1895; a local history; provisional). Officers' monthly pay is unverified. 1 fl = 60 kr. A Wiener Pfund is 0.560 kg, a Wiener Metzen 61.5 l (the Theresian standard; local measures varied before).",
+    "Magazines: no Austrian magazine or stock in Silesia or Moravia is documented for Dec 1740. Prussian magazines lay on the Oder (later chiefly at Ohlau and Breslau; date uncertain). Known: Browne's operations chest of 10,000 fl in late December (Duncker 1885 p. 56)."
+   ],
+   "hidden_variables": [
+    "ditch_ice",
+    "oder_ice",
+    "grain_price_index"
+   ],
+   "research": "research/dec1740-baselines.md"
   }
  ],
  "stakes": [
@@ -204,7 +225,7 @@
   {
    "d": "1740-10-20",
    "e": "Charles VI dies",
-   "c": "legacy chronological anchor; not independently checked in this pass"
+   "c": "checked Nov 2026: well-established date in standard references"
   },
   {
    "d": "1740-10-21",
@@ -214,47 +235,52 @@
   {
    "d": "1740-10-28",
    "e": "Empress Anna of Russia dies (New Style)",
-   "c": "legacy chronological anchor; not independently checked in this pass"
+   "c": "checked Nov 2026: well-established date in standard references (17 Oct Old Style)"
   },
   {
    "d": "1740-11-22",
    "e": "Lower Austrian Estates’ homage",
-   "c": "legacy chronological anchor; not independently checked in this pass"
+   "c": "checked Nov 2026: Wien Museum print 'Erbhuldigung der niederösterreichischen Stände für Maria Theresia am 22. November 1740'; NÖ Landesarchiv, Ständische Urkunden A-36-12"
   },
   {
    "d": "1740-12-16",
    "e": "Frederick II crosses into Silesia",
-   "c": "legacy chronological anchor; not independently checked in this pass"
+   "c": "checked Nov 2026: well-established date in standard references"
+  },
+  {
+   "d": "1740-12-13",
+   "e": "Frederick II leaves Berlin for the army (after the court masquerade)",
+   "c": "checked Nov 2026: well-established date in standard references"
   },
   {
    "d": "1740-12-22",
-   "e": "Neipperg named supreme commander in Silesia (23 Dec in some sources)",
-   "c": "legacy chronological anchor; not independently checked in this pass"
+   "e": "Neipperg given the command against Prussia (date unverified)",
+   "c": "checked Nov 2026: no source found for 22/23 Dec. Wikipedia (Siege of Brieg) says Neipperg and Khevenhüller were both considered; Britannica 1911 has Neipperg's field army collected in February 1741. Treat as January–February 1741, disputed."
   },
   {
    "d": "1741-04-10",
    "e": "Battle of Mollwitz",
-   "c": "legacy chronological anchor; not independently checked in this pass"
+   "c": "checked Nov 2026: well-established date in standard references"
   },
   {
    "d": "1741-06-25",
    "e": "Maria Theresa crowned in Pressburg",
-   "c": "legacy chronological anchor; not independently checked in this pass"
+   "c": "checked Nov 2026: well-established date in standard references"
   },
   {
    "d": "1741-09-11",
    "e": "Address to the Hungarian Diet",
-   "c": "legacy chronological anchor; not independently checked in this pass"
+   "c": "checked Nov 2026: well-established date in standard references"
   },
   {
    "d": "1741-11-26",
    "e": "Prague stormed by Franco-Bavarian-Saxon forces (night 25/26 Nov; sources differ)",
-   "c": "legacy chronological anchor; not independently checked in this pass"
+   "c": "checked Nov 2026: well-established date in standard references"
   },
   {
    "d": "1742-05-17",
    "e": "Battle of Chotusitz",
-   "c": "legacy chronological anchor; not independently checked in this pass"
+   "c": "checked Nov 2026: well-established date in standard references"
   },
   {
    "d": "1740-12-08",

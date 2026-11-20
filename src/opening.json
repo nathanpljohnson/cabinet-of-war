@@ -1,5 +1,5 @@
 {
- "openingVersion": 3,
+ "openingVersion": 4,
  "locations_add": [
   {
    "id": "brunn",
@@ -48,8 +48,10 @@
   "wallis": {
    "agenda": "Money and orders for the Silesian garrisons before the winter.",
    "voice": "A soldier's report: plain figures, few compliments.",
-   "office": "Commanding general in Silesia, at Glogau",
-   "place": "glogau"
+   "office": "Commandant at Glogau and senior officer in Silesia",
+   "place": "glogau",
+   "note": "Franz Wenzel Wallis, not Georg Olivier Wallis of Belgrade (imprisoned with Neipperg in 1739). His command over all Silesia rests on one source and is disputed; M. U. Browne is said to have been given the Silesian post in December 1740 (Blumberg, secondary).",
+   "claim": "disputed"
   },
   "francis_stephen": {
    "office": "Grand Duke of Tuscany; Her Majesty's husband"
@@ -97,6 +99,15 @@
    "claim": "documented",
    "agenda": "The family's standing and the daughters' futures; your safety.",
    "voice": "Affectionate, practical, sharp about money and people."
+  },
+  {
+   "id": "secretary",
+   "name": "Your secretary",
+   "office": "Role: your correspondence and register, and what is said in the antechambers",
+   "place": "vienna",
+   "claim": "invention",
+   "agenda": "Your favour, and a place in the chancery when you rise.",
+   "voice": "Plain and careful; marks each item as fact, report or rumour, and names the source."
   }
  ],
  "household": {
@@ -110,8 +121,8 @@
     "name": "your younger daughter"
    }
   ],
-  "health": "well",
-  "estate": "Your house in the city and the family's lands; the accounts are not yet before you."
+  "estate": "Your house in the city and the family's lands; the accounts are not yet before you.",
+  "purse": "The house runs on credit until the Martinmas rents come in, as it always has."
  },
  "mandate": {
   "from_id": "maria_theresa",
@@ -132,17 +143,21 @@
    "via": "courier",
    "source": "the garrison returns at Glogau",
    "claim": "inference",
-   "text": "Your Excellency will forgive plain figures. In all Silesia I can count something above three thousand foot and six hundred horse fit for duty, scattered in garrisons too small to hold a determined attack. The works at Glogau want repair; Brieg and Neisse are no better provided. Talk across the Brandenburg border has been loud since the new King came to the throne. I ask for orders and for money before I ask for men.",
+   "text": "Your Excellency will forgive plain figures. The rolls of all Silesia show some seven thousand men, the garrisons included. Fit for duty and free to leave their walls I can count something above three thousand foot and six hundred horse, scattered in garrisons too small to hold a determined attack. The works at Glogau want repair; Brieg and Neisse are no better provided. Talk across the Brandenburg border has been loud since the new King came to the throne. I ask for orders and for money before I ask for men.",
    "enclosure": {
     "kind": "return",
-    "title": "Return of troops fit for duty in Silesia",
+    "title": "Return of troops in Silesia",
     "rows": [
      [
-      "Foot, all garrisons",
+      "On the rolls, all garrisons (Glatz apart)",
+      "about 7,000"
+     ],
+     [
+      "Foot fit for duty",
       "about 3,000"
      ],
      [
-      "Horse",
+      "Horse fit for duty",
       "about 600"
      ],
      [
@@ -217,7 +232,7 @@
    "via": "audience",
    "source": "your wife",
    "claim": "invention",
-   "text": "The house is hung in black and the tailor wants paying for it. Maria Antonia asks whether there will be war; I told her that is for you and the Empress to decide, and that she should say her prayers. Dine with us tonight if the Conference lets you go. And be careful of Bartenstein: he is kind to whoever is useful to him this week."
+   "text": "The house is hung in black and the tailor wants paying for it. Maria Antonia asks whether there will be war; I told her that is for you and Her Majesty to decide, and that she should say her prayers. Dine with us tonight if the Conference lets you go. And be careful of Bartenstein: he is kind to whoever is useful to him this week."
   }
  ],
  "decision": {
@@ -262,7 +277,7 @@
  },
  "knowledge": [
   {
-   "text": "A courier riding post covers Vienna to Breslau in about four or five days; the ordinary post is slower.",
+   "text": "An express courier riding post covers Vienna to Breslau in about three days; the ordinary post takes about twice as long.",
    "claim": "inference"
   },
   {
@@ -287,7 +302,7 @@
    "claim": "inference"
   }
  ],
- "forcesNote": "Garrison returns from Silesia are enclosed with Count Wallis's letter of 16 October.",
+ "forcesNote": "Garrison returns from Silesia are enclosed with Count Wallis's letter of 16 October: about 7,000 on the rolls (the official history counts 7,359 in late December, Glatz apart), some 3,600 fit to take the field.",
  "remarks": [
   "The court is in mourning; the ministers expect to be consulted before anyone goes to Her Majesty.",
   "Count Neipperg is your kinsman by marriage. Whatever you do for him, the Grand Duke will remember — and so will those who blame him for Belgrade."
@@ -317,7 +332,13 @@
   ],
   "chronicle": "In the night of 19–20 October 1740 the Emperor Charles VI died at the Favorita. His daughter Maria Theresa, twenty-three, succeeds to the hereditary lands under the Pragmatic Sanction, with her husband Francis Stephen beside her. The treasury is nearly empty, the army is weak after the Turkish war, and pay is in arrears. Count Neipperg is held at Brünn for the Belgrade peace. Frederick II has been King in Prussia since May; his intentions are unknown in Vienna. Count Khevenhüller, at court in Vienna, waits for Her Majesty's commands on the morning of 21 October. Nothing has yet been decided.",
   "decisions": [],
-  "fortune_used": []
+  "fortune_used": [],
+  "purse": {
+   "income": "Pay as Vice-President of the Hofkriegsrat and as a general, irregular and in arrears like all pay; rents from the family's lands at Martinmas and Easter. Amounts not yet before him (campaign invention).",
+   "debts": "The household's running bills; nothing large known.",
+   "creditors": "Tradesmen of the city.",
+   "pledged": "Nothing known."
+  }
  },
  "sourcesAppendix": [
   {
