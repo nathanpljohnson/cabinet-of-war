@@ -9,8 +9,8 @@ Solo historical strategy game (Habsburg monarchy, October 1740) in a 3D browser 
 | Packet, reply format, merge rules, reply checks, fortune | `w3d/turn.js` (pure, tested) |
 | Page glue: review dialog, saves, campaign file, book log, urgent choices, trust, enemy temper | `w3d/campaign.js` |
 | Continuity checks (dead men writing, canon, standing) | `w3d/continuity.js` |
-| Letters, dispatch, notebook, book of the campaign | `w3d/shell.js` |
-| 3D place: people, scene tags, whereabouts groups, winter quarters / campaigning, the post-house on the road, fortress works | `w3d/region.js` |
+| Letters, dispatch, notebook, book of the campaign; a meeting in person (`state.scene`) arrives in the post on its day | `w3d/shell.js` |
+| 3D place: people, sights (world.sights), whereabouts groups, winter quarters / campaigning, the post-house on the road, fortress works | `w3d/region.js` |
 | Per-place look (river, church, landmark, `fortress`), bastion trace, where you are on a day of the turn, the days he keeps to his bed (`abedOn`) and who is at his bedside (`bedsideOn`) | `w3d/places.js` |
 | The Conference chamber, and the bedchamber where he lives the days he is abed (`createSickroom`; visitors are those whereabouts put with him, plus his household) | `w3d/interior.js` |
 | Table battle and the ride over the field afterwards (`setAftermath`); orbit camera; the clock rail (stops kept in `draft.battleTrack`) | `w3d/battle3d.js` |
@@ -47,7 +47,7 @@ Merge rules are in `turn.js` (`BY_ID`, `APPEND`, per-turn fields). Change the ru
 - Lighting: no scene may go near-black. After any lighting or weather change run `await __w3d.lightCheck()` in the console; every row must pass `LIGHT_FLOOR` (`w3d/main.js`). It covers every weather; check each season too (`__w3d.look({ season })` first).
 - The player sees no meters, scores or numbers about people; standing shows only in behaviour and letters.
 - Orders only, no conversations. In-world presentation; dark glass + paper letters; Baskerville / Iowan.
-- Never decide outcomes in code. Code supplies vocabulary (weather kinds, scene tags, tempers) and checks; Claude chooses.
+- Never decide outcomes in code. Code supplies vocabulary (weather kinds, sights, tempers) and checks; Claude chooses.
 - Test in a separate browser profile or a fresh port so the player's own save is not touched. Turn off the per-turn download first: `localStorage.setItem('cabinet-of-war:w3d-autosave','false')`.
 
 ## Saves

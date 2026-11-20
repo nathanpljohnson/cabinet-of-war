@@ -26,7 +26,7 @@ out.merge = { s1, notes };
 // reading pasted text
 out.parse = { fenced: parseReply('Here it is:\n```json\n{"a": 1, "b": [1,2,],}\n```\nGood luck'), truncated: parseReply('{"a": {"b": "c'), none: parseReply('no json here'), bad: parseReply('{"a": nope}') };
 // fixes on arrival
-const late = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [{ id: 'x', title: 'x', text: 'x', dated: '1740-10-22', arrives: '1740-12-01', source: 's', re: ['T0-1', 'T9-9'] }, { id: 'y', title: 'y', text: 'y', dated: '1740-10-22', source: 's', urgent: { prompt: 'p', options: [{ id: 'one', label: 'One' }] } }], world: { weather: { '1740-10-22': 'hail' }, scene: { vienna: ['alarm', 'dragons'] } }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } });
+const late = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [{ id: 'x', title: 'x', text: 'x', dated: '1740-10-22', arrives: '1740-12-01', source: 's', re: ['T0-1', 'T9-9'] }, { id: 'y', title: 'y', text: 'y', dated: '1740-10-22', source: 's', urgent: { prompt: 'p', options: [{ id: 'one', label: 'One' }] } }], world: { weather: { '1740-10-22': 'hail' }, sights: { vienna: ['alarm', 'dragons'] } }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } });
 const lc = checkReply(opening, late, { orderRefs: ['T0-1'] });
 out.fixes = { fixes: lc.fixes, warns: lc.warns, letter: late.changes.reports[0], urgent: late.changes.reports[1], world: late.changes.world };
 // the packet
@@ -139,4 +139,7 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
   const mk = JSON.parse(read('w3d/mocks/meeting.json')).changes, mr = reply(opening, mk); checkReply(opening, mr, {});
   out.sceneDate = { none: one(), inside: one('1740-10-24'), before: one('1740-10-01'), after: one('1740-11-30'), bad: one('Thursday'), mock: mergeTurn(opening, mr).next.scene.date, fmt: replyFormat(opening).includes('"date":"YYYY-MM-DD" (the day of the meeting)'),
     names: sceneLines(mk.scene, opening.cast).map(l => l.who) }; }
+// world.scene is the old name of world.sights: read as sights with a fix, and an old save's tags are cleared at the next turn
+{ const r = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], world: { scene: { vienna: ['alarm', 'dragons'] } }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } }), c = checkReply(opening, r, {});
+  out.sights = { world: r.changes.world, fixes: c.fixes.filter(f => /scene|sights/.test(f)).length, fmt: replyFormat(opening).includes('"sights":{"vienna"') && !replyFormat(opening).includes('"scene":{"vienna"') }; }
 console.log(JSON.stringify(out));

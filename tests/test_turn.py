@@ -48,7 +48,7 @@ def test_living_world(run):
     assert n["kessler"]["invented"] is True
     assert n["thread"]["status"] == "building"
     assert n["world"]["weather"]["1740-10-22"] == "rain"
-    assert "recruiting" in n["world"]["scene"]["vienna"]
+    assert "recruiting" in n["world"]["sights"]["vienna"]
     assert n["enemy"]["commander"] == "Schwerin"
     assert sum(1 for o in n["urgent"]["options"] if o.get("default")) == 1
 
@@ -92,7 +92,7 @@ def test_fixes_on_arrival(run):
     assert f["letter"]["re"] == ["T0-1"]
     assert "urgent" not in f["urgent"]
     assert "1740-10-22" not in f["world"]["weather"]
-    assert f["world"]["scene"]["vienna"] == ["alarm"]
+    assert f["world"]["sights"]["vienna"] == ["alarm"]
 
 
 def test_packet(run):
@@ -371,3 +371,8 @@ def test_scene_is_dated_within_the_turn(run):
     assert d["before"] == ["1740-10-21", 1] and d["after"] == ["1740-10-28", 1] and d["bad"] == ["1740-10-28", 1]
     assert d["mock"] == "1740-10-24" and d["fmt"]
     assert d["names"] == ["", "Johann Christoph Bartenstein", "You", "Johann Christoph Bartenstein"]
+
+
+def test_sights_renamed_from_world_scene(run):
+    s = run["sights"]
+    assert s["world"] == {"sights": {"vienna": ["alarm"]}} and s["fixes"] == 2 and s["fmt"]

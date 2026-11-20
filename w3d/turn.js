@@ -17,7 +17,7 @@ const appendPath = p => APPEND.includes(p) || p.startsWith('hidden.memory.');
 // per-turn things: when a reply leaves them out, they are cleared rather than carried into the next turn
 const PER_TURN_LISTS = ['reports', 'overheard', 'whereabouts', 'gazette'], PER_TURN_HIDDEN = ['decisions', 'fortune_used'], PER_TURN_NULL = ['decision', 'scene'];
 export const WEATHER = ['clear', 'haze', 'overcast', 'mist', 'frost', 'rain', 'thaw', 'snow', 'storm', 'thunder'];
-export const SCENE_TAGS = ['alarm', 'idle_soldiers', 'bread_queue', 'empty_market', 'recruiting', 'wagons_in', 'wounded', 'prisoners', 'celebration', 'smoke'];
+export const SIGHTS = ['alarm', 'idle_soldiers', 'bread_queue', 'empty_market', 'recruiting', 'wagons_in', 'wounded', 'prisoners', 'celebration', 'smoke'];
 export const THREAD_STATUS = ['dormant', 'building', 'triggered', 'resolved', 'abandoned'];
 export const TEMPERS = ['rash', 'bold', 'steady', 'cautious', 'timid'];
 export const TEMPO = ['winter quarters', 'campaigning', 'truce'];
@@ -86,7 +86,7 @@ export function mergeTurn(prev, reply) {
   for (const k of PER_TURN_NULL) if (!(k in ch)) next[k] = null;
   next.hidden = next.hidden || {};
   for (const k of PER_TURN_HIDDEN) if (!(isObj(ch.hidden) && k in ch.hidden)) next.hidden[k] = [];
-  if (next.world) for (const k of ['weather', 'scene']) if (!(isObj(ch.world) && k in ch.world)) delete next.world[k];
+  if (next.world) for (const k of ['weather', 'sights', 'scene']) if (!(isObj(ch.world) && k in ch.world)) delete next.world[k]; // world.scene: the old name of sights
   if (next.battleDemo) delete next.battleDemo._sim;
   next.span = { from: prev.date, at: (prev.player || {}).locationId || null };
   next.turn = reply.turn; next.parentTurn = reply.parentTurn; next.schemaVersion = prev.schemaVersion || 2;
@@ -137,8 +137,9 @@ export function checkReply(prev, reply, ctx = {}) {
   }
   const w = isObj(ch.world) ? ch.world : null;
   if (w && isObj(w.weather)) for (const [d, k] of Object.entries(w.weather)) if (!WEATHER.includes(k)) { fixes.push('Unknown weather "' + k + '" on ' + d + ' was left out.'); delete w.weather[d]; }
-  if (w && isObj(w.scene)) for (const [place, tags] of Object.entries(w.scene)) { if (!Array.isArray(tags)) { delete w.scene[place]; continue; }
-    const bad = tags.filter(t => !SCENE_TAGS.includes(t)); if (bad.length) { fixes.push('Unknown scene tags at ' + place + ' were left out: ' + bad.join(', ') + '.'); w.scene[place] = tags.filter(t => SCENE_TAGS.includes(t)); } }
+  if (w && w.scene !== undefined) { if (w.sights === undefined) w.sights = w.scene; delete w.scene; fixes.push('world.scene is now called world.sights; it was read as sights.'); }
+  if (w && isObj(w.sights)) for (const [place, tags] of Object.entries(w.sights)) { if (!Array.isArray(tags)) { delete w.sights[place]; continue; }
+    const bad = tags.filter(t => !SIGHTS.includes(t)); if (bad.length) { fixes.push('Unknown sights at ' + place + ' were left out: ' + bad.join(', ') + '.'); w.sights[place] = tags.filter(t => SIGHTS.includes(t)); } }
   // an audience: the format gives its shape; the page also keeps a revision and needs lists it can walk
   if (ch.scene != null && !isObj(ch.scene)) { fixes.push('The scene was not an object and was left out.'); delete ch.scene; }
   if (isObj(ch.scene)) { const sc = ch.scene;
@@ -316,7 +317,7 @@ Return ONE JSON object (a fenced json block is fine). The page reads only that o
 - These lists merge by id — give only new or changed items, each with its id and only the fields that changed; {"id": "…", "_remove": true} removes one: ${BY_ID.join(', ')}.
 - These lists only grow — give only the new entries: ${APPEND.join(', ')}, and each list in hidden.memory.
 - Every other list you give replaces the old one whole (reports, knowledge, remarks, hidden.standingOrders, refugees, decision.options …).
-- Cleared unless you give them again: reports, gazette, overheard, whereabouts, decision, scene, world.weather, world.scene, hidden.decisions, hidden.fortune_used.
+- Cleared unless you give them again: reports, gazette, overheard, whereabouts, decision, scene, world.weather, world.sights, hidden.decisions, hidden.fortune_used.
 - Never change: ${PLAYER_KEYS.join(', ')}.
 - Player-facing text holds only what the character could know. Keep ids stable.
 - Optional, give only when they apply: gazette (the Diarium issues of this turn), movements (forces on the move as he has heard of them, drawn on his map: {"id","label","side":"habsburg"|"prussia"|"bavaria"|"saxony"|"france","status":"confirmed"|"reported"|"rumour","reported":"YYYY-MM-DD","source","claim","pts":[[lat,lon],[lat,lon],…]} from where they were to where they are said to go; change one by id as news comes), weather (only the days it changes; each day keeps the last weather given), overheard, whereabouts, decision (only a real fork), scene (when he meets someone in person — an audience, a Council he sits in, a visitor at his bed — the meeting that mattered most this turn: {"id","title","date":"YYYY-MM-DD" (the day of the meeting),"setting","participants":[{"id","name"}],"lines":[{"who","text"}]; his part goes as narration (who "Narration") or in the words of his orders (who "player"),"commitments":["…"],"status":"closed"}).
@@ -332,7 +333,7 @@ Skeleton (fill it from the story; leave out what did not change):
  "player":{"locationId":"…","mode":"court","health":"well"},
  "reports":[{"id":"t${n}-1","from_id":"…","place":"…","dated":"…","arrives":"…","via":"courier","source":"…","category":"…","title":"…","text":"…","claim":"invention","re":["T${t0}-1"]}],
  "decision":{"id":"…","title":"…","options":[{"id":"…","by":"…","title":"…","objective":"…","reasoning":"…","risks":"…"}]},
- "world":{"tempo":"winter quarters","tempoAt":{"glogau":"campaigning"},"weather":{"YYYY-MM-DD":"overcast"},"scene":{"vienna":["recruiting"]}},
+ "world":{"tempo":"winter quarters","tempoAt":{"glogau":"campaigning"},"weather":{"YYYY-MM-DD":"overcast"},"sights":{"vienna":["recruiting"]}},
  "gazette":[{"date":"YYYY-MM-DD","items":[{"head":"…","text":"…"}]}],
  "household":{"purse":"what his steward would say of his money, in a sentence"},
  "whereabouts":[{"date":"…","place":"vienna","who":["…","…"],"doing":"…"}],

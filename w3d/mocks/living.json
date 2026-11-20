@@ -1,5 +1,5 @@
 {
- "note": "Test reply for the living world: weather by day, scene tags, whereabouts, an invented person, an urgent letter with two branches, an enemy commander and thread updates. Illustrative. Also: the Diarium, winter quarters and the steward on money.",
+ "note": "Test reply for the living world: weather by day, sights, whereabouts, an invented person, an urgent letter with two branches, an enemy commander and thread updates. Illustrative. Also: the Diarium, winter quarters and the steward on money.",
  "changes": {
   "date": "1740-10-26",
   "title": "A crowded week",
@@ -14,7 +14,7 @@
     "1740-10-24": "overcast",
     "1740-10-26": "snow"
    },
-   "scene": {
+   "sights": {
     "vienna": [
      "recruiting",
      "bread_queue",

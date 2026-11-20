@@ -24,9 +24,9 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   const wet = cues.wet || 0, mud = cues.thaw || cues.roads === 'heavy' || cues.roads === 'impassable', CTRY = COUNTRY[season];
   // on a journey you are at a post-house on the high road, with your household and the coach; no town, no camp, no one you know
   const road = !!cues.road;
-  // what someone walking through would notice (state.world.scene, chosen by the adjudicator from a fixed list)
+  // what someone walking through would notice (state.world.sights, chosen by the adjudicator from a fixed list)
   // winter quarters and campaigning look the part unless the adjudicator described this place itself
-  const tags = new Set(road ? [] : cues.scene && cues.scene.length ? cues.scene : cues.tempo === 'winter quarters' ? ['idle_soldiers'] : cues.tempo === 'campaigning' ? ['wagons_in'] : []);
+  const tags = new Set(road ? [] : cues.sights && cues.sights.length ? cues.sights : cues.tempo === 'winter quarters' ? ['idle_soldiers'] : cues.tempo === 'campaigning' ? ['wagons_in'] : []);
   // each campaign location gets its own country: same plan, different seed, name and stucco; each road its own
   const key = road ? 'road:' + place.id + '>' + (cues.roadTo || '') : place.id, home = !road && place.id === 'vienna';
   const seed = [...key].reduce((a, c) => a * 31 + c.charCodeAt(0) | 0, 7), N = makeNoise(home ? 1740 : seed), rnd = rngFrom(home ? 1021 : seed ^ 0x5bd1), group = new THREE.Group();
@@ -354,7 +354,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   if (cues.refugees && !road) { const back = [...PP].reverse().map(([x, z], i) => [x + Math.sin(i) * 1.1, z + Math.cos(i * 1.3) * 1.1]); for (let i = 0; i < 7; i++) walkRoad(['labourer', 'woman', 'labourer', 'woman', 'burgher', 'woman', 'labourer'][i], back, .8 + rnd() * .3, i / 7); }
   if (cues.pay === 'unpaid' && !road) { const out = [[176, 40], [196, 52], [222, 66], [252, 84]]; for (let i = 0; i < 2; i++) walkRoad('infantry', out, 1.0, i / 2); }
   const drilling = !road && cues.pay !== 'unpaid' && cues.pay !== 'in arrears' && cues.tempo !== 'winter quarters';
-  // the scene tags: what the adjudicator says has changed about this place
+  // the sights: what the adjudicator says has changed about this place
   const at = (x, z, kind, ry, anim) => { const p = person(kind, x, z, ry, anim, pubY(x, z)); colliders.push({ c: [x, z, .45] }); return p; };
   if (tags.has('alarm')) { for (const [x, z] of [[-157, -17.5], [-157, -2.5], [-154, -12], [-154, -8]]) at(x, z, 'infantry', Math.PI / 2, 'Idle_Loop'); const g = person('infantry', PUB[0], PUB[1] - 6, 0, 'Walk_Formal_Loop', pubY(PUB[0], PUB[1])); g.patrol = { a: [PUB[0] - 14, PUB[1] - 6], b: [PUB[0] + 14, PUB[1] - 6], v: 1.2, ground: !town }; }
   if (tags.has('idle_soldiers')) [[-3, 5, 1], [-1.5, 6, 2.6], [0, 4.6, -2], [9, -3, .4], [10.5, -2, 3]].forEach(([dx, dz, r], i) => at(PUB[0] + dx, PUB[1] + dz, 'infantry', r, i % 2 ? 'Idle_Talking_Loop' : 'Idle_Loop'));
