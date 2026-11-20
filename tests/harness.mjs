@@ -1,6 +1,6 @@
 // Runs the reply pipeline (w3d/turn.js, w3d/continuity.js) on the opening state and the mock replies; prints JSON for pytest.
 import { readFileSync } from 'node:fs';
-import { parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue } from '../w3d/turn.js';
+import { replyFormat, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue } from '../w3d/turn.js';
 import { checkContinuity } from '../w3d/continuity.js';
 import { makeGround, groundKey } from '../w3d/ground.js';
 const root = new URL('../', import.meta.url), read = p => readFileSync(new URL(p, root), 'utf8');
@@ -65,4 +65,6 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
 }
 { const big = JSON.parse(JSON.stringify(opening)); big.turn = 9; big.hidden.canon = Array.from({ length: 60 }, (_, i) => 'fact ' + i + ' ' + 'x'.repeat(190)); big.hidden.memory = { a: ['1', '2', '3', '4', '5', '6'] };
   const lb = liveState(big); out.caps = { canon: lb.hidden.canon.length, chars: lb.hidden.canon.join('').length, last: lb.hidden.canon[lb.hidden.canon.length - 1].slice(0, 7), note: lb.hidden.canonNote || '', memory: lb.hidden.memory.a }; }
+{ const mv = reply(opening, { date: '1740-12-11', title: 't', briefing: 'b', reports: [], movements: [{ id: 'm1', label: 'Prussian regiments towards Crossen', side: 'prussia', status: 'heard', pts: [[52.52, 13.40], [52.05, 15.10]] }, { id: 'm2', label: 'bad', pts: [[52, 13]] }] });
+  const mc = checkReply(opening, mv, {}); out.moves = { ids: mv.changes.movements.map(m => m.id + ':' + m.status + ':' + m.reported), fixes: mc.fixes.filter(f => /Movement/.test(f)).length, fmt: replyFormat(opening).includes('"status":"confirmed"|"reported"|"rumour"') }; }
 console.log(JSON.stringify(out));

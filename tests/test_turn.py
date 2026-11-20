@@ -216,3 +216,8 @@ def test_packet_caps_canon_by_size_and_memory(run):
     assert 20 <= c["canon"] <= 26 and c["chars"] <= 5200 and c["last"] == "fact 59"
     assert "earlier entries are kept by the page" in c["note"]
     assert c["memory"] == ["4", "5", "6"]
+
+
+def test_movements_need_a_line_and_known_status(run):
+    m = run["moves"]
+    assert m["ids"] == ["m1:reported:1740-12-11"] and m["fixes"] == 2 and m["fmt"]
