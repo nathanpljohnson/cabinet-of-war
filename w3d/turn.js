@@ -217,15 +217,13 @@ const compactPlot = (p, live) => { const o = {}; for (const k of live ? ['id', '
 // the packet names the weekday: the adjudicator places Masses, Council days and the Diarium by it (Gregorian, as the Habsburg lands used)
 export const longDate = d => new Date(d + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 export const KEEP = { ledgerTurns: 3, canon: 40, dispatches: 12, memory: 5 };
-const GIST = 420; // characters of each letter's text the packet carries after the opening
 export function liveState(state) {
   const s = clone(state); for (const k of STATIC_KEYS) delete s[k];
   if (s.hidden) { delete s.hidden.world; delete s.hidden.threads; } // threads go as the index above the state
   delete s.record; delete s.span; // the seal goes above the state; the span is the page's
-  // the letters he is answering. The opening's were written by the page, so they go whole; later ones the adjudicator wrote,
-  // and go as an index with the gist (the figures he is acting on), so a fresh chat does not contradict them
-  const gist = t => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > GIST ? t.slice(0, t.lastIndexOf(' ', GIST)) + ' …' : t; };
-  s.reports = (s.reports || []).map(r => ({ id: r.id, from_id: r.from_id, dated: r.dated, title: r.title, ...(r.re ? { re: r.re } : {}), ...(state.turn ? { gist: gist(r.text) } : { text: r.text }) }));
+  // the letters he is answering go whole: they are what his orders respond to, and a fresh chat cannot remember them.
+  // (Gists of 260 and 420 characters cost the adjudicator promises, figures and the wording of resolutions; whole letters add ~2–3k.)
+  s.reports = (s.reports || []).map(r => ({ id: r.id, from_id: r.from_id, dated: r.dated, title: r.title, ...(r.re ? { re: r.re } : {}), text: r.text }));
   for (const k of ['gazette', 'whereabouts', 'overheard']) delete s[k];
   if (s.decision) s.decision = { id: s.decision.id, title: s.decision.title };
   if (s.scene && s.scene.status === 'closed') delete s.scene;
