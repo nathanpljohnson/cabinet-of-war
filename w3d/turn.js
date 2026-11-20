@@ -7,7 +7,7 @@ import { cleanGround, GROUNDS, GROUND_KINDS, VILLAGE_SIZES, FIELD } from './grou
 export const REPLY_SCHEMA = 3;
 // reference the adjudicator does not need to see or return every turn (kept in the page and the campaign file)
 export const STATIC_KEYS = ['labels', 'routes', 'routesNote', 'sources', 'sourcesAppendix', 'regionLabels', 'movementsNote', 'annotations', 'openingVersion'];
-// the player's own: a reply cannot change them
+// the player’s own: a reply cannot change them
 export const PLAYER_KEYS = ['trust', 'legacy', 'campaignId', 'record', 'span'];
 // lists merged by id: give only new or changed items (with only the changed fields); {"id": x, "_remove": true} removes one
 export const BY_ID = ['cast', 'locations', 'forces', 'fortresses', 'movements', 'hidden.threads', 'battleDemo.units', 'battleDemo.options'];
@@ -160,7 +160,7 @@ export function checkReply(prev, reply, ctx = {}) {
     const old = ((prev.hidden || {}).threads || []).find(x => x.id === (t && t.id));
     if (old && ['resolved', 'abandoned'].includes(old.status) && t.status && ['dormant', 'building'].includes(t.status) && !t.note) warns.push('Thread "' + (old.title || old.id) + '" was ' + old.status + ' and is open again without a note why.');
   }
-  if (ch.reports.some(r => r && r.battle) && !isObj(ch.battleDemo)) warns.push('A letter is marked as a battle account, but battleDemo was not set for that battle; the ground he sees will be the old one.');
+  if (ch.reports.some(r => r && r.battle) && !isObj(ch.battleDemo)) warns.push('A letter is marked as a battle account, but battleDemo was not set for that battle; the ground the player sees will be the old one.');
   // movements are drawn on his map: a line needs two points; side and status pick its colour and dash
   if (Array.isArray(ch.movements)) ch.movements = ch.movements.filter(m => { if (!isObj(m) || !m.id) return false; if (m._remove) return true;
     const known = ((prev.movements || []).find(x => x.id === m.id)), pts = m.pts || (known && known.pts);
@@ -170,12 +170,12 @@ export function checkReply(prev, reply, ctx = {}) {
     return true; });
   const route = ch.player && ch.player.route;
   if (Array.isArray(route)) ch.player.route = route.filter((s, i) => { const ok = isObj(s) && typeof s.date === 'string' && s.date >= prev.date && s.date <= date && (s.place === 'road' || locIds.has(s.place));
-    if (!ok) fixes.push('Stage ' + (i + 1) + ' of his route was left out (it needs a date within the turn and a location id or "road").'); return ok; });
+    if (!ok) fixes.push('Stage ' + (i + 1) + ' of the player’s route was left out (it needs a date within the turn and a location id or "road").'); return ok; });
   // in bed: the days he keeps to it ({from, to?} within or after the turn's start); health stays the word for how he is
   const ab = ch.player && ch.player.abed;
   if (ab != null) { const iso = d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
     if (!isObj(ab) || !iso(ab.from) || (ab.to != null && (!iso(ab.to) || ab.to < ab.from))) { fixes.push('player.abed needs {"from": a date, "to": a later date or none}; it was left out.'); delete ch.player.abed; }
-    else { if (ab.from < prev.date) ab.from = prev.date; if (ab.to === undefined && !['ill', 'gravely ill'].includes(ch.player.health || prev.player.health)) warns.push('player.abed has no end, but he is not ill: he leaves his bed at once. Give "to", or health "ill".'); } }
+    else { if (ab.from < prev.date) ab.from = prev.date; if (ab.to === undefined && !['ill', 'gravely ill'].includes(ch.player.health || prev.player.health)) warns.push('player.abed has no end, but the player is not ill: they leave their bed at once. Give "to", or health "ill".'); } }
   if (isObj(ch.battleDemo)) checkBattle(prev.battleDemo, ch.battleDemo, warns, fixes);
   const en = ch.battleDemo && ch.battleDemo.enemy; if (en && en.temper && !TEMPERS.includes(en.temper)) { fixes.push('Unknown enemy temper "' + en.temper + '" read as steady.'); en.temper = 'steady'; }
   for (const k of PLAYER_KEYS) if (k in ch && k !== 'campaignId') fixes.push('A change to ' + k + ' was ignored: it is yours to set.');
@@ -222,7 +222,7 @@ function checkBattle(old, bd, warns, fixes) {
     normalizeUnit(u); }
   const fresh = bd.id && (!old || bd.id !== old.id);
   if (fresh) { const miss = ['title', 'center', 'date', 'ground'].filter(k => !bd[k]); if (miss.length) warns.push('The new battle "' + bd.id + '" has no ' + miss.join(', ') + '.');
-    const sides = new Set((Array.isArray(bd.units) ? bd.units : []).map(u => u && u.side)); if (!sides.has('A') || !sides.has('B')) warns.push('The new battle "' + bd.id + '" needs units for both sides (A his, B the enemy); the field replaces the old one whole.'); }
+    const sides = new Set((Array.isArray(bd.units) ? bd.units : []).map(u => u && u.side)); if (!sides.has('A') || !sides.has('B')) warns.push('The new battle "' + bd.id + '" needs units for both sides (A the player’s, B the enemy); the field replaces the old one whole.'); }
   if ('ground' in bd) bd.ground = cleanGround(bd.ground, fixes, warns);
   if (Array.isArray(bd.units)) bd.units = bd.units.filter((u, i) => {
     if (!isObj(u) || typeof u.id !== 'string') { fixes.push('Unit ' + (i + 1) + ' had no id and was left out.'); return false; }
@@ -320,12 +320,12 @@ Return ONE JSON object (a fenced json block is fine). The page reads only that o
 - Cleared unless you give them again: reports, gazette, overheard, whereabouts, decision, scene, world.weather, world.sights, hidden.decisions, hidden.fortune_used.
 - Never change: ${PLAYER_KEYS.join(', ')}.
 - Player-facing text holds only what the character could know. Keep ids stable.
-- Optional, give only when they apply: gazette (the Diarium issues of this turn), movements (forces on the move as he has heard of them, drawn on his map: {"id","label","side":"habsburg"|"prussia"|"bavaria"|"saxony"|"france","status":"confirmed"|"reported"|"rumour","reported":"YYYY-MM-DD","source","claim","pts":[[lat,lon],[lat,lon],…]} from where they were to where they are said to go; change one by id as news comes), weather (only the days it changes; each day keeps the last weather given), overheard, whereabouts, decision (only a real fork), scene (when he meets someone in person — an audience, a Council he sits in, a visitor at his bed — the meeting that mattered most this turn: {"id","title","date":"YYYY-MM-DD" (the day of the meeting),"setting","participants":[{"id","name"}],"lines":[{"who","text"}]; his part goes as narration (who "Narration") or in the words of his orders (who "player"),"commitments":["…"],"status":"closed"}).
-- Illness: player.health says how he is at the end of the turn. player.abed {"from","to"} gives the days he keeps to his bed (leave out "to" if he is still abed); without it, "ill" or "gravely ill" keeps him abed the whole turn. While abed, those whereabouts put with him that day come to his bedside, with his household; anyone else is reached by a note. He cannot inspect, ride out or attend the Conference.
-- A journey: give player.locationId where he ends the turn, and player.route [{"date","place"}] (place a location id or "road") if he stops anywhere or arrives on a day other than the distance implies. Without a route he is on the road from the first day of the turn and arrives after the usual days for the distance.
-- A battle account (a report with "battle": true) needs battleDemo for that battle. The same battle (same id): move or remove its units by id. A new battle takes a new id and replaces the whole field: give id, title, place, center [lat, lon], date, ground and every unit of both sides ({"id","side":"A" his | "B" the enemy,"type":${Object.keys(TROOPS).map(k => '"' + k + '"').join('|')},"name","e","n","facing"}, metres east and north of center, within ±${FIELD.w / 2} and ±${FIELD.h / 2}; facing in degrees, 0 = north). For a battle outside this campaign, write an ordinary letter instead.
+- Optional, give only when they apply: gazette (the Diarium issues of this turn), movements (forces on the move as the player has heard of them, drawn on their map: {"id","label","side":"habsburg"|"prussia"|"bavaria"|"saxony"|"france","status":"confirmed"|"reported"|"rumour","reported":"YYYY-MM-DD","source","claim","pts":[[lat,lon],[lat,lon],…]} from where they were to where they are said to go; change one by id as news comes), weather (only the days it changes; each day keeps the last weather given), overheard, whereabouts, decision (only a real fork), scene (when the player meets someone in person — an audience, a Council they sit in, a visitor at their bed — the meeting that mattered most this turn: {"id","title","date":"YYYY-MM-DD" (the day of the meeting),"setting","participants":[{"id","name"}],"lines":[{"who","text"}]; the player’s part goes as narration (who "Narration") or in the words of their orders (who "player"),"commitments":["…"],"status":"closed"}).
+- Illness: player.health says how the player is at the end of the turn. player.abed {"from","to"} gives the days the player keeps to their bed (leave out "to" if they are still abed); without it, "ill" or "gravely ill" keeps them abed the whole turn. While abed, those whereabouts put with them that day come to their bedside, with their household; anyone else is reached by a note. They cannot inspect, ride out or attend the Conference.
+- A journey: give player.locationId where the player ends the turn, and player.route [{"date","place"}] (place a location id or "road") if they stop anywhere or arrive on a day other than the distance implies. Without a route they are on the road from the first day of the turn and arrives after the usual days for the distance.
+- A battle account (a report with "battle": true) needs battleDemo for that battle. The same battle (same id): move or remove its units by id. A new battle takes a new id and replaces the whole field: give id, title, place, center [lat, lon], date, ground and every unit of both sides ({"id","side":"A" the player’s | "B" the enemy,"type":${Object.keys(TROOPS).map(k => '"' + k + '"').join('|')},"name","e","n","facing"}, metres east and north of center, within ±${FIELD.w / 2} and ±${FIELD.h / 2}; facing in degrees, 0 = north). For a battle outside this campaign, write an ordinary letter instead.
 - battleDemo.ground is the field it is drawn on and the table battle is fought over: one of ${GROUNDS.join(', ')} (the library, real ground: no features needed), or for a field elsewhere {"kind": ${GROUND_KINDS.map(k => '"' + k + '"').join(' | ')}, "villages":[{"name","e","n","size": ${Object.keys(VILLAGE_SIZES).map(k => '"' + k + '"').join(' | ')}}], "woods":[{"name","e","n","w","d"}] (w, d its extent in metres east–west and north–south), "streams":[{"name","kind":"stream"|"river","path":[[e,n],…],"crossings":[[e,n]]}] (bridges and fords), "heights":[{"name","e","n","r","h"}] (radius and height in metres)}. The page lays that kind of country on the real relief at center; name the features the account mentions and put them where it says. Units stand in metres from center (e east, n north) on a field ${FIELD.w} m by ${FIELD.h} m. A unit's type is one of ${Object.keys(TROOPS).map(k => k + ' (' + TROOPS[k].word.toLowerCase() + ')').join(', ')}. Woods and villages slow troops and give cover; water stops them except at crossings.
-- A battle account may carry battleDemo.phases, the battle as his staff describe it, in order: [{"t": "07:30", "label": "…", "text": "what the staff report of this hour", "units": [{"id", "e", "n", "facing", "form": ${PHASE_FORMS.map(k => '"' + k + '"').join(' | ')}, "losses": ${LOSSES.map(k => '"' + k + '"').join(' | ')}}], "arrows": [{"side": "A" | "B", "kind": ${ARROW_KINDS.map(k => '"' + k + '"').join(' | ')}, "p": [[e, n], …]}]}]. battleDemo.units is where they stood before the first phase; a phase names only the formations that moved or changed, and losses run on from phase to phase. The packet carries only the phase index; give the whole list again when it changes. For a battle outside this campaign, write an ordinary letter instead.
+- A battle account may carry battleDemo.phases, the battle as the player’s staff describe it, in order: [{"t": "07:30", "label": "…", "text": "what the staff report of this hour", "units": [{"id", "e", "n", "facing", "form": ${PHASE_FORMS.map(k => '"' + k + '"').join(' | ')}, "losses": ${LOSSES.map(k => '"' + k + '"').join(' | ')}}], "arrows": [{"side": "A" | "B", "kind": ${ARROW_KINDS.map(k => '"' + k + '"').join(' | ')}, "p": [[e, n], …]}]}]. battleDemo.units is where they stood before the first phase; a phase names only the formations that moved or changed, and losses run on from phase to phase. The packet carries only the phase index; give the whole list again when it changes. For a battle outside this campaign, write an ordinary letter instead.
 
 Skeleton (fill it from the story; leave out what did not change):
 {"kind":"turn","schemaVersion":3,"campaignId":"${cid}","turn":${n},"parentTurn":${t0},"seal":"${seal}","changes":{
@@ -335,7 +335,7 @@ Skeleton (fill it from the story; leave out what did not change):
  "decision":{"id":"…","title":"…","options":[{"id":"…","by":"…","title":"…","objective":"…","reasoning":"…","risks":"…"}]},
  "world":{"tempo":"winter quarters","tempoAt":{"glogau":"campaigning"},"weather":{"YYYY-MM-DD":"overcast"},"sights":{"vienna":["recruiting"]}},
  "gazette":[{"date":"YYYY-MM-DD","items":[{"head":"…","text":"…"}]}],
- "household":{"purse":"what his steward would say of his money, in a sentence"},
+ "household":{"purse":"what the player’s steward would say of their money, in a sentence"},
  "whereabouts":[{"date":"…","place":"vienna","who":["…","…"],"doing":"…"}],
  "cast":[{"id":"…","place":"…"}],
  "remarks":["…"],
@@ -358,7 +358,7 @@ export const rulesVersion = ({ contract, almanac }) => fingerprint(contract.trim
 export const rulesFileName = v => 'cabinet-of-war-rules-' + v + '.md';
 export function rulesText({ contract, almanac }) {
   const v = rulesVersion({ contract, almanac });
-  return '# CABINET OF WAR — the rules (version ' + v + ')\n\nThe standing rules of the campaign: how to adjudicate, how the world reaches the player, the reply format, and the almanac\'s systems and stakes. Each turn\'s packet carries the rest (the state, his orders, the fortune, the threads and almanac entries in play) and names the rules version it expects.\n\n'
+  return '# CABINET OF WAR — the rules (version ' + v + ')\n\nThe standing rules of the campaign: how to adjudicate, how the world reaches the player, the reply format, and the almanac\'s systems and stakes. Each turn\'s packet carries the rest (the state, the player’s orders, the fortune, the threads and almanac entries in play) and names the rules version it expects.\n\n'
     + contract.trim() + '\n\n' + replyFormat(null) + '\n\n## Almanac: systems and stakes\n' + systemsText(almanac) + '\n';
 }
 export function buildPacket({ state, contract, orders, almanac, fortune, wake, trust, choices, endRequested, purse, waiting, rulesInProject }) {
@@ -370,18 +370,18 @@ export function buildPacket({ state, contract, orders, almanac, fortune, wake, t
   const tr = Object.entries(trust || {}), trusts = tr.filter(([, v]) => v === 'trust').map(([k]) => k), doubts = tr.filter(([, v]) => v === 'doubt').map(([k]) => k);
   const P = !!rulesInProject, rv = P ? rulesVersion({ contract, almanac }) : '';
   return '# CABINET OF WAR — turn ' + state.turn + ' → ' + (state.turn + 1) + ' · ' + longDate(state.date) + '\n\nAct as a historian and impartial adjudicator. '
-    + (P ? 'The rules are in this project\'s knowledge: the file ' + rulesFileName(rv) + ' (rules version ' + rv + '). Follow them. If the project has no rules file of version ' + rv + ', do not adjudicate: tell the player to download the current rules (Notebook → The record) and add them to the project. This packet carries the rest: the current state, his orders, this turn\'s fortune and the parts of the almanac now in play.'
-      : 'This packet is self-contained: the current state, his orders, this turn\'s fortune and the parts of the almanac now in play.\n\n' + contract.trim())
-    + '\n\n## When to wake him\n' + (wake || 'When there is news he must decide on.')
-    + (endRequested ? '\n\n## He ends his service\nHe asks to end his service here. End the campaign this turn: set "ended" and write the epilogue.' : '')
+    + (P ? 'The rules are in this project\'s knowledge: the file ' + rulesFileName(rv) + ' (rules version ' + rv + '). Follow them. If the project has no rules file of version ' + rv + ', do not adjudicate: tell the player to download the current rules (Notebook → The record) and add them to the project. This packet carries the rest: the current state, the player’s orders, this turn\'s fortune and the parts of the almanac now in play.'
+      : 'This packet is self-contained: the current state, the player’s orders, this turn\'s fortune and the parts of the almanac now in play.\n\n' + contract.trim())
+    + '\n\n## When to wake the player\n' + (wake || 'When there is news the player must decide on.')
+    + (endRequested ? '\n\n## The player ends their service\nThe player asks to end their service here. End the campaign this turn: set "ended" and write the epilogue.' : '')
     + '\n\n' + orders.trim()
-    + '\n\n## His judgement of sources\nTrusts: ' + (trusts.join('; ') || '(none marked)') + '\nDoubts: ' + (doubts.join('; ') || '(none marked)')
+    + '\n\n## The player’s judgement of sources\nTrusts: ' + (trusts.join('; ') || '(none marked)') + '\nDoubts: ' + (doubts.join('; ') || '(none marked)')
     + ((waiting || []).length ? '\n\n## Earlier orders with no answer yet\nA letter that answers one of these carries its reference in "re" like this turn\'s.\n' + waiting.map(o => '- [' + o.ref + '] ' + (o.line.length > 200 ? o.line.slice(0, 200) + ' …' : o.line)).join('\n') : '')
-    + '\n\n## Urgent letters he answered this turn\n' + ((choices || []).map(c => '- On “' + c.title + '” (' + c.id + '): he chose “' + c.label + '”' + (c.byDefault ? ' (the day passed without his answer; the default applied)' : '') + '.').join('\n') || '(none)')
-    + '\n\n## His own purse\n' + (purse && purse.length ? 'Orders he pays for himself: ' + purse.join(' | ') : '(nothing from his own purse this turn)')
+    + '\n\n## Urgent letters the player answered this turn\n' + ((choices || []).map(c => '- On “' + c.title + '” (' + c.id + '): the player chose “' + c.label + '”' + (c.byDefault ? ' (the day passed without their answer; the default applied)' : '') + '.').join('\n') || '(none)')
+    + '\n\n## The player’s own purse\n' + (purse && purse.length ? 'Orders the player pays for themselves: ' + purse.join(' | ') : '(nothing from the player’s own purse this turn)')
     + (volumeDue(state) ? '\n\n## A volume closes\nThis reply makes turn ' + (state.turn + 1) + '. Add one entry to hidden.volumes: {"n": ' + ((state.turn + 1) / 10) + ', "turns": "' + (state.turn - 8) + '–' + (state.turn + 1) + '", "title", "text"} — these ten turns, this reply\'s events included, in at most 200 words. Then write hidden.chronicle afresh as the opening of the next volume: how things stand now, who wants what, what is unresolved.' : '')
     + '\n\n## The seal\nThis packet\'s seal is ' + sealOf(state) + '. Copy it into the reply as "seal".' + ((state.record || {}).ironman ? ' The record is sealed (ironman): this turn cannot be replayed.' : '')
-    + '\n\n## Fortune for this turn\n' + (fortune || []).join(', ') + '\nUse in order for genuinely uncertain outcomes; low is bad for him and his side, high is good. Record each one you use in hidden.fortune_used; rolls left over are simply unused.'
+    + '\n\n## Fortune for this turn\n' + (fortune || []).join(', ') + '\nUse in order for genuinely uncertain outcomes; low is bad for the player and their side, high is good. Record each one you use in hidden.fortune_used; rolls left over are simply unused.'
     + (P ? '' : '\n\n## Almanac: systems and stakes\n' + systemsText(almanac))
     + (cal ? '\n\n## Almanac: calendar anchors in the next four months (reference, not script)\n' + cal : '')
     + '\n\n## Threads (hidden.threads)\n' + (index || '(none)')
