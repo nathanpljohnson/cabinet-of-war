@@ -67,21 +67,23 @@ export function place(geo, x, y, z, ry = 0, sx = 1, sy = sx, sz = sx, rx = 0, rz
 export const box = (w, h, d, c, x = 0, y = 0, z = 0, ry = 0) => place(tint(new THREE.BoxGeometry(w, h, d), c), x, y + h / 2, z, ry);
 
 export const clock = { t: 0 };
-const windUniform = { value: 0 };
+const windUniform = { value: 0 }, windAmp = { value: 1 };
 export function setWindTime(t) { windUniform.value = t; }
+// how hard the wind blows (1 the usual breeze): set from the day's weather; foliage and grass sway by it
+export function setWindStrength(k) { windAmp.value = k; }
 
 // sway foliage/grass in the vertex shader: amount grows with local height
 export function windMaterial(opts, amp = .1, freq = 1.6) {
   const m = new THREE.MeshStandardMaterial(Object.assign({ vertexColors: true, flatShading: true, roughness: .95, metalness: 0 }, opts));
   m.onBeforeCompile = sh => {
-    sh.uniforms.uWind = windUniform;
-    sh.vertexShader = 'uniform float uWind;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+    sh.uniforms.uWind = windUniform; sh.uniforms.uWindAmp = windAmp;
+    sh.vertexShader = 'uniform float uWind, uWindAmp;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
       #ifdef USE_INSTANCING
         vec3 ip = vec3(instanceMatrix[3]);
       #else
         vec3 ip = vec3(modelMatrix[3]);
       #endif
-      float hh = max(0., transformed.y);
+      float hh = max(0., transformed.y) * uWindAmp;
       transformed.x += sin(uWind*${freq.toFixed(2)} + ip.x*.13 + ip.z*.07) * ${amp.toFixed(3)} * hh;
       transformed.z += cos(uWind*${(freq * .8).toFixed(2)} + ip.x*.05 + ip.z*.11) * ${(amp * .6).toFixed(3)} * hh;`);
   };

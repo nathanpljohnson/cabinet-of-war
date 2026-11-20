@@ -1,0 +1,91 @@
+{
+ "grounds": [
+  {
+   "id": "mollwitz",
+   "title": "Mollwitz",
+   "place": "Mollwitz (Małujowice), 9 km west of Brieg, Silesia",
+   "center": [
+    50.845,
+    17.385
+   ],
+   "about": "open, almost level farmland between long street villages; a few small woods; streams and ditches"
+  },
+  {
+   "id": "brieg",
+   "title": "Brieg",
+   "place": "Brieg (Brzeg) on the Oder, Silesia: the fortress town and its approaches",
+   "center": [
+    50.858,
+    17.468
+   ],
+   "about": "fortress town on the south bank of the Oder; flat ground to the south and west; the river and its meadows to the north"
+  },
+  {
+   "id": "neisse",
+   "title": "Neisse",
+   "place": "Neisse (Nysa) on the Glatzer Neisse, Silesia: the fortress and the river",
+   "center": [
+    50.472,
+    17.333
+   ],
+   "about": "fortress town on the Neisse; river meadows; rising ground to the south and west"
+  },
+  {
+   "id": "glogau",
+   "title": "Glogau",
+   "place": "Glogau (Głogów) on the Oder, Lower Silesia: the fortress and the cathedral island",
+   "center": [
+    51.658,
+    16.086
+   ],
+   "about": "fortress town on the south bank of the Oder; marshy river meadows; flat ground to the south"
+  },
+  {
+   "id": "chotusitz",
+   "title": "Chotusitz",
+   "place": "Chotusitz (Chotusice), 5 km north of Czaslau (Čáslav), Bohemia",
+   "center": [
+    49.954,
+    15.405
+   ],
+   "about": "open, gently rolling Bohemian farmland round Chotusitz; Sehuschitz and its park to the north; brooks and ponds; Czaslau 5 km south, off the field"
+  },
+  {
+   "id": "prague",
+   "title": "Prague",
+   "place": "Prague (Praha): the walled city on both banks of the Vltava",
+   "center": [
+    50.083,
+    14.418
+   ],
+   "about": "a great walled city astride the Vltava; the castle hill and Petřín above the left bank; vineyards east of the New Town"
+  },
+  {
+   "id": "leuthen",
+   "title": "Leuthen",
+   "place": "Leuthen (Lutynia), 15 km west of Breslau, Silesia",
+   "center": [
+    51.127,
+    16.77
+   ],
+   "about": "low rolling farmland west of Breslau; long villages; low rises (Butterberg, Sophienberg) and small woods; ponds at Gohlau"
+  },
+  {
+   "id": "linz",
+   "title": "Linz",
+   "place": "Linz on the Danube, Upper Austria: the town, the bridge and Urfahr",
+   "center": [
+    48.302,
+    14.288
+   ],
+   "about": "walled town on the south bank of the Danube under the castle hill; wooded heights north of the river; flat ground south and east"
+  }
+ ],
+ "kinds": {
+  "open plain": "level farmland, a few copses",
+  "river crossing": "a river across the field along its lowest line, a village at the crossing",
+  "vineyards": "terraced vines on the sunny slopes",
+  "marsh": "wet meadow and reed in the low ground, a brook through it",
+  "wooded hills": "woods over the higher and steeper ground"
+ }
+}

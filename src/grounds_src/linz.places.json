@@ -1,0 +1,313 @@
+{
+"source": "Overture Maps Foundation, divisions, release 2026-10-21.0 (ODbL; includes OpenStreetMap data)",
+"points": [
+{
+"name": "Langholzfeld",
+"de": null,
+"class": "village",
+"lat": 48.24265,
+"lon": 14.24343
+},
+{
+"name": "Wagram",
+"de": null,
+"class": "village",
+"lat": 48.24323,
+"lon": 14.23113
+},
+{
+"name": "Doppl",
+"de": null,
+"class": "village",
+"lat": 48.2494,
+"lon": 14.25936
+},
+{
+"name": "Staudach",
+"de": null,
+"class": "hamlet",
+"lat": 48.25471,
+"lon": 14.23125
+},
+{
+"name": "Pasching",
+"de": null,
+"class": "village",
+"lat": 48.25765,
+"lon": 14.20442
+},
+{
+"name": "Felling",
+"de": null,
+"class": "hamlet",
+"lat": 48.25931,
+"lon": 14.24117
+},
+{
+"name": "Jetzing",
+"de": null,
+"class": "hamlet",
+"lat": 48.26273,
+"lon": 14.23027
+},
+{
+"name": "Reith",
+"de": null,
+"class": "village",
+"lat": 48.26518,
+"lon": 14.24297
+},
+{
+"name": "Hitzing",
+"de": null,
+"class": "hamlet",
+"lat": 48.2742,
+"lon": 14.19917
+},
+{
+"name": "Rufling",
+"de": null,
+"class": "village",
+"lat": 48.27824,
+"lon": 14.2168
+},
+{
+"name": "Leonding",
+"de": null,
+"class": "town",
+"lat": 48.27934,
+"lon": 14.24874
+},
+{
+"name": "Bergham",
+"de": null,
+"class": "hamlet",
+"lat": 48.28012,
+"lon": 14.23203
+},
+{
+"name": "Dörnbach",
+"de": null,
+"class": "hamlet",
+"lat": 48.28196,
+"lon": 14.20186
+},
+{
+"name": "Enzenwinkl",
+"de": null,
+"class": "village",
+"lat": 48.2829,
+"lon": 14.23983
+},
+{
+"name": "Steyregg Ost",
+"de": null,
+"class": "hamlet",
+"lat": 48.28447,
+"lon": 14.37578
+},
+{
+"name": "Steyregg",
+"de": null,
+"class": "town",
+"lat": 48.2858,
+"lon": 14.37216
+},
+{
+"name": "Alharting",
+"de": null,
+"class": "hamlet",
+"lat": 48.28624,
+"lon": 14.245
+},
+{
+"name": "Aichberg",
+"de": null,
+"class": "hamlet",
+"lat": 48.29257,
+"lon": 14.2408
+},
+{
+"name": "Berg",
+"de": null,
+"class": "hamlet",
+"lat": 48.29404,
+"lon": 14.24744
+},
+{
+"name": "Holzheim",
+"de": null,
+"class": "village",
+"lat": 48.29452,
+"lon": 14.2583
+},
+{
+"name": "Obernbergen",
+"de": null,
+"class": "hamlet",
+"lat": 48.29551,
+"lon": 14.35
+},
+{
+"name": "Windegg",
+"de": null,
+"class": "hamlet",
+"lat": 48.29602,
+"lon": 14.34289
+},
+{
+"name": "Friesenegg",
+"de": null,
+"class": "hamlet",
+"lat": 48.3026,
+"lon": 14.24506
+},
+{
+"name": "Linz",
+"de": "Linz",
+"class": "city",
+"lat": 48.3059,
+"lon": 14.2862
+},
+{
+"name": "Lachstatt",
+"de": null,
+"class": "hamlet",
+"lat": 48.31102,
+"lon": 14.37396
+},
+{
+"name": "Puchenau",
+"de": null,
+"class": "village",
+"lat": 48.31158,
+"lon": 14.24056
+},
+{
+"name": "Plesching",
+"de": "Plesching",
+"class": "village",
+"lat": 48.32169,
+"lon": 14.3409
+},
+{
+"name": "Am Pfenningberg",
+"de": null,
+"class": "hamlet",
+"lat": 48.32338,
+"lon": 14.36039
+},
+{
+"name": "Außertreffling",
+"de": null,
+"class": "hamlet",
+"lat": 48.3338,
+"lon": 14.3419
+},
+{
+"name": "Mittertreffling",
+"de": null,
+"class": "village",
+"lat": 48.33802,
+"lon": 14.3651
+},
+{
+"name": "Dürnberg",
+"de": null,
+"class": "hamlet",
+"lat": 48.3382,
+"lon": 14.20798
+},
+{
+"name": "Großamberg",
+"de": null,
+"class": "hamlet",
+"lat": 48.33947,
+"lon": 14.23585
+},
+{
+"name": "Zinngießing",
+"de": null,
+"class": "hamlet",
+"lat": 48.34521,
+"lon": 14.36912
+},
+{
+"name": "Altlichtenberg",
+"de": null,
+"class": "hamlet",
+"lat": 48.34818,
+"lon": 14.26166
+},
+{
+"name": "Katzgraben",
+"de": null,
+"class": "hamlet",
+"lat": 48.34857,
+"lon": 14.34182
+},
+{
+"name": "Schlagberg",
+"de": null,
+"class": "hamlet",
+"lat": 48.3494,
+"lon": 14.21805
+},
+{
+"name": "Oberkulm",
+"de": null,
+"class": "hamlet",
+"lat": 48.35522,
+"lon": 14.36794
+},
+{
+"name": "Haslach",
+"de": null,
+"class": "hamlet",
+"lat": 48.35736,
+"lon": 14.34589
+},
+{
+"name": "Niederkulm",
+"de": null,
+"class": "hamlet",
+"lat": 48.35822,
+"lon": 14.37506
+},
+{
+"name": "Trefflingersiedlung",
+"de": null,
+"class": "hamlet",
+"lat": 48.35884,
+"lon": 14.27671
+},
+{
+"name": "Lichtenberg",
+"de": null,
+"class": "village",
+"lat": 48.35999,
+"lon": 14.25765
+},
+{
+"name": "Amberg",
+"de": null,
+"class": "hamlet",
+"lat": 48.36002,
+"lon": 14.21497
+},
+{
+"name": "Neulichtenberg",
+"de": null,
+"class": "hamlet",
+"lat": 48.36167,
+"lon": 14.23999
+},
+{
+"name": "Kulm",
+"de": null,
+"class": "hamlet",
+"lat": 48.36179,
+"lon": 14.35832
+}
+]
+}
