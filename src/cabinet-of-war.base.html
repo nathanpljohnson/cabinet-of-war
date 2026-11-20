@@ -985,9 +985,10 @@ details{margin:6px 0}summary{cursor:pointer;font:600 10px var(--caps);letter-spa
  <div class="eyebrow tt">Measure &amp; notes</div>
  <div class="tgrid"><button class="btn small" id="tool-measure">Measure (m)</button><button class="btn small" id="tool-note">Note (n)</button><button class="btn small quiet" id="tool-clear">Clear</button></div>
  <div class="key" id="measure-out"></div><div class="key" id="scale-note"></div>
- <div class="eyebrow tt">Reach rings</div>
+ <div class="eyebrow tt">Marching rings</div>
  <div class="tgrid"><select id="reach-place" style="width:auto"></select><button class="btn small" id="reach-btn">Show</button></div>
- <div class="tgrid"><label><input type="checkbox" id="r-courier" checked> courier</label><label><input type="checkbox" id="r-foot" checked> foot</label><label><input type="checkbox" id="r-wagon"> wagons</label></div>
+ <div class="tgrid"><label><input type="checkbox" id="r-foot" checked> foot</label><label><input type="checkbox" id="r-wagon" checked> wagons</label></div>
+ <div class="key">1, 3 and 7 days on the march. For couriers, use the Courier reach map mode (R).</div>
  <div class="eyebrow tt">Overview</div><div id="minimap"></div>
  <div class="eyebrow tt">Comfort</div>
  <label><input type="checkbox" id="a-motion"> Reduce motion</label><label><input type="checkbox" id="a-contrast"> High-contrast labels</label><label><input type="checkbox" id="a-sound"> Ambient sound</label>
@@ -1521,8 +1522,10 @@ function initTools(){
     const k={'1':'europe','2':'theatre','3':'vienna','4':'prague','5':'battle'}[e.key];if(k)BOOK[k]();
     if(e.key==='m')setTool(toolMode==='measure'?null:'measure');
     if(e.key==='n')setTool(toolMode==='note'?null:'note')});
-  $('toggleT').onclick=()=>{const o=$('tools').classList.toggle('on');$('toggleT').setAttribute('aria-expanded',o);if(o)initMini()};
-  $('toggleY').onclick=()=>{const o=$('layers').classList.toggle('on');$('toggleY').setAttribute('aria-expanded',o)};
+  // one panel at a time: they open in the same place
+  const panel=(id,other)=>{const o=$(id).classList.toggle('on');if(o)$(other).classList.remove('on');$('toggleT').setAttribute('aria-expanded',$('tools').classList.contains('on'));$('toggleY').setAttribute('aria-expanded',$('layers').classList.contains('on'));if($('tools').classList.contains('on'))initMini();document.dispatchEvent(new Event('mappanels'))};
+  $('toggleT').onclick=()=>panel('tools','layers');
+  $('toggleY').onclick=()=>panel('layers','tools');
   // layers
   $('ly-places').onchange=e=>{placesOn=e.target.checked;syncPlaces()};
   $('ly-natural').onchange=e=>{e.target.checked?natLabels.addTo(map):map.removeLayer(natLabels)};
@@ -1561,7 +1564,7 @@ function drawMeasure(){measureLayer.clearLayers();if(!measurePts.length)return;
   const out=Math.round(km)+' km (road allowance +12%) — foot ≈ '+Math.max(.1,km/(KMD.foot*f)).toFixed(1)+' d · horse ≈ '+Math.max(.1,km/(KMD.horse*f)).toFixed(1)+' d · wagons ≈ '+Math.max(.1,km/(KMD.wagon*f)).toFixed(1)+' d · courier ≈ '+Math.max(.1,km/(KMD.courier*f)).toFixed(1)+' d';
   $('measure-out').textContent=out+' ('+seasonName+')';status(out)}
 function showReach(id){reachLayer.clearLayers();const l=state.locations.find(x=>x.id===id);if(!l)return;const f=season()*.8;
-  const arms=[['courier','#7fa6ee',$('r-courier').checked],['foot','#f3d27a',$('r-foot').checked],['wagon','#d98a5a',$('r-wagon').checked]];
+  const arms=[['foot','#f3d27a',$('r-foot').checked],['wagon','#d98a5a',$('r-wagon').checked]];
   for(const [a,col,on] of arms){if(!on)continue;for(const d of[1,3,7]){const r=KMD[a]*d*f*1000;if(r>1800000)continue;
     L.circle([l.lat,l.lon],{radius:r,color:col,weight:2,fill:false,dashArray:d===1?null:'8 6',opacity:.9,interactive:false}).addTo(reachLayer);
     L.marker(destPoint(l,r,a==='courier'?10:a==='foot'?100:190),{interactive:false,icon:L.divIcon({className:'',html:'<div class="mv-lbl">'+a+' · '+d+' d</div>',iconSize:[0,0]})}).addTo(reachLayer)}}
@@ -1617,7 +1620,7 @@ function renderPlace(){
   const lab=el('label',null,'meta');const cb=el('input',null,null,{type:'checkbox'});cb.checked=referenced.has(loc.id);
   cb.onchange=()=>{cb.checked?referenced.add(loc.id):referenced.delete(loc.id);saveDraft();renderOrders()};
   lab.append(cb,' Reference in my orders (does not move anyone)');c.append(lab);
-  const site=META.sites.find(x=>x.id===loc.id&&x.blocks);const rb=el('button','Reach rings','btn small quiet');rb.style.margin='8px 6px 0 0';rb.onclick=()=>{$('reach-place').value=loc.id;showReach(loc.id)};c.append(el('div',null),rb);if(site){const eb=el('button','Enter the town (3D)','btn small');eb.style.marginTop='8px';eb.onclick=()=>{map.setMaxZoom(18);map.flyTo([site.lat,site.lon],16,{duration:1.2})};c.append(eb)}
+  const site=META.sites.find(x=>x.id===loc.id&&x.blocks);const rb=el('button','Marching rings','btn small quiet');rb.style.margin='8px 6px 0 0';rb.onclick=()=>{$('reach-place').value=loc.id;showReach(loc.id)};c.append(el('div',null),rb);if(site){const eb=el('button','Enter the town (3D)','btn small');eb.style.marginTop='8px';eb.onclick=()=>{map.setMaxZoom(18);map.flyTo([site.lat,site.lon],16,{duration:1.2})};c.append(eb)}
   box.append(c);
 }
 function seal(name,cls){const s=el('span',(name||'?').trim().charAt(0).toUpperCase(),'mseal '+(cls||''));return s}

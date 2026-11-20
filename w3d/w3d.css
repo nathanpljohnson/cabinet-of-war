@@ -18,6 +18,9 @@
 /* the old desk chrome is replaced by the shell */
 body.w3d-on > header, body.w3d-on #left, body.w3d-on #right, body.w3d-on #case, body.w3d-on .skip{display:none!important}
 body.w3d-on:not(.w3d-map) #timeline{visibility:hidden}
+/* the map's tools and layers open in one place, clear of the bars at the foot of the map; sound is the game's own setting */
+body.w3d-on #tools,body.w3d-on #layers{left:14px;top:70px;max-height:calc(100vh - 250px)}
+body.w3d-on #tools label:has(#a-sound){display:none}
 
 /* the 3D canvas: hidden on the map; dims behind papers */
 #w3d{position:fixed;inset:0;z-index:8000;background:#121416;color:var(--bone);font-family:var(--read)}

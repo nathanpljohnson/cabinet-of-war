@@ -13,7 +13,7 @@ const PMODES=[
    icon:'<path d="M3 19h18M4 19 3 8l5 4 4-7 4 7 5-4-1 11"/>',ov:{routes:0,moves:0,forts:0}},
   {id:'terrain',key:'e',name:'Terrain',hint:'Relief, rivers and forests without political colour. Modern elevation, coast and forest data; ground detail around towns and the battlefield is illustrative.',
    icon:'<path d="M2 20 9 8l4 6 3-4 6 10z"/>',ov:{routes:0,moves:0,forts:0}},
-  {id:'reach',key:'r',name:'Courier reach',hint:'Days for a courier from your location: your staff’s estimate (same rule as the reach rings), not live knowledge.',
+  {id:'reach',key:'r',name:'Courier reach',hint:'Days for a courier from your location: your staff’s estimate (same rule as the marching rings), not live knowledge.',
    icon:'<path d="M6 3h12M6 21h12M7 3c0 5 10 6 10 9s-10 4-10 9M17 3c0 5-10 6-10 9s10 4 10 9"/>',ov:{routes:0,moves:0,forts:0}},
   {id:'trade',key:'t',name:'Trade',hint:'Roads, rivers and salt routes (placeholders until sourced).',
    icon:'<path d="M12 3v18M7 21h10M4 7h16M6 7l-3 7a3 3 0 0 0 6 0zM18 7l-3 7a3 3 0 0 0 6 0z"/>',ov:{routes:1,moves:0,forts:0}},
@@ -141,6 +141,11 @@ function pdxUI(){
   const bar=el('div',null,null,{id:'pdx-modes',role:'toolbar','aria-label':'Map modes'});
   for(const m of PMODES){const b=el('button',null,null,{type:'button','data-mode':m.id,'aria-pressed':'false','aria-label':m.name+' map mode ('+m.key.toUpperCase()+')',title:m.name+' ('+m.key.toUpperCase()+')'});
     b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true">'+m.icon+'</svg><kbd>'+m.key.toUpperCase()+'</kbd>';b.onclick=()=>pdxSetMode(m.id);bar.append(b)}
+  // the map's tools and layers open from here too, so they are found on the map itself
+  bar.append(el('span',null,'pdx-sep',{'aria-hidden':'true'}));
+  for(const [id,tog,name,icon] of [['tools','toggleT','Map tools','<path d="M12 3 6 21M12 3l6 18M8.2 15h7.6"/><circle cx="12" cy="3" r="1.2"/>'],['layers','toggleY','Map layers','<path d="m12 4 9 5-9 5-9-5z"/><path d="m3 14 9 5 9-5"/>']]){
+    const b=el('button',null,null,{type:'button','data-panel':id,'aria-pressed':'false','aria-label':name,title:name});b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true">'+icon+'</svg>';b.onclick=()=>$(tog).click();bar.append(b)}
+  document.addEventListener('mappanels',()=>bar.querySelectorAll('[data-panel]').forEach(b=>b.setAttribute('aria-pressed',$(b.dataset.panel).classList.contains('on'))));
   document.body.append(bar,el('div',null,null,{id:'pdx-legend','aria-live':'polite'}),el('div',null,null,{id:'pdx-tip',role:'tooltip'}));
   const dock=()=>{const r=$('right'),hid=r.classList.contains('hide')||innerWidth<=860;document.documentElement.style.setProperty('--pdx-r',(hid?14:r.offsetWidth+30)+'px')};
   new MutationObserver(dock).observe($('right'),{attributes:true,attributeFilter:['class']});addEventListener('resize',dock);dock();

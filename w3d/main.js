@@ -469,7 +469,13 @@ function syncCourierOnBoot() {
 }
 let pendingArrival = false, lastTurn = null;
 // the desk map follows the day walk: what has arrived by the day shown, and nothing later
-function redrawMapPost() { buildTimeline(); initMoves(); renderAll(); }
+function redrawMapPost() { buildTimeline(); initMoves(); renderAll(); mapSeason(); }
+// the map's season follows the day shown (another can still be picked to plan with, until the next day); marching rings start from where you are
+function mapSeason() {
+  const d = shell.today, m = +d.slice(5, 7), s = m === 12 || m <= 2 ? 'winter' : seasonOf(d), sel = $3('season'), rp = $3('reach-place');
+  if (sel) { for (const o of sel.options) o.textContent = o.value[0].toUpperCase() + o.value.slice(1) + (o.value === s ? ' (now)' : ''); if (sel.value !== s) { sel.value = s; sel.dispatchEvent(new Event('change')); } }
+  if (rp) { const here = travel.here(); rp.replaceChildren(...state.locations.map(l => new Option(l.name, l.id))); rp.value = state.locations.some(l => l.id === here) ? here : state.player.locationId; }
+}
 async function onNewTurn() {
   redrawMapPost(); // the desk's strip of dated events, movements and pins: drawn once at load, so redraw them for the new turn
   void shell.today; // the day walk starts on the turn's first day, before anything is built
