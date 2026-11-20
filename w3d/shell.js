@@ -77,10 +77,11 @@ export function createShell({ act, onSeal, clock }) {
   const fromName = r => (cast(r.from_id) || {}).name || r.from || 'Unknown';
   const short = d => new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   const days = (a, b) => { const A = loc(a), B = loc(b); return A && B && a !== b ? letterDays(roadKm(A, B)) : 0; };
-  const RULERS = new Set(['maria_theresa', 'francis_stephen']);
+  // the Queen and the co-regent are petitioned, not ordered; a foreign sovereign is not written to by a minister at all
+  const RULERS = new Set(['maria_theresa', 'francis_stephen']), ruler = c => !!c && (RULERS.has(c.id) || /\b(King|Queen|Elector|Emperor|Empress|Tsar|Tsarina|Sultan)\b/.test(c.name || ''));
   const whereNow = c => placeOn(c, today());
   // your steward travels with you; on the road no one else is about
-  function presentHere(c) { if (c.id === 'steward') return !c.dead; return !travel.onRoad() && whereNow(c) === travel.here() && !RULERS.has(c.id) && c.id !== 'own-forces' && !c.dead; }
+  function presentHere(c) { if (c.id === 'steward') return !c.dead; return !travel.onRoad() && whereNow(c) === travel.here() && !ruler(c) && c.id !== 'own-forces' && !c.dead; }
 
   /* ---------- the desk's own content, moved in ---------- */
   const place = $('place'); if (place) $('sh-card-body').append(place);
@@ -182,7 +183,7 @@ export function createShell({ act, onSeal, clock }) {
     if (BS.log.length || draft.battleResult) li('Table battle: ' + (draft.battleResult ? draft.battleResult.outcome : BS.log.length + ' phase(s) fought'));
     if (!ul.children.length) li('Nothing else — standing orders apply.');
     const to = $('sh-to'), was = to.value; to.replaceChildren(new Option('My staff (here)', 'staff'));
-    const people = (S.cast || []).filter(c => c.id !== 'own-forces' && !RULERS.has(c.id) && !c.dead);
+    const people = (S.cast || []).filter(c => c.id !== 'own-forces' && !ruler(c) && !c.dead);
     for (const c of people.filter(presentHere)) to.append(new Option(c.name + ' — here, in person', c.id));
     for (const c of people.filter(c => !presentHere(c))) to.append(new Option(c.name + ' — ' + locName(whereNow(c)) + ', by letter ~' + Math.max(1, days(here, whereNow(c))) + ' d', c.id));
     if (was) to.value = was;
@@ -354,7 +355,7 @@ export function createShell({ act, onSeal, clock }) {
   }
   function composeOn(r, acts) { // orders on a letter: to its writer (in person or by letter), or to your own staff
     const f = el('form', 'sh-compose'), to = el('select'), t = el('textarea'); t.rows = 3; t.placeholder = 'Your orders on this letter…';
-    const c = cast(r.from_id); if (c && !RULERS.has(c.id)) to.append(new Option(presentHere(c) ? 'To ' + c.name + ', in person' : 'To ' + c.name + ' at ' + locName(whereNow(c)) + ', by letter ~' + Math.max(1, days(travel.here(), whereNow(c))) + ' d', c.id));
+    const c = cast(r.from_id); if (c && !ruler(c)) to.append(new Option(presentHere(c) ? 'To ' + c.name + ', in person' : 'To ' + c.name + ' at ' + locName(whereNow(c)) + ', by letter ~' + Math.max(1, days(travel.here(), whereNow(c))) + ' d', c.id));
     to.append(new Option('To my staff', 'staff'));
     const go = el('button', 'sh-primary', 'Add to the dispatch'); f.append(to, t, go); acts.replaceChildren(f); t.focus();
     f.onsubmit = e => { e.preventDefault(); if (!t.value.trim()) return; orderTo(to.value, t.value.trim(), r.id); setActed(r.id, 'ordered'); act('toast:Added to the day’s dispatch.'); showLetters(r.id); };
