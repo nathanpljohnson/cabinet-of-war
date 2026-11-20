@@ -356,6 +356,8 @@ async function journey(to, pmode) {
     const km = to !== from ? roadKm(A, B) : 0;
     line = to !== from ? 'Journey: I leave ' + A.name + ' for ' + B.name + ' as soon as this dispatch is sealed, riding post with a small household — about ' + km + ' km by road, some ' + travelDays(km) + ' day' + (travelDays(km) > 1 ? 's' : '') + '.' + (pmode === 'field' ? ' There I join the army in camp.' : '') + ' Letters are to follow me on the road.'
       : pmode === 'field' ? 'I leave court and join the army in camp near ' + A.name + ' as soon as this dispatch is sealed.' : 'I leave the army and return to court at ' + A.name + ' as soon as this dispatch is sealed.';
+    // ill, he may still go; the adjudicator decides what the road does to him (code supplies the fact, not the outcome)
+    const sick = ['ill', 'gravely ill'].includes(state.player.health); if (sick) { line += ' I am ' + state.player.health + ' and go against my doctor’s advice.'; toast('You are ' + state.player.health + '. Your doctor would keep you in bed; the journey goes in your orders all the same.'); }
     shell.setItem({ id: 'journey', kind: 'journey', text: line }); travel.set({ turn: state.turn, to, mode: pmode, line });
   }
   refreshHud(); shell.refresh();
