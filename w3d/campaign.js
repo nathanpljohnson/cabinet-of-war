@@ -1,6 +1,6 @@
 /* The campaign's keeper: builds the packet for Claude, reads its reply, keeps the saves safe and the book of the campaign.
    The rules live in turn.js (pure) and contract.md (what Claude is told); this file joins them to the desk's page. */
-import { buildPacket, rulesText, rulesVersion, rulesFileName, parseReply, checkReply, mergeTurn, applyBranch, rollFortune, seedThreads, correctionRequest, resendRequest, TEMPERS, fingerprint, sealOf, nextLink, volumeDue } from './turn.js';
+import { buildPacket, rulesText, rulesVersion, rulesFileName, parseReply, checkReply, mergeTurn, applyBranch, rollFortune, seedThreads, correctionRequest, resendRequest, TEMPERS, fingerprint, sealOf, nextLink, volumeDue, sceneLines } from './turn.js';
 import { checkContinuity } from './continuity.js';
 
 const P = 'cabinet-of-war:', HIGH_KEY = P + 'w3d-highwater', BOOK_KEY = P + 'w3d-book', CHOICE_KEY = P + 'w3d-choices', SENT_KEY = P + 'w3d-sent', AUTO_KEY = P + 'w3d-autosave', RULES_KEY = P + 'w3d-rules-in-project';
@@ -108,7 +108,7 @@ function addToBook(prev, next) {
     letters: (prev.reports || []).map(r => ({ from: ((prev.cast || []).find(c => c.id === r.from_id) || {}).name || r.from || '', place: r.place, dated: r.dated, title: r.title, text: r.text, battle: !!r.battle, source: r.source || '' })),
     orders: (sent.orders || []).map(o => o.line || o), own: sent.own || '', choices: choicesNow().map(c => c.title + ': ' + c.label),
     course: (() => { const o = prev.decision && typeof draft !== 'undefined' && (prev.decision.options || []).find(x => x.id === draft.option); return o ? o.title : ''; })(),
-    audience: prev.scene && (prev.scene.lines || []).length ? { title: prev.scene.title, setting: prev.scene.setting, lines: prev.scene.lines.map(l => ({ who: l.who === 'player' || l.who === 'You' ? 'You' : l.who === 'Narration' ? '' : (((prev.cast || []).find(c => c.id === l.who) || (prev.scene.participants || []).find(x => x.id === l.who) || {}).name || l.who), text: l.text })), commitments: (prev.scene.commitments || []).map(c => typeof c === 'string' ? c : c.text) } : null,
+    audience: prev.scene && (prev.scene.lines || []).length ? { title: prev.scene.title, setting: prev.scene.setting, lines: sceneLines(prev.scene, prev.cast), commitments: (prev.scene.commitments || []).map(c => typeof c === 'string' ? c : c.text) } : null,
     gazette: (prev.gazette || []).flatMap(g => (g.items || []).map(i => ({ date: g.date, head: i.head, text: i.text }))), purse: (prev.household || {}).purse || '',
     secret: { chronicle: (next.hidden || {}).chronicle || '', decisions: (next.hidden || {}).decisions || [], fortune: (next.hidden || {}).fortune_used || [], canon: newCanon,
       volumes: ((next.hidden || {}).volumes || []).filter(v => !((prev.hidden || {}).volumes || []).some(x => x.n === v.n)) } });

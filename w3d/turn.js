@@ -36,6 +36,8 @@ export function fingerprint(s) {
   h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
   return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
 }
+// a scene's lines with names: the player as "You", narration with no speaker, others by the cast or the scene's participants
+export const sceneLines = (scene, cast) => (scene.lines || []).map(l => ({ who: l.who === 'player' || l.who === 'You' ? 'You' : l.who === 'Narration' ? '' : (((cast || []).find(c => c.id === l.who) || (scene.participants || []).find(x => x.id === l.who) || {}).name || l.who), text: l.text }));
 export const sealOf = state => { const c = ((state.record || {}).chain || []); return c.length ? c[c.length - 1].h : fingerprint('origin:' + state.campaignId); };
 // the next link: the head of the chain and what this reply changed
 export const nextLink = (state, payload, turn, date) => ({ turn, date, h: fingerprint(sealOf(state) + ':' + fingerprint(JSON.stringify(payload))) });
@@ -142,6 +144,10 @@ export function checkReply(prev, reply, ctx = {}) {
   if (isObj(ch.scene)) { const sc = ch.scene;
     for (const k of ['lines', 'commitments', 'participants']) if (!Array.isArray(sc[k])) sc[k] = [];
     if (typeof sc.revision !== 'number') sc.revision = 1;
+    // the day of the meeting: it arrives in the post that day
+    if (sc.date == null) sc.date = ch.date || prev.date;
+    else if (!/^\d{4}-\d{2}-\d{2}$/.test(sc.date)) { fixes.push('The scene\'s date "' + sc.date + '" was not a date; it is put on the last day of the turn.'); sc.date = ch.date || prev.date; }
+    else if (sc.date < prev.date || (ch.date && sc.date > ch.date)) { const d = sc.date < prev.date ? prev.date : ch.date; fixes.push('The scene was dated ' + sc.date + ', outside this turn; it is put on ' + d + '.'); sc.date = d; }
     if (!sc.lines.length) warns.push('The scene "' + (sc.title || sc.id || '') + '" has no lines.'); }
   const h = isObj(ch.hidden) ? ch.hidden : {};
   if (ctx.fortune && ctx.fortune.length && !(Array.isArray(h.fortune_used) && h.fortune_used.length)) warns.push('The reply does not say how this turn’s fortune was used (hidden.fortune_used).');
@@ -313,7 +319,7 @@ Return ONE JSON object (a fenced json block is fine). The page reads only that o
 - Cleared unless you give them again: reports, gazette, overheard, whereabouts, decision, scene, world.weather, world.scene, hidden.decisions, hidden.fortune_used.
 - Never change: ${PLAYER_KEYS.join(', ')}.
 - Player-facing text holds only what the character could know. Keep ids stable.
-- Optional, give only when they apply: gazette (the Diarium issues of this turn), movements (forces on the move as he has heard of them, drawn on his map: {"id","label","side":"habsburg"|"prussia"|"bavaria"|"saxony"|"france","status":"confirmed"|"reported"|"rumour","reported":"YYYY-MM-DD","source","claim","pts":[[lat,lon],[lat,lon],…]} from where they were to where they are said to go; change one by id as news comes), weather (only the days it changes; each day keeps the last weather given), overheard, whereabouts, decision (only a real fork), scene (an audience he asked for: {"id","title","setting","participants":[{"id","name"}],"lines":[{"who","text"}]; his part goes as narration (who "Narration") or in the words of his orders (who "player"),"commitments":["…"],"status":"closed"}).
+- Optional, give only when they apply: gazette (the Diarium issues of this turn), movements (forces on the move as he has heard of them, drawn on his map: {"id","label","side":"habsburg"|"prussia"|"bavaria"|"saxony"|"france","status":"confirmed"|"reported"|"rumour","reported":"YYYY-MM-DD","source","claim","pts":[[lat,lon],[lat,lon],…]} from where they were to where they are said to go; change one by id as news comes), weather (only the days it changes; each day keeps the last weather given), overheard, whereabouts, decision (only a real fork), scene (when he meets someone in person — an audience, a Council he sits in, a visitor at his bed — the meeting that mattered most this turn: {"id","title","date":"YYYY-MM-DD" (the day of the meeting),"setting","participants":[{"id","name"}],"lines":[{"who","text"}]; his part goes as narration (who "Narration") or in the words of his orders (who "player"),"commitments":["…"],"status":"closed"}).
 - Illness: player.health says how he is at the end of the turn. player.abed {"from","to"} gives the days he keeps to his bed (leave out "to" if he is still abed); without it, "ill" or "gravely ill" keeps him abed the whole turn. While abed, those whereabouts put with him that day come to his bedside, with his household; anyone else is reached by a note. He cannot inspect, ride out or attend the Conference.
 - A journey: give player.locationId where he ends the turn, and player.route [{"date","place"}] (place a location id or "road") if he stops anywhere or arrives on a day other than the distance implies. Without a route he is on the road from the first day of the turn and arrives after the usual days for the distance.
 - A battle account (a report with "battle": true) needs battleDemo for that battle. The same battle (same id): move or remove its units by id. A new battle takes a new id and replaces the whole field: give id, title, place, center [lat, lon], date, ground and every unit of both sides ({"id","side":"A" his | "B" the enemy,"type":${Object.keys(TROOPS).map(k => '"' + k + '"').join('|')},"name","e","n","facing"}, metres east and north of center, within ±${FIELD.w / 2} and ±${FIELD.h / 2}; facing in degrees, 0 = north). For a battle outside this campaign, write an ordinary letter instead.

@@ -1,6 +1,6 @@
 // Runs the reply pipeline (w3d/turn.js, w3d/continuity.js) on the opening state and the mock replies; prints JSON for pytest.
 import { readFileSync } from 'node:fs';
-import { replyFormat, rulesText, rulesVersion, tableOf, TABLES, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS } from '../w3d/turn.js';
+import { replyFormat, rulesText, rulesVersion, tableOf, TABLES, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS, sceneLines } from '../w3d/turn.js';
 import { checkContinuity } from '../w3d/continuity.js';
 import { stampFeatures, FIELD } from '../w3d/groundspec.js';
 import { wheel, separation, findRoute, rasterize, normalizeUnit, TROOPS, bearing, crestBetween, slopePace } from '../w3d/march.js';
@@ -11,7 +11,7 @@ const html = read('cabinet-of-war.html'), m = html.match(/id="initial-state">([\
 const opening = JSON.parse(m[1].replace(/\\u003c/g, '<')), almanac = JSON.parse(read('w3d/almanac.json')), contract = read('w3d/contract.md');
 const out = { mocks: {} };
 const reply = (state, changes) => ({ kind: 'turn', schemaVersion: 3, campaignId: state.campaignId, turn: state.turn + 1, parentTurn: state.turn, seal: sealOf(state), changes: JSON.parse(JSON.stringify(changes)) });
-for (const name of ['answers', 'winter', 'dismissed', 'backwards', 'contradiction', 'living', 'ending', 'journey', 'battle', 'account', 'fever']) {
+for (const name of ['answers', 'winter', 'dismissed', 'backwards', 'contradiction', 'living', 'ending', 'journey', 'battle', 'account', 'fever', 'meeting']) {
   const mk = JSON.parse(read('w3d/mocks/' + name + '.json')), r = reply(opening, mk.changes);
   const chk = checkReply(opening, r, { orderRefs: ['T0-1', 'T0-2', 'T0-3'], fortune: rollFortune(opening.campaignId, 0), seal: sealOf(opening) });
   const res = { errors: chk.errors, warns: chk.warns, fixes: chk.fixes };
@@ -133,4 +133,10 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
   const n2 = mergeTurn(n1, r2).next, r3 = reply(n2, { date: '1740-11-04', title: 't', briefing: 'b', reports: [], hidden: h }), n3 = mergeTurn(n2, r3).next;
   const quiet = JSON.parse(JSON.stringify(n3)); quiet.world.tempoAt = { glogau: 'truce', neisse: 'truce' };
   out.tempoAt = { kept: r1.changes.world.tempoAt, fixes: c1.fixes.filter(f => f.includes('tempoAt')).length, merged: n2.world.tempoAt, lasts: n3.world.tempoAt, near: !!liveState(n3).battleDemo.units, notNear: !!liveState(quiet).battleDemo.units, fmt: replyFormat(opening).includes('"tempoAt"'), contract: contract.includes('**tempoAt**') }; }
+// a scene on its day: none given → the last day of the turn; outside the turn → clamped; a bad date → the last day
+{ const h = { chronicle: 'c', decisions: [{}], fortune_used: [{}] }, sc = date => ({ id: 's', title: 't', lines: [{ who: 'player', text: 'x' }], ...(date === undefined ? {} : { date }) });
+  const one = date => { const r = reply(opening, { date: '1740-10-28', title: 't', briefing: 'b', reports: [], scene: sc(date), hidden: h }), c = checkReply(opening, r, {}); return [r.changes.scene.date, c.fixes.filter(f => /scene/i.test(f)).length]; };
+  const mk = JSON.parse(read('w3d/mocks/meeting.json')).changes, mr = reply(opening, mk); checkReply(opening, mr, {});
+  out.sceneDate = { none: one(), inside: one('1740-10-24'), before: one('1740-10-01'), after: one('1740-11-30'), bad: one('Thursday'), mock: mergeTurn(opening, mr).next.scene.date, fmt: replyFormat(opening).includes('"date":"YYYY-MM-DD" (the day of the meeting)'),
+    names: sceneLines(mk.scene, opening.cast).map(l => l.who) }; }
 console.log(JSON.stringify(out));

@@ -14,7 +14,7 @@ def run():
     return json.loads(out.stdout)
 
 
-@pytest.mark.parametrize("name", ["answers", "winter", "dismissed", "living", "ending", "journey", "battle", "account", "fever"])
+@pytest.mark.parametrize("name", ["answers", "winter", "dismissed", "living", "ending", "journey", "battle", "account", "fever", "meeting"])
 def test_good_mocks_are_accepted(run, name):
     m = run["mocks"][name]
     assert m["errors"] == []
@@ -23,7 +23,7 @@ def test_good_mocks_are_accepted(run, name):
 
 
 def test_good_mocks_have_no_warnings(run):
-    for name in ["answers", "winter", "dismissed", "living", "ending", "journey", "battle", "account", "fever"]:
+    for name in ["answers", "winter", "dismissed", "living", "ending", "journey", "battle", "account", "fever", "meeting"]:
         assert run["mocks"][name]["warns"] == [], name
     assert run["mocks"]["account"]["fixes"] == []
 
@@ -363,3 +363,11 @@ def test_tempo_per_place(run):
     assert t["lasts"] == t["merged"]
     assert t["near"] and not t["notNear"]
     assert t["fmt"] and t["contract"]
+
+
+def test_scene_is_dated_within_the_turn(run):
+    d = run["sceneDate"]
+    assert d["none"] == ["1740-10-28", 0] and d["inside"] == ["1740-10-24", 0]
+    assert d["before"] == ["1740-10-21", 1] and d["after"] == ["1740-10-28", 1] and d["bad"] == ["1740-10-28", 1]
+    assert d["mock"] == "1740-10-24" and d["fmt"]
+    assert d["names"] == ["", "Johann Christoph Bartenstein", "You", "Johann Christoph Bartenstein"]
