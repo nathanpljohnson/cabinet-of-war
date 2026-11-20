@@ -142,9 +142,9 @@ function worldCues() {
   const ruler = here === 'vienna' && groupsOn('vienna', d).find(g => g.who.includes('maria_theresa') && g.who.length > 1);
   const men = (state.forces || []).filter(f => f.locationId === here).reduce((s, f) => s + (+f.men || 0), 0);
   return { season: forcedSeason || (m === 11 || m <= 1 || snowed ? 'winter' : 'open'), mourning: W.mourning ?? (state.date >= '1740-10-20' && state.date < '1741-10-20'), pay: W.pay || 'paid', roads: W.roads || 'good',
-    refugees: (W.refugees || []).includes(here), men: men || null, standing: (state.hidden || {}).standing || {}, dismissed: !!state.player.dismissed,
+    refugees: !road && (W.refugees || []).includes(here), men: road ? null : men || null, standing: (state.hidden || {}).standing || {}, dismissed: !!state.player.dismissed,
     overheard: road ? [] : (state.overheard || []).filter(o => !o.place || o.place === here), carried: carriedOrders(), rivalHere: !road && rivalHere(here),
-    tempo: W.tempo || null, scene: road ? [] : ((W.scene || {})[here]) || [], ownWeather: !!W.weather, snowed: !!snowed, present: presentToday(here).map(c => c.id), groups: road ? [] : groupsOn(here, d), castNames: names, road,
+    tempo: W.tempo || null, scene: road ? [] : ((W.scene || {})[here]) || [], ownWeather: !!W.weather, snowed: !!snowed, present: presentToday(here).map(c => c.id), groups: road ? [] : groupsOn(here, d), castNames: names, road, roadTo: road ? locName(state.player.locationId) : null,
     rulerWith: ruler ? 'Her Majesty is with ' + ruler.who.filter(id => id !== 'maria_theresa').map(id => (names[id] || id).split(',')[0]).join(' and ') + (ruler.doing ? ' — ' + ruler.doing : '') : null };
 }
 // the rival's courier leaves at dawn wherever the rival is lodged (state.hidden.rival, kept by the adjudicator)

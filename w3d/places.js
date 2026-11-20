@@ -13,6 +13,8 @@ export const PLACES = {
   munich: { river: 'the Isar', town: true, church: 'frauenkirche', landmark: 'residenz', lodging: 'The envoy’s house' },
   dresden: { river: 'the Elbe', town: true, church: 'dome', landmark: 'schloss', lodging: 'The envoy’s house' },
   berlin: { river: 'the Spree', town: true, church: 'spire', landmark: 'stadtschloss', lodging: 'The envoy’s house' },
+  glogau: { river: 'the Oder', town: true, church: 'brickHall', landmark: null, fortress: true, lodging: 'Your lodging' },
+  brunn: { river: 'the Schwarzawa', town: true, church: 'spire', landmark: 'spielberg', lodging: 'Your lodging' },
 };
 export const placeCfg = id => PLACES[id] || { river: 'the river', town: true, church: 'spire', landmark: null, lodging: 'Your lodging' };
 
@@ -115,6 +117,7 @@ export function church(kind) {
   else if (kind === 'frauenkirche') { P.push(box(26, 26, 60, 0xa85a42, 0, 0, -34)); P.push(place(prism(61, 27, 22, 0x8a4434), 0, 26, -34, Math.PI / 2)); for (const s of [-1, 1]) { P.push(...at([box(11, 70, 11, 0xa85a42)], s * 6.5, 0, 0)); P.push(...at(welscheHaube(11), s * 6.5, 70, 0)); } }
   else if (kind === 'dome') { P.push(place(tint(new THREE.CylinderGeometry(15, 16, 26, 16), 0xe6dcc6), 0, 13, -14)); P.push(place(tint(new THREE.SphereGeometry(15, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), 0xd8ccb2, .03), 0, 26, -14, 0, 1, 1.5, 1)); P.push(place(tint(new THREE.CylinderGeometry(3, 3.4, 12, 10), 0xe6dcc6), 0, 54, -14)); P.push(place(tint(new THREE.CylinderGeometry(0, 2.4, 6, 10), COPPER), 0, 63, -14)); for (const [x, z] of [[-14, -2], [14, -2], [-14, -26], [14, -26]]) P.push(...at([place(tint(new THREE.CylinderGeometry(2.6, 2.6, 30, 8), 0xe6dcc6), 0, 15, 0), place(tint(new THREE.CylinderGeometry(0, 2.8, 5, 8), COPPER), 0, 32.5, 0)], x, 0, z)); }
   else if (kind === 'townHall') { P.push(box(30, 14, 18, 0xe0d2b4, 0, 0, -10)); P.push(place(prism(30.6, 19, 10, ROOFS[1]), 0, 14, -10)); for (const x of [-12, -4, 4, 12]) P.push(place(prism(4, 3, 5, ROOFS[1]), x, 14, -1, Math.PI / 2)); P.push(...at(tower(7, 46, 0xe0d2b4), 0, 0, -12)); P.push(...at(onion(7, COPPER), 0, 46, -12)); }
+  else if (kind === 'brickHall') { const B = 0x9a5444; P.push(box(22, 20, 44, B, 0, 0, -26)); P.push(place(prism(45, 23, 16, ROOFS[3]), 0, 20, -26, Math.PI / 2)); for (let z = -44; z < -8; z += 8) for (const s of [-1, 1]) P.push(box(1.6, 18, 1.6, 0x8a4a3c, s * 11.4, 0, z)); P.push(box(11, 52, 11, B)); P.push(...at([spireCap(11, 18, COPPER)], 0, 52, 0)); }
   else { nave(34, 14, 15); P.push(...tower(7.5, 40, wall)); P.push(...at([spireCap(7.5, 26, COPPER)], 0, 40, 0)); }
   return merge(P);
 }
@@ -132,7 +135,41 @@ export function landmark(kind) {
   else if (kind === 'residenz') { P.push(place(block(130, 18, 3, 0xe8dcc0), 0, 0, 0)); P.push(place(block(90, 18, 3, 0xe8dcc0), -55, 0, -50, Math.PI / 2)); P.push(...at(tower(9, 44, 0xe8dcc0), 40, 0, -10)); P.push(...at(onion(9, COPPER), 40, 44, -10)); }
   else if (kind === 'schloss') { P.push(place(block(110, 18, 4, 0xe0d6c0, SLATE), 0, 0, 0)); P.push(...at(tower(12, 70, 0xe0d6c0), 0, 0, -16)); P.push(...at(onion(12, COPPER), 0, 70, -16)); P.push(...at([church('dome')], 120, 0, 40)); }
   else if (kind === 'stadtschloss') { P.push(place(block(190, 22, 4, 0xe8e0cc, SLATE), 0, 0, 0)); P.push(place(block(110, 22, 4, 0xe8e0cc, SLATE), -95, 0, -55, Math.PI / 2)); P.push(...at([church('spire')], 110, 0, 60)); }
+  else if (kind === 'spielberg') { // Brünn: the citadel on its hill above the town, walls round the top and the castle inside
+    P.push(place(tint(new THREE.CylinderGeometry(70, 110, 38, 14, 1), 0x7e8a4a, .06), 0, 19, 0));
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, b = a + Math.PI / 6; P.push(place(box(50, 9, 5, 0xa89c84), Math.sin(a) * 60, 38, Math.cos(a) * 60, a)); P.push(place(box(12, 10, 12, 0xa89c84), Math.sin(b) * 68, 38, Math.cos(b) * 68, b)); }
+    P.push(place(block(70, 16, 3, 0xe6dcc6), 0, 38, -10)); P.push(place(block(46, 14, 3, 0xe6dcc6), -30, 38, 20, Math.PI / 2)); P.push(...at(tower(9, 30, 0xe6dcc6), 26, 38, 12)); P.push(...at([spireCap(9, 10, ROOFS[0])], 26, 68, 12));
+  }
   return P.length ? merge(P) : null;
+}
+
+/* ---------- a bastioned trace round a rectangle: a bastion at each corner and more along the sides (illustrative, not a survey) ---------- */
+// F {x0,x1,z0,z1}; mids: for each side (north, east, south, west) the distances along it of further bastions. Returns the outline and the salient points.
+export function bastionTrace(F, mids) {
+  const C = [[F.x0, F.z0], [F.x1, F.z0], [F.x1, F.z1], [F.x0, F.z1]], N = [[0, -1], [1, 0], [0, 1], [-1, 0]], pts = [], salients = [];
+  const at = (p, a, s, n, k) => [p[0] + a[0] * s + n[0] * k, p[1] + a[1] * s + n[1] * k];
+  const dir = i => { const c = C[i], d = C[(i + 1) % 4], L = Math.hypot(d[0] - c[0], d[1] - c[1]); return [(d[0] - c[0]) / L, (d[1] - c[1]) / L]; };
+  for (let i = 0; i < 4; i++) {
+    const c = C[i], a = dir(i), ap = dir((i + 3) % 4), n = N[i], np = N[(i + 3) % 4], o = [(n[0] + np[0]) / Math.SQRT2, (n[1] + np[1]) / Math.SQRT2];
+    const sal = [c[0] + o[0] * 24, c[1] + o[1] * 24]; salients.push(sal);
+    pts.push(at(c, ap, -18, np, 0), at(c, ap, -18, np, 9), sal, at(c, a, 18, n, 9), at(c, a, 18, n, 0));
+    for (const p of mids[i] || []) { const s = at(c, a, p, n, 24); salients.push(s); pts.push(at(c, a, p - 10, n, 0), at(c, a, p - 13, n, 9), s, at(c, a, p + 13, n, 9), at(c, a, p + 10, n, 0)); }
+  }
+  return { pts, salients };
+}
+// signed distance to a closed outline: negative inside
+export function polyDist(pts) {
+  const S = pts.map((p, i) => [p, pts[(i + 1) % pts.length]]), xs = pts.map(p => p[0]), zs = pts.map(p => p[1]);
+  const bx0 = Math.min(...xs) - 100, bx1 = Math.max(...xs) + 100, bz0 = Math.min(...zs) - 100, bz1 = Math.max(...zs) + 100;
+  return (x, z) => {
+    if (x < bx0 || x > bx1 || z < bz0 || z > bz1) return 100;
+    let best = 1e9, inside = false;
+    for (const [[ax, az], [bx, bz]] of S) {
+      if ((az > z) !== (bz > z) && x < ax + (bx - ax) * (z - az) / (bz - az)) inside = !inside;
+      const dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz))), d = Math.hypot(x - ax - dx * t, z - az - dz * t); if (d < best) best = d;
+    }
+    return inside ? -best : best;
+  };
 }
 // Vienna from outside the walls: bastions, the roofs of the inner city, St Stephen's spire and the Karlskirche dome
 export function viennaSkyline(rnd) {

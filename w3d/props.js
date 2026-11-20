@@ -286,3 +286,70 @@ export function hayBale() { return merge([box(1.1, .5, .62, 0xd6b45c), box(1.12,
 export function sack(rnd) { return place(tint(jitterVerts(new THREE.IcosahedronGeometry(.32, 1), .06, rnd), 0xcbb88e, .08, rnd), 0, .26, 0, 0, 1, .8, .75); }
 export function logPile(n, L, rnd) { const G = []; for (let r = 0, k = 0; r < 3; r++) for (let i = 0; i < n - r; i++, k++) G.push(place(tint(new THREE.CylinderGeometry(.13, .13, L, 6), k % 3 ? 0x8a6440 : 0x76563a, .1, rnd), (i - (n - r - 1) / 2) * .27, .13 + r * .23, 0, 0, 1, 1, 1, Math.PI / 2)); return merge(G); }
 export function milestone() { return merge([box(.42, .7, .3, 0xd8cdb4), place(tint(new THREE.CylinderGeometry(.21, .21, .3, 8, 1, false, 0, Math.PI), 0xd8cdb4), 0, .7, 0, Math.PI / 2, 1, 1, 1, 0, Math.PI / 2), box(.3, .12, .02, 0x8a3a2a, 0, .42, .16)]); }
+
+/* ---------- on the road: a post-house where the horses are changed (same footprint as the manor) ---------- */
+const LIME = 0xe8dfcc, TILE = 0x7a5040;
+function stables(L, D) { // front faces +z: plank doors, small windows, a hay-loft dormer
+  const P = [], H = 4.2;
+  P.push(box(L, .5, D + .2, PLINTH)); P.push(box(L, H - .5, D, LIME, 0, .5, 0)); P.push(place(hipRoof(L, D, 4.5, TILE), 0, H, 0));
+  for (let x = -L / 2 + 3; x < L / 2 - 2; x += 5.5) { P.push(box(2.4, 2.9, .2, WOOD2, x, .5, D / 2 + .05)); P.push(box(2.2, .12, .24, WOOD, x, 1.9, D / 2 + .08)); }
+  for (let x = -L / 2 + 5.75; x < L / 2 - 3; x += 11) P.push(box(.9, .7, .2, 0x2a2420, x, 3.1, D / 2 + .05));
+  P.push(box(3, 2.2, 2, LIME, 0, H + .2, D / 2 - 1)); P.push(place(gable(2.4, 3.4, 1.4, TILE), 0, H + 2.4, D / 2 - 1, Math.PI / 2)); P.push(box(1.6, 1.4, .2, WOOD2, 0, H + .6, D / 2 + .05));
+  return merge(P);
+}
+function coachHouse(L, D) { // an open arcade on the front (+z) where the coaches stand
+  const P = [], H = 4.6;
+  P.push(box(L, H, .6, LIME, 0, 0, -D / 2 + .3), box(L - 1.2, H - .7, .05, 0x4a3e32, 0, 0, -D / 2 + .62)); for (const s of [-1, 1]) P.push(box(.6, H, D, LIME, s * (L / 2 - .3), 0, 0));
+  for (let k = 0; k <= 6; k++) P.push(box(.8, H, .8, LIME, -L / 2 + .4 + k * (L - .8) / 6, 0, D / 2 - .4));
+  P.push(box(L, .7, .9, TRIM, 0, H - .7, D / 2 - .4)); P.push(box(L - 1, .05, D - 1, 0x5a4c3a, 0, .02, 0));
+  P.push(place(hipRoof(L, D, 4.2, TILE), 0, H, 0));
+  return merge(P);
+}
+export function postHouse(wall = LIME) {
+  return merge([place(wing(52, 13, 2, { door: 7, wall, roof: TILE, roofH: 7 }), 0, 0, 0, Math.PI / 2),
+    place(coachHouse(34, 10), 6.5 + 17, 0, -21.5, 0), place(stables(34, 10), 6.5 + 17, 0, 21.5, Math.PI)]);
+}
+// a travelling berline: closed body slung between big rear and small front wheels, coachman's box, luggage; the pole points +z
+export function coach() {
+  const P = [], BODY = 0x2e2824, PANEL = 0x5e2620;
+  P.push(box(.18, .18, 4.2, WOOD, 0, .55, 0));
+  for (const s of [-1, 1]) { P.push(place(wheel(.55), s * .85, .55, 1.45, Math.PI / 2)); P.push(place(wheel(.78), s * .85, .78, -1.25, Math.PI / 2)); }
+  P.push(box(1.9, .1, .1, IRON, 0, .5, 1.45), box(1.9, .1, .1, IRON, 0, .73, -1.25));
+  P.push(box(1.36, .8, 2.1, PANEL, 0, 1.15, -.15), box(1.5, .8, 2.3, BODY, 0, 1.95, -.15), box(1.6, .1, 2.42, TRIM, 0, 2.75, -.15));
+  for (const s of [-1, 1]) { P.push(box(.04, .55, .7, GLASS, s * .76, 2.05, .45)); P.push(box(.04, .55, .5, GLASS, s * .76, 2.05, -.75)); P.push(box(.03, .9, .04, BRONZE, s * .77, 1.25, .05)); }
+  P.push(box(1.1, .35, .7, BODY, 0, 1.3, 1.55), box(1, .12, .55, PANEL, 0, 1.75, 1.6), box(.6, .5, .1, BODY, 0, 1.75, 1.3));
+  P.push(box(1.15, .45, 1.4, 0x5c3b22, 0, 2.85, -.45), box(1.2, .06, 1.44, IRON, 0, 3.1, -.45), box(1.2, .6, .55, 0x5c3b22, 0, 1.25, -1.75));
+  P.push(box(.09, .09, 2.6, WOOD, 0, .52, 3.2));
+  return merge(P);
+}
+// the yard well with its windlass, and a horse trough in front (+z)
+export function well() {
+  const P = [place(tint(new THREE.CylinderGeometry(.95, 1, .9, 12), PLINTH, .05), 0, .45, 0), place(tint(new THREE.CircleGeometry(.8, 12).rotateX(-Math.PI / 2), 0x2a3438), 0, .89, 0)];
+  for (const s of [-1, 1]) P.push(box(.16, 2.2, .16, WOOD, s * .85, .9, 0));
+  P.push(place(tint(new THREE.CylinderGeometry(.1, .1, 1.9, 6), WOOD), 0, 2.6, 0, 0, 1, 1, 1, 0, Math.PI / 2), place(gable(2.3, 1.4, .6, TILE), 0, 3.1, 0));
+  P.push(place(tint(new THREE.CylinderGeometry(.17, .14, .3, 8), WOOD2), .25, 1.6, 0));
+  P.push(box(2.6, .6, .7, 0x8a8070, 0, 0, 1.9), place(tint(new THREE.PlaneGeometry(2.3, .45).rotateX(-Math.PI / 2), 0x6f8a90), 0, .58, 1.9));
+  return merge(P);
+}
+// the sign of the post: a yellow board with the horn, hung from a post; readable from the road (±x)
+export function postSign() {
+  return merge([box(.14, 3.2, .14, WOOD), box(.1, .1, 1.1, WOOD, 0, 3, .5), box(.06, .8, 1, 0xd8b030, 0, 2.05, .6), box(.07, .82, .06, IRON, 0, 2.04, .1), box(.07, .82, .06, IRON, 0, 2.04, 1.1),
+    place(tint(new THREE.TorusGeometry(.22, .045, 6, 14, Math.PI * 1.6), 0x1a1612), 0, 2.45, .6, Math.PI / 2)]);
+}
+
+/* ---------- a fortress: the gate through the rampart and a sentry box on the bastion angles ---------- */
+// passage along local x, depth D through the rampart, opening `gap` wide; the outer front faces +x
+export function fortGate(D, gap) {
+  const P = [], g = gap / 2, S = 0xe2d6bc, H = 9.6, R = 7, fx = D / 2 - 1.5;
+  // the vaulted passage under the rampart, turfed over like the rampart itself
+  for (const s of [-1, 1]) P.push(box(D - 3, R, 5, 0x9a5444, -1.5, 0, s * (g + 2.5)));
+  P.push(box(D - 3, R - 5.6, gap, 0x9a5444, -1.5, 5.6, 0), box(D - 3, .15, gap + 10, 0x76863e, -1.5, R, 0));
+  // the portal on the outer face: piers, rusticated pilasters, cornice, a pediment with the arms
+  for (const s of [-1, 1]) { P.push(box(3, H, 5, S, fx, 0, s * (g + 2.5))); P.push(box(.5, H, 1.2, TRIM, D / 2 + .25, 0, s * (g + .6)), box(.5, H, 1.2, TRIM, D / 2 + .25, 0, s * (g + 4.4))); P.push(box(2.8, 5.2, .15, WOOD2, fx - 2.6, 0, s * (g - .1))); }
+  P.push(box(3, H - 5.6, gap, S, fx, 5.6, 0));
+  P.push(box(3.6, .6, gap + 10.4, TRIM, fx + .3, H, 0), place(gable(1.2, gap + 8, 2.6, TRIM), D / 2 - .1, H + .6, 0), box(.6, .9, .8, TRIM, D / 2 + .3, 4.9, 0));
+  P.push(place(tint(new THREE.CylinderGeometry(.8, .8, .3, 14), BRONZE), D / 2 + .55, H + 1.5, 0, 0, 1, 1, 1, 0, Math.PI / 2));
+  P.push(box(.4, .6, gap + 10, TRIM, -D / 2 - .2, R - .6, 0));
+  return merge(P);
+}
+export function sentryBox() { return merge([place(tint(new THREE.CylinderGeometry(.85, .6, 2.4, 10), 0xe2d6bc, .04), 0, 1.2, 0), box(.3, 1.1, .1, 0x2a2420, 0, 1.1, .8), place(tint(new THREE.ConeGeometry(1, 1.4, 10), ROOF, .04), 0, 3.1, 0)]); }

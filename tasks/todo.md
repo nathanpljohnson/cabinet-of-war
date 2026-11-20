@@ -37,3 +37,9 @@
 - [x] 11 Winter quarters / campaigning / truce
 - [x] 13 Ride over the field afterwards
 - [x] Tests (21) and browser check
+
+# Road and Glogau scenes (playtest follow-up)
+- [x] On the road: a post-house on the high road (inn, stables, coach-house, your coach with fresh horses, well, the post sign), no camp, town or cast; steward says when you ride on
+- [x] Glogau: bastioned trace with rampart, brick scarp, dry ditch, covered way, cleared glacis, gate through the east front, sentry boxes and guns on the salients; brick hall church
+- [x] Brünn: the Spielberg citadel on its hill
+- [x] Browser check (separate profile, muted, autosave off): road summer and winter, Glogau, Brünn, Vienna unchanged; lightCheck passes on the road and at Glogau; tests pass
