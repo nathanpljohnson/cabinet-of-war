@@ -22,7 +22,7 @@ const PRESETS = {
   medium: { scale: .8, shadows: 1024, terrain: 3, trees: .85, grass: 22000, post: true },
   high: { scale: 1, shadows: 2048, terrain: 2.5, trees: 1, grass: 40000, post: true },
 };
-let gfx = { preset: 'medium', scale: null, shadows: null, veg: null, fps: false, sound: true, auto: true };
+let gfx = { preset: 'medium', scale: null, shadows: null, veg: null, fps: false, sound: true, volume: 1, music: 1, auto: true };
 try { Object.assign(gfx, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch { }
 const Q = () => { const p = PRESETS[gfx.veg || gfx.preset]; return { ...p, post: PRESETS[gfx.preset].post, scale: gfx.scale ?? PRESETS[gfx.preset].scale, shadows: gfx.shadows ?? PRESETS[gfx.preset].shadows }; };
 const saveGfx = () => { try { localStorage.setItem(KEY, JSON.stringify(gfx)); } catch { } };
@@ -41,7 +41,9 @@ float.innerHTML = `<div class="w3d-toast" id="w3d-toast" role="status" aria-live
   <label>Shadows <select id="g-shadows"><option value="0">Off</option><option value="1024">Low</option><option value="2048">High</option><option value="4096">Ultra</option></select></label>
   <label>Vegetation <select id="g-veg"><option value="low">Sparse</option><option value="medium">Normal</option><option value="high">Dense</option></select></label>
   <label><input type="checkbox" id="g-auto"> Lower the resolution when it can’t keep up</label>
-  <label><input type="checkbox" id="g-sound"> Ambient sound</label>
+  <label><input type="checkbox" id="g-sound"> Sound</label>
+  <label>Volume <input type="range" id="g-volume" min="0" max="1" step="0.05"> <span id="g-volume-v"></span></label>
+  <label>Music <input type="range" id="g-music" min="0" max="1" step="0.05"> <span id="g-music-v"></span></label>
   <label><input type="checkbox" id="g-fps"> Show frame time</label>
   <div class="row"><button id="g-tools">Map tools</button><button id="g-layers">Map layers</button></div>
   <p class="w3d-note">Vegetation changes rebuild the scene.</p>
@@ -470,10 +472,10 @@ function syncCourierOnBoot() {
 let pendingArrival = false, lastTurn = null;
 // the desk map follows the day walk: what has arrived by the day shown, and nothing later
 function redrawMapPost() { buildTimeline(); initMoves(); renderAll(); mapSeason(); }
-// the map's season follows the day shown (another can still be picked to plan with, until the next day); marching rings start from where you are
+// the map's season is the season of the day shown, not a choice; marching rings start from where you are
 function mapSeason() {
   const d = shell.today, m = +d.slice(5, 7), s = m === 12 || m <= 2 ? 'winter' : seasonOf(d), sel = $3('season'), rp = $3('reach-place');
-  if (sel) { for (const o of sel.options) o.textContent = o.value[0].toUpperCase() + o.value.slice(1) + (o.value === s ? ' (now)' : ''); if (sel.value !== s) { sel.value = s; sel.dispatchEvent(new Event('change')); } }
+  if (sel) { for (const o of sel.options) o.textContent = o.value[0].toUpperCase() + o.value.slice(1) + (o.value === s ? ' (now)' : ''); if (sel.value !== s) { sel.value = s; sel.dispatchEvent(new Event('change')); } $3('season-now').textContent = s[0].toUpperCase() + s.slice(1) + ', by the date'; }
   if (rp) { const here = travel.here(); rp.replaceChildren(...state.locations.map(l => new Option(l.name, l.id))); rp.value = state.locations.some(l => l.id === here) ? here : state.player.locationId; }
 }
 async function onNewTurn() {
@@ -516,23 +518,27 @@ async function showSighting(id) {
 export const LIGHT_FLOOR = { mean: 60, nearBlackPct: 25 };
 let forcedWeather = null, forcedSeason = null;
 // rain and snow fall round the camera (the region's own snow is only for winters the adjudicator has not described)
-const precip = { kind: null, obj: null, streaks: null };
+const precip = { kind: null, obj: null, streaks: null }, SNOW_N = 2400, RAIN_N = 10000; // rain is dense, close round you; snow drifts sparser and wider
+const BOX = { rain: [20, 24], snow: [35, 34] }; // half-width and height of the box the drops fall in
 function setPrecip(kind) {
-  if (!precip.obj) { const n = 2400, g = new THREE.BufferGeometry(), pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) { pos[i * 3] = (Math.random() - .5) * 70; pos[i * 3 + 1] = Math.random() * 34; pos[i * 3 + 2] = (Math.random() - .5) * 70; }
+  if (!precip.obj) { const n = RAIN_N, g = new THREE.BufferGeometry(), pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) { pos[i * 3] = (Math.random() - .5) * 70; pos[i * 3 + 1] = Math.random() * 34; pos[i * 3 + 2] = (Math.random() - .5) * 70; }
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); precip.obj = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: .13, transparent: true, opacity: .85, depthWrite: false })); precip.obj.frustumCulled = false; precip.obj.visible = false; scene.add(precip.obj);
     // rain: short streaks, each a falling drop and the trail behind it, slanted by the wind
     const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 6), 3));
     precip.streaks = new THREE.LineSegments(sg, new THREE.LineBasicMaterial({ color: 0xc4ccd4, transparent: true, opacity: .45, depthWrite: false })); precip.streaks.frustumCulled = false; precip.streaks.visible = false; scene.add(precip.streaks); }
-  if (precip.kind === kind) return; precip.kind = kind; precip.obj.visible = kind === 'snow'; precip.streaks.visible = kind === 'rain';
+  if (precip.kind === kind) return; precip.kind = kind; precip.obj.visible = kind === 'snow'; precip.streaks.visible = kind === 'rain'; precip.obj.geometry.setDrawRange(0, SNOW_N);
+  if (BOX[kind]) { const [w, h] = BOX[kind], p = precip.obj.geometry.attributes.position; for (let i = 0; i < p.count; i++) p.setXYZ(i, (Math.random() - .5) * 2 * w, Math.random() * h, (Math.random() - .5) * 2 * w); p.needsUpdate = true; }
 }
 function stepPrecip(dt, t) {
   if (!precip.kind || !precip.obj) return; const p = precip.obj.geometry.attributes.position, rain = precip.kind === 'rain', v = rain ? 16 : 1.5;
   const drift = atmosLook.wind * (rain ? 6 : 1.6);
-  for (let i = 0; i < p.count; i++) { let y = p.getY(i) - dt * v, x = p.getX(i) + dt * drift + (rain ? 0 : Math.sin(t * .7 + i) * dt * .3); if (y < 0) y += 34; if (x > 35) x -= 70; p.setY(i, y); p.setX(i, x); }
+  const n = rain ? RAIN_N : SNOW_N, [W, H] = BOX[precip.kind];
+  for (let i = 0; i < n; i++) { let y = p.getY(i) - dt * v, x = p.getX(i) + dt * drift + (rain ? 0 : Math.sin(t * .7 + i) * dt * .3); if (y < 0) y += H; if (x > W) x -= 2 * W; p.setY(i, y); p.setX(i, x); }
   p.needsUpdate = true; const at = [Math.round(camera.position.x / 10) * 10, Math.max(0, camera.position.y - 14), Math.round(camera.position.z / 10) * 10];
   precip.obj.position.set(...at);
-  if (rain) { const s = precip.streaks.geometry.attributes.position, L = .055, sx = drift * L, sy = v * L;
-    for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i); s.setXYZ(i * 2, x, y, z); s.setXYZ(i * 2 + 1, x - sx, y + sy, z); }
+  if (rain) { const s = precip.streaks.geometry.attributes.position, L = .02, sx = drift * L, sy = v * L; // a streak of about 30 cm; none within 2.5 m of the eye, where it would cross the screen
+    const cx = camera.position.x - at[0], cy = camera.position.y - at[1], cz = camera.position.z - at[2];
+    for (let i = 0; i < n; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), near = (x - cx) ** 2 + (y - cy) ** 2 + (z - cz) ** 2 < 6.25; s.setXYZ(i * 2, x, y, z); s.setXYZ(i * 2 + 1, near ? x : x - sx, near ? y : y + sy, z); }
     s.needsUpdate = true; precip.streaks.position.set(...at); }
 }
 const NIGHT = { sun: 1.15, sunC: 0xb4c6ee, hemi: 1.05, hemiSky: 0x93a9da, hemiGround: 0x4a4458, top: 0x1c2846, hor: 0x56658c, fog: 0x2e3a52, near: 70, far: 760, exposure: 1.32, clouds: .28 };
@@ -596,7 +602,9 @@ addEventListener('keydown', e => {
   if (e.key === 'Escape' && !document.querySelector('dialog[open]')) {
     if (typing(e)) { e.target.blur(); }
     if (shell.closeTop()) { e.stopImmediatePropagation(); return; }
-    if (mode === 'map') { if (typeof toolMode !== 'undefined' && toolMode) return; e.stopImmediatePropagation(); goView(mapFrom === 'field' ? 'field' : 'room'); return; }
+    if (mode === 'map') { if (typeof toolMode !== 'undefined' && toolMode) return; e.stopImmediatePropagation();
+      if ($3('tools').classList.contains('on')) return $3('toggleT').click(); if ($3('layers').classList.contains('on')) return $3('toggleY').click(); // Esc hides an open map panel first
+      goView(mapFrom === 'field' ? 'field' : 'room'); return; }
     if (mode === 'sick') { e.stopImmediatePropagation(); return; }
     if (mode === 'hall') { e.stopImmediatePropagation(); goView('room'); return; }
   }
@@ -674,6 +682,10 @@ gp.veg.onchange = () => { gfx.veg = gp.veg.value; saveGfx(); rebuild(); };
 gp.auto.onchange = () => { gfx.auto = gp.auto.checked; dyn.k = 1; saveGfx(); applyGfx(); };
 gp.fps.onchange = () => { gfx.fps = gp.fps.checked; saveGfx(); syncGfxUi(); };
 gp.sound.onchange = () => { gfx.sound = gp.sound.checked; saveGfx(); sound.enabled = gfx.sound; };
+// volume and music, saved with the other settings; a slider moved up turns the sound on
+function syncSoundUi() { for (const k of ['volume', 'music']) { $3('g-' + k).value = gfx[k] ?? 1; $3('g-' + k + '-v').textContent = Math.round((gfx[k] ?? 1) * 100) + '%'; } }
+for (const k of ['volume', 'music']) $3('g-' + k).oninput = e => { gfx[k] = +e.target.value; saveGfx(); syncSoundUi(); sound.volume = gfx.volume ?? 1; sound.musicVolume = gfx.music ?? 1; if (gfx[k] > 0 && !gfx.sound) { gfx.sound = true; gp.sound.checked = true; sound.enabled = true; } };
+syncSoundUi();
 $3('g-tools').onclick = () => $3('toggleT').click(); $3('g-layers').onclick = () => $3('toggleY').click();
 async function rebuild() { showLoading('Replanting…'); await sleep(30); await buildWorld(); hideLoading(); }
 
@@ -786,7 +798,7 @@ installMarch(); // lines, columns, giving way and troop types for the desk's bat
   await buildWorld();
   applyGfx(); lastTurn = state.turn; hideLoading(); setView('room'); camera.position.set(pl.x + 6, 30, pl.z + 12); camera.lookAt(pl.x, 6, pl.z);
   tweenCamera(camera.position, camera.quaternion, 2.2, true);
-  sound.enabled = gfx.sound;
+  sound.volume = gfx.volume ?? 1; sound.musicVolume = gfx.music ?? 1; sound.enabled = gfx.sound;
   let opened = false; try { opened = !!localStorage.getItem(INTRO_KEY); } catch { }
   if (state.turn === 0 && !opened) opening();
   loop();

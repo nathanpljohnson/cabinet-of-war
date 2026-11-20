@@ -145,6 +145,7 @@ function pdxUI(){
   bar.append(el('span',null,'pdx-sep',{'aria-hidden':'true'}));
   for(const [id,tog,name,icon] of [['tools','toggleT','Map tools','<path d="M12 3 6 21M12 3l6 18M8.2 15h7.6"/><circle cx="12" cy="3" r="1.2"/>'],['layers','toggleY','Map layers','<path d="m12 4 9 5-9 5-9-5z"/><path d="m3 14 9 5 9-5"/>']]){
     const b=el('button',null,null,{type:'button','data-panel':id,'aria-pressed':'false','aria-label':name,title:name});b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true">'+icon+'</svg>';b.onclick=()=>$(tog).click();bar.append(b)}
+  for(const [id,tog] of [['tools','toggleT'],['layers','toggleY']]){const x=el('button',null,'pdx-close',{type:'button','aria-label':'Hide','title':'Hide (Esc)'});x.textContent='×';x.onclick=()=>$(tog).click();$(id).prepend(x)}
   document.addEventListener('mappanels',()=>bar.querySelectorAll('[data-panel]').forEach(b=>b.setAttribute('aria-pressed',$(b.dataset.panel).classList.contains('on'))));
   document.body.append(bar,el('div',null,null,{id:'pdx-legend','aria-live':'polite'}),el('div',null,null,{id:'pdx-tip',role:'tooltip'}));
   const dock=()=>{const r=$('right'),hid=r.classList.contains('hide')||innerWidth<=860;document.documentElement.style.setProperty('--pdx-r',(hid?14:r.offsetWidth+30)+'px')};

@@ -980,7 +980,8 @@ details{margin:6px 0}summary{cursor:pointer;font:600 10px var(--caps);letter-spa
  <div class="eyebrow tt">Lens</div>
  <div class="tgrid"><label><input type="radio" name="lens" value="political" checked> Political</label><label><input type="radio" name="lens" value="terrain"> Terrain</label><label><input type="radio" name="lens" value="logistics"> Logistics</label></div>
  <div class="eyebrow tt">Season</div>
- <select id="season"><option value="autumn" selected>Autumn (now)</option><option value="winter">Winter</option><option value="spring">Spring</option><option value="summer">Summer</option></select>
+ <div id="season-now" class="season-now"></div>
+ <select id="season" style="display:none" aria-hidden="true" tabindex="-1"><option value="autumn" selected>Autumn (now)</option><option value="winter">Winter</option><option value="spring">Spring</option><option value="summer">Summer</option></select>
  <div class="key" id="season-note"></div>
  <div class="eyebrow tt">Measure &amp; notes</div>
  <div class="tgrid"><button class="btn small" id="tool-measure">Measure (m)</button><button class="btn small" id="tool-note">Note (n)</button><button class="btn small quiet" id="tool-clear">Clear</button></div>

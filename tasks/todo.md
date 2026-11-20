@@ -150,4 +150,11 @@ Decisions (Nathan, 4 Nov): library + live fallback; replay accounts; atlas march
 - [x] Rules text says "the player" (they/their) instead of he/his: contract, orders section, packet
 - Not done, on purpose: merging hidden.dispatches into the ledger (the ledger is the player's own timeline; dispatches are hidden)
 - [x] The desk map knows only the post that has come by the day shown: the timeline strip (its "now" too), the town pins' last report, the town card, the desk's report list and the movement arrows follow the day walk; movements are redrawn each day and each turn (they were drawn once at load). Browser: day by day, and after a reload mid-turn
-- [x] Map tools cleanup: Map tools and Map layers buttons on the map-mode bar (lit while open); the two panels open one at a time in one place, clear of the bars at the foot of the map; the map's season follows the day shown ("(now)"), another can be picked to plan with until the next day; reach rings are now marching rings (foot, wagons) from where you are, couriers being the Courier reach map mode; the map's own ambient-sound switch is hidden in the 3D page (the game's setting rules)
+- [x] Map tools cleanup: Map tools and Map layers buttons on the map-mode bar (lit while open); the two panels open one at a time in one place, clear of the bars at the foot of the map; the map's season follows the day shown; reach rings are now marching rings (foot, wagons) from where you are, couriers being the Courier reach map mode; the map's own ambient-sound switch is hidden in the 3D page (the game's setting rules)
+
+# Map tools, season, rain, sound (20 Nov 2026, after the review)
+- [x] Map panels hide with their button, a × in the corner, or Esc (a second Esc stands up from the table); they never show away from the map
+- [x] The map's season is the season of the day, shown as text; no picker
+- [x] Rain: 10,000 drops in a 40 m box round you (was 2,400 in 70 m), streaks about 30 cm (was 90), none within 2.5 m of the eye
+- [x] Sound: Volume and Music sliders under Graphics & sound (100% = the old level); moving one up turns sound on
+- [x] Screenshots kept as JPEG in tasks/visual/review-2026-11-20 and tasks/visual/people-looks; .playwright-mcp/ ignored
