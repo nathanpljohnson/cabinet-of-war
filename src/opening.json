@@ -48,8 +48,10 @@
   "wallis": {
    "agenda": "Money and orders for the Silesian garrisons before the winter.",
    "voice": "A soldier's report: plain figures, few compliments.",
-   "office": "Commanding general in Silesia, at Glogau",
-   "place": "glogau"
+   "office": "Commandant at Glogau and senior officer in Silesia",
+   "place": "glogau",
+   "note": "Franz Wenzel Wallis, not Georg Olivier Wallis of Belgrade (imprisoned with Neipperg in 1739). His command over all Silesia rests on one source and is disputed; M. U. Browne is said to have been given the Silesian post in December 1740 (Blumberg, secondary).",
+   "claim": "disputed"
   },
   "francis_stephen": {
    "office": "Grand Duke of Tuscany; Her Majesty's husband"
