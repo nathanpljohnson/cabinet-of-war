@@ -67,4 +67,5 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
   const lb = liveState(big); out.caps = { canon: lb.hidden.canon.length, chars: lb.hidden.canon.join('').length, last: lb.hidden.canon[lb.hidden.canon.length - 1].slice(0, 7), note: lb.hidden.canonNote || '', memory: lb.hidden.memory.a }; }
 { const mv = reply(opening, { date: '1740-12-11', title: 't', briefing: 'b', reports: [], movements: [{ id: 'm1', label: 'Prussian regiments towards Crossen', side: 'prussia', status: 'heard', pts: [[52.52, 13.40], [52.05, 15.10]] }, { id: 'm2', label: 'bad', pts: [[52, 13]] }] });
   const mc = checkReply(opening, mv, {}); out.moves = { ids: mv.changes.movements.map(m => m.id + ':' + m.status + ':' + m.reported), fixes: mc.fixes.filter(f => /Movement/.test(f)).length, fmt: replyFormat(opening).includes('"status":"confirmed"|"reported"|"rumour"') }; }
+{ const camp = JSON.parse(JSON.stringify(opening)); camp.world = { ...(camp.world || {}), tempo: 'campaigning' }; const bd = liveState(camp).battleDemo; out.preview = { units: !!bd.units, note: /preview field/.test(bd.note || ''), title: bd.title || null }; }
 console.log(JSON.stringify(out));

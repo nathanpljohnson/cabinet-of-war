@@ -221,3 +221,8 @@ def test_packet_caps_canon_by_size_and_memory(run):
 def test_movements_need_a_line_and_known_status(run):
     m = run["moves"]
     assert m["ids"] == ["m1:reported:1740-12-11"] and m["fixes"] == 2 and m["fmt"]
+
+
+def test_preview_field_never_goes_as_the_live_battle(run):
+    # campaigning makes a battle possible, but the opening's Mollwitz preview must not be sent as if it were one
+    assert run["preview"] == {"units": False, "note": True, "title": None}
