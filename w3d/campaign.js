@@ -1,9 +1,9 @@
 /* The campaign's keeper: builds the packet for Claude, reads its reply, keeps the saves safe and the book of the campaign.
    The rules live in turn.js (pure) and contract.md (what Claude is told); this file joins them to the desk's page. */
-import { buildPacket, parseReply, checkReply, mergeTurn, applyBranch, rollFortune, seedThreads, correctionRequest, resendRequest, TEMPERS, fingerprint, sealOf, nextLink, volumeDue } from './turn.js';
+import { buildPacket, rulesText, rulesVersion, rulesFileName, parseReply, checkReply, mergeTurn, applyBranch, rollFortune, seedThreads, correctionRequest, resendRequest, TEMPERS, fingerprint, sealOf, nextLink, volumeDue } from './turn.js';
 import { checkContinuity } from './continuity.js';
 
-const P = 'cabinet-of-war:', HIGH_KEY = P + 'w3d-highwater', BOOK_KEY = P + 'w3d-book', CHOICE_KEY = P + 'w3d-choices', SENT_KEY = P + 'w3d-sent', AUTO_KEY = P + 'w3d-autosave';
+const P = 'cabinet-of-war:', HIGH_KEY = P + 'w3d-highwater', BOOK_KEY = P + 'w3d-book', CHOICE_KEY = P + 'w3d-choices', SENT_KEY = P + 'w3d-sent', AUTO_KEY = P + 'w3d-autosave', RULES_KEY = P + 'w3d-rules-in-project';
 const $ = id => document.getElementById(id);
 const store = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || 'null') ?? d; } catch { return d; } };
 const keep = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
@@ -40,7 +40,7 @@ const waiting = () => { const arch = Object.values(store(P + 'w3d-archive', {}))
 export const fortune = () => rollFortune(state.campaignId, state.turn, 8, (state.record || {}).salt || '');
 async function packet(orders) {
   const w = draft.w3d || {};
-  return buildPacket({ state, contract, orders, almanac, fortune: fortune(), wake: w.wake, trust: state.trust, choices: choicesNow(), waiting: waiting(), endRequested: !!w.end, purse: (w.items || []).filter(i => i.purse).map(i => i.text) });
+  return buildPacket({ state, contract, orders, almanac, fortune: fortune(), wake: w.wake, trust: state.trust, choices: choicesNow(), waiting: waiting(), endRequested: !!w.end, rulesInProject: store(RULES_KEY, false), purse: (w.items || []).filter(i => i.purse).map(i => i.text) });
 }
 
 /* ---------- reading the reply ---------- */
@@ -173,13 +173,15 @@ function installRecord() {
       + '<p class="hint">This browser holds about ' + kb + ' KB of the campaign (most browsers allow about 5,000 KB).</p>'
       + '<div class="eyebrow" style="margin-top:14px">The sealed record</div><p class="hint">Each accepted turn is linked to the one before; the packet carries the latest seal, and a reply must answer it. Current seal: <code>' + esc(sealOf(state)) + '</code> · ' + state.record.chain.length + ' turn' + (state.record.chain.length === 1 ? '' : 's') + ' sealed.</p>'
       + (state.record.ironman ? '<p class="hint"><b>Ironman.</b> This campaign cannot go back: older campaign files, altered files and whole saved states are refused.</p>' : '<div class="row"><button class="btn quiet" data-a="ironman">Seal the record — no going back</button></div>')
-      + '<div class="eyebrow" style="margin-top:14px">For a Claude Project</div><p class="hint">The packet already carries everything Claude needs. If you play in a Claude Project, you can add these as project knowledge.</p>'
-      + '<div class="row"><button class="btn quiet" data-a="almanac">Download the almanac</button><button class="btn quiet" data-a="contract">Download the contract</button></div>';
+      + '<div class="eyebrow" style="margin-top:14px">A fresh chat each turn</div><p class="hint">Every packet stands alone: the state, your orders and the parts of the almanac in play. Start a new chat for each turn; nothing is lost, and a long chat only fills Claude\u2019s memory with old turns.</p>'
+      + '<div class="eyebrow" style="margin-top:14px">For a Claude Project</div><p class="hint">The rules (how to judge, how the world reaches you, the reply format, the almanac\u2019s systems) do not change from turn to turn. Put them in a Claude Project once and each packet leaves them out: it is about half as long. When the game\u2019s rules change, the packet names a new version and Claude will ask you for the new file.</p>'
+      + '<label class="cw-auto"><input type="checkbox" data-a="rulesmode"' + (store(RULES_KEY, false) ? ' checked' : '') + '> My Claude Project holds the rules (version ' + esc(rulesVersion({ contract, almanac })) + ')</label>'
+      + '<div class="row"><button class="btn quiet" data-a="rules">Download the rules for the project</button><button class="btn quiet" data-a="almanac">Download the whole almanac</button></div>';
     const f = document.createElement('input'); f.type = 'file'; f.accept = '.json,application/json'; f.hidden = true; box.append(f);
     f.onchange = async () => { try { if (f.files[0]) await loadCampaignFile(f.files[0]); } catch (e) { toast(e.message); } f.value = ''; };
-    box.onclick = e => { const a = e.target.dataset && e.target.dataset.a; if (a === 'save') saveCampaignFile(); if (a === 'load') f.click(); if (a === 'almanac') dl('cabinet-of-war-almanac.json', JSON.stringify(almanac, null, 1), 'application/json'); if (a === 'contract') dl('cabinet-of-war-contract.md', contract, 'text/markdown');
+    box.onclick = e => { const a = e.target.dataset && e.target.dataset.a; if (a === 'save') saveCampaignFile(); if (a === 'load') f.click(); if (a === 'almanac') dl('cabinet-of-war-almanac.json', JSON.stringify(almanac, null, 1), 'application/json'); if (a === 'rules') dl(rulesFileName(rulesVersion({ contract, almanac })), rulesText({ contract, almanac }), 'text/markdown'); if (a === 'contract') dl('cabinet-of-war-contract.md', contract, 'text/markdown');
       if (a === 'ironman') { const b = e.target; if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Click again: from now on this campaign can never load an older turn'; return; } state.record.ironman = true; persistState(); markHigh(); toast('The record is sealed. What is done is done.'); window.renderRecord(); } };
-    box.onchange = e => { if (e.target.dataset.a === 'auto') keep(AUTO_KEY, e.target.checked); };
+    box.onchange = e => { if (e.target.dataset.a === 'auto') keep(AUTO_KEY, e.target.checked); if (e.target.dataset.a === 'rulesmode') { keep(RULES_KEY, e.target.checked); toast(e.target.checked ? 'Packets now leave out the rules. Add the rules file to your Claude Project.' : 'Packets carry the rules again.'); } };
     p.prepend(box); };
   window.renderRecord();
 }

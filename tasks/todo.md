@@ -124,3 +124,10 @@ Decisions (Nathan, 4 Nov): library + live fallback; replay accounts; atlas march
 - Village, town and hill names stand over the field in small capitals, fading with distance (under the formations' labels).
 - Not found: Glogau's Oder bridge (the river there is under the grid's water threshold where the road crosses); no bridge drawn rather than a guessed one.
 
+
+# Bedchamber and a leaner packet (20 Nov 2026)
+- [x] Illness: `player.abed {from, to?}` (or "ill"/"gravely ill" for the whole turn) puts the day in the bedchamber; visitors are those whereabouts put with him plus his household; orders to them are in person "at my bedside", anyone else by note; map and accounts open from bed; he cannot rise, ride out or attend the Conference
+- [x] Reply checks for abed; contract and reply format; mock `fever`; tests
+- [x] Browser: the fever turn (bed 25–28 Oct, visitors on the 26th and 27th, up on the 29th), map from bed and back, the order card at the bedside, lying flat when gravely ill; bedchamber light rows pass LIGHT_FLOOR (day and night, summer and winter)
+- [x] Packet: cast, locations and fortresses as tables (−24% on those lists)
+- [x] Packet: rules in a Claude Project (versioned rules file; packet about half as long); the page says to start a fresh chat each turn

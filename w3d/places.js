@@ -53,6 +53,27 @@ export function playerOn(day) {
   const arr = arrivalDay(); if (!arr) return P.locationId;
   return day >= arr ? P.locationId : 'road';
 }
+/* ---------- in bed: the adjudicator says when he keeps to his bed; the page shows him there ---------- */
+const SICK = ['ill', 'gravely ill'];
+// player.abed {from, to?} gives the days. Without `to` he stays abed while he is ill. Without an abed that reaches into
+// this turn, "ill" or "gravely ill" keeps him in bed every day of it. On the road there is no bed of his own.
+export function abedOn(day) {
+  const P = state.player, a = P.abed, from = (state.span && state.span.from) || state.date, sick = SICK.includes(P.health);
+  if (playerOn(day) === 'road') return false;
+  if (a && a.from && (a.to ? a.to >= from : sick)) return a.from <= day && (a.to ? day <= a.to : sick);
+  return sick;
+}
+// who is at his bedside on a day: those the adjudicator's whereabouts put where he lies, and his household who are there.
+// Everyone else in the town is out of reach but by a note. The ruler is reached through the chamberlain, as ever.
+const NOT_VISITORS = new Set(['own-forces', 'maria_theresa', 'francis_stephen']);
+export function bedsideOn(day, here) {
+  const hh = ['steward', 'secretary', (state.household || {}).spouse].filter(Boolean), ids = new Set();
+  for (const g of groupsOn(here, day)) for (const id of g.who) ids.add(id);
+  for (const c of state.cast || []) if (hh.includes(c.id) && placeOn(c, day) === here) ids.add(c.id);
+  return (state.cast || []).filter(c => ids.has(c.id) && !c.dead && !NOT_VISITORS.has(c.id));
+}
+// the mornings the bed changes: he takes to it, or rises
+export const abedDays = () => { const a = state.player.abed; if (!a || !a.from) return []; return [a.from, a.to ? addDays(a.to, 1) : null].filter(Boolean); };
 // the stages worth stopping on as the days pass: setting out and arriving
 export const routeDays = () => { const P = state.player, sp = state.span || {}, out = (P.route || []).map(s => s && s.date).filter(Boolean), a = arrivalDay(); if (a) out.push(a); if (sp.at && sp.at !== P.locationId && sp.from) out.push(sp.from); return out; };
 

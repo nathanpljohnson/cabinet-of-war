@@ -14,7 +14,7 @@ def run():
     return json.loads(out.stdout)
 
 
-@pytest.mark.parametrize("name", ["answers", "winter", "dismissed", "living", "ending", "journey", "battle", "account"])
+@pytest.mark.parametrize("name", ["answers", "winter", "dismissed", "living", "ending", "journey", "battle", "account", "fever"])
 def test_good_mocks_are_accepted(run, name):
     m = run["mocks"][name]
     assert m["errors"] == []
@@ -23,7 +23,7 @@ def test_good_mocks_are_accepted(run, name):
 
 
 def test_good_mocks_have_no_warnings(run):
-    for name in ["answers", "winter", "dismissed", "living", "ending", "journey", "battle", "account"]:
+    for name in ["answers", "winter", "dismissed", "living", "ending", "journey", "battle", "account", "fever"]:
         assert run["mocks"][name]["warns"] == [], name
     assert run["mocks"]["account"]["fixes"] == []
 
@@ -317,3 +317,24 @@ def test_towns_have_works_and_bridges(run):
     assert [t[1] for t in f["linz"]["towns"]] == ["walled"]  # Urfahr was an open market
     assert "Charles Bridge" in f["prague"]["named"] and "The Danube bridge" in f["linz"]["named"]
     assert f["mollwitz"]["towns"] == [] and f["brieg"]["bridges"] > 0
+
+
+def test_abed_is_checked(run):
+    a = run["abed"]
+    assert a["badFix"] and a["badGone"]
+    assert a["openWarn"] and a["sickWarns"] == 0 and a["clamped"] == "1740-10-21"
+    assert a["fmt"] and a["contract"]
+
+
+def test_fever_mock_keeps_him_abed(run):
+    n = run["mocks"]["fever"]
+    assert n["errors"] == [] and n["warns"] == []
+
+
+def test_packet_tables_and_rules_in_a_project(run):
+    l = run["lean"]
+    assert l["tablesInFull"] and l["notInJson"] == [] and l["everyCast"]
+    assert l["pipe"] == "id | dead | note\na |  | x / y\nb | true"
+    # with the rules in a Claude Project the packet names their version and leaves them out
+    assert l["names"] and l["noContract"] and l["header"] and l["lean"] < l["full"] * 0.6
+    assert l["rulesHave"] and l["rulesNoState"] and len(l["v"]) == 8
