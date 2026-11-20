@@ -6,7 +6,8 @@ Completed (21 Nov 2026, mock smoke test, no code changed):
   Separately from a clean save: ending accepted (turn 1), epilogue shown in the Book of the campaign (`.bk-epi`).
 - Mocks only pass in date order; out of order the checker refuses them ("Time runs backwards"). That is correct behaviour, not a bug.
 - Checked after (each from a clean save, walking days with `__w3d.shell.passDay()`): the urgent letter "The Breslau magazine" (living) arrives 22 Oct with its prompt and two choice buttons; choosing one shows "You answered: …". The scene "Bartenstein at the Chancellery" (meeting) stops the day walk on 24 Oct and renders on paper: setting, speaker by name, "You", no errors.
-- Not verified: the epilogue in the Notebook (searched the wrong title); whether a scene stays out of unanswered matters; the table battle (refused by design: "You are not with the army").
+- Also checked: the scene stays out of the Notebook's "Matters in hand"; the ending's epilogue shows in the Notebook as well as the Book.
+- Not verified: the table battle (refused by design: "You are not with the army"); forged/intercepted letters and trust in play.
 
 Next: run the full playtest. Start from a state in early spring 1741 (or play on from Dec 1740) with the player sent to the army in Silesia so the field view and the table battle open; drive turns with a fresh adjudicator agent per packet as in Nov.
 Test in order: urgent letter with branches → table battle (orders per phase, clock rail, aftermath ride) → forged/intercepted letters → trust/doubt → an ending.
