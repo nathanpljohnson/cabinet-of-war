@@ -43,3 +43,12 @@ Format: [turn] area · what · evidence
 - [7] CHANGED letters in packet: whole text (gists failed 3 adjudicators; +2-3k).
 - [7] SIZE · packet 46.9k → 57.3k → 65.2k → 73.2k → 81.0k → 82.5k → 85.4k → 89.0k (t0–t7). Still +3–4k/turn: canon entries lengthen (cap is a count, not a size), memory grows with each new person (11 now), cast grows, whole letters ~6–7k. Projected plateau ~95k chars (~24k tokens). Replies run 27–37k chars. One turn ≈ 35k tokens of chat context, so a 200k chat holds ~5 turns: players must start fresh chats often, which only works because the packet is now self-contained. Recommend: say so in the UI ("a fresh chat each turn is fine"), cap canon by characters, memory 5→3.
 - [7] FIXED canon capped at ~5,000 chars (and 40 entries); memory 3 per person; test added (31 tests).
+- [9] FIXED reply format defines movements (shape from base.html initMoves); checker drops lines with <2 points, normalises status; test added. Almanac +Frederick leaves Berlin 13 Dec.
+- [10] MILESTONE · turn 9 reply: Prussians crossed 16 Dec on the Crossen road (history held; divergence was only 'prussian_offer sincere'); Frederick left Berlin 13th; Browne sent to Silesia; volume 1 "The Empty Chest" written correctly; movements drawn (2); tempo -> campaigning. Player ill (roll 1), in bed a week.
+- [10] FIXED journey while ill: order line says so + toast (no outcome decided in code). Verified in browser.
+- [10] OPEN (design) · ill/gravely ill only slows walking; the player still walks the courtyard and meets people "in person" while the story has him in bed. Playtest 1 flagged the same. Needs a design choice (bedchamber scene? visitors only?).
+- [10] adjudicator feedback · tempo is one global value: Silesia campaigning while Vienna/the regiments are in winter quarters. Per-place tempo would fit the world.scene model.
+- [10] adjudicator feedback · "A volume closes" header says turn 9→10 and "This is turn 10": ambiguous whether the volume includes this turn; "begin the chronicle again" ambiguous.
+- [10] history gap · no almanac baseline for grain/bread prices, ration sizes, magazine costs, or the actual weather of Dec 1740 (which decides whether Glogau's ditch froze).
+- [10] FIXED volume prompt wording (includes this reply; chronicle restarts as a summary).
+- [10] FIXED (major) once tempo = campaigning, liveState sent the opening's Mollwitz PREVIEW deployment with units as the live field (playtest-1 'demo as fact' via a new door). Preview now sent as a note only; test added (33).
