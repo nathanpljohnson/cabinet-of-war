@@ -131,3 +131,13 @@ Decisions (Nathan, 4 Nov): library + live fallback; replay accounts; atlas march
 - [x] Browser: the fever turn (bed 25–28 Oct, visitors on the 26th and 27th, up on the 29th), map from bed and back, the order card at the bedside, lying flat when gravely ill; bedchamber light rows pass LIGHT_FLOOR (day and night, summer and winter)
 - [x] Packet: cast, locations and fortresses as tables (−24% on those lists)
 - [x] Packet: rules in a Claude Project (versioned rules file; packet about half as long); the page says to start a fresh chat each turn
+
+# Sky, seasons and weather
+- [x] Weather words frost, thaw, thunder (reply checks, contract, tests)
+- [x] Four seasons from the date: foliage (blossom in spring, thinning in late autumn), fields, grass; snow in midwinter or after it falls
+- [x] Sky: the sun where it stands for date, hour and place (day length 8 h in December to 16 h in June); stars; the moon in its phase
+- [x] Clouds by weather (few and bright to a grey deck to storm towers), drifting with the wind; darker at night
+- [x] Weather on the ground: rain darkens it and fills puddles, frost rimes it, a thaw leaves snow in patches and mud on the roads
+- [x] Wind sways trees and grass by the weather; rain falls in streaks slanted by it; thunderstorms flash, and thunder follows
+- [x] The battlefield takes the season and weather of its day
+- [x] lightCheck passes for every weather in all four seasons; frame rate unchanged against main

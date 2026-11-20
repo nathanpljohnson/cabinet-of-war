@@ -75,7 +75,7 @@ function grassTuft(seed, tipCol, baseCol, blades = 5, flower = null) {
   return g;
 }
 
-// palettes for October in lower Austria: some still green, many gold, some rust
+// palettes for October in lower Austria: some still green, many gold, some rust (other seasons: season.js)
 export const AUTUMN = [0x6f8f3a, 0x8a9a3c, 0xc9a23a, 0xd98a2b, 0xb8562a, 0x9fae4a, 0xe0b54a];
 export const FIRS = [0x2f5a3a, 0x355f37, 0x2a4f39, 0x3b6640];
 
@@ -128,7 +128,7 @@ export function buildRocks(list, seed = 5) {
   return group;
 }
 
-export function buildGrass(list, seed = 9) {
+export function buildGrass(list, seed = 9, tint = 0xffffff) { // tint: multiplied over the tufts' colours (the season)
   const M = getMats(), group = new THREE.Group(), dummy = new THREE.Object3D();
   const kinds = [
     grassTuft(seed, 0xd2cc78, 0x6b8a3a), grassTuft(seed + 1, 0xb8c46a, 0x5f7f34, 6),
@@ -137,7 +137,7 @@ export function buildGrass(list, seed = 9) {
   for (let k = 0; k < kinds.length; k++) {
     const sub = list.filter(p => p.k === k); if (!sub.length) continue;
     const im = new THREE.InstancedMesh(kinds[k], M.grass, sub.length);
-    sub.forEach((p, i) => { dummy.position.set(p.x, p.y, p.z); dummy.rotation.set(0, p.ry, 0); dummy.scale.setScalar(p.s); dummy.updateMatrix(); im.setMatrixAt(i, dummy.matrix); });
+    const tc = new THREE.Color(tint); sub.forEach((p, i) => { dummy.position.set(p.x, p.y, p.z); dummy.rotation.set(0, p.ry, 0); dummy.scale.setScalar(p.s); dummy.updateMatrix(); im.setMatrixAt(i, dummy.matrix); if (tint !== 0xffffff) im.setColorAt(i, tc); });
     im.receiveShadow = true; im.computeBoundingSphere(); group.add(im);
   }
   return group;

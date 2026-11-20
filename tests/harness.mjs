@@ -4,6 +4,8 @@ import { replyFormat, rulesText, rulesVersion, tableOf, TABLES, parseReply, chec
 import { checkContinuity } from '../w3d/continuity.js';
 import { stampFeatures, FIELD } from '../w3d/groundspec.js';
 import { wheel, separation, findRoute, rasterize, normalizeUnit, TROOPS, bearing, crestBetween, slopePace } from '../w3d/march.js';
+import { seasonOf, sunTimes, sunVector, moonPhase, LOOK, LEAVES, COUNTRY } from '../w3d/season.js';
+import { WEATHER } from '../w3d/turn.js';
 const root = new URL('../', import.meta.url), read = p => readFileSync(new URL(p, root), 'utf8');
 const html = read('cabinet-of-war.html'), m = html.match(/id="initial-state">([\s\S]*?)<\/script>/);
 const opening = JSON.parse(m[1].replace(/\\u003c/g, '<')), almanac = JSON.parse(read('w3d/almanac.json')), contract = read('w3d/contract.md');
@@ -116,4 +118,11 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
     header: lean.includes('"seal": "' + sealOf(opening) + '"'), rulesHave: ['## Adjudication principles', '## Reply format', '<campaignId>', '## Almanac: systems and stakes'].every(k => rules.includes(k)), rulesNoState: !rules.includes(opening.campaignId),
     tablesInFull: Object.keys(TABLES).every(k => full.includes('### ' + k)), notInJson: Object.keys(TABLES).filter(k => k in stateJson), everyCast: opening.cast.every(c => full.includes('\n' + c.id + ' | ')),
     pipe: tableOf([{ id: 'a', note: 'x | y' }, { id: 'b', dead: true }], ['id', 'dead', 'note']) }; }
+// the new weather words are accepted, unknown ones still left out; every weather has a look; the sun and moon by the calendar
+{ const rw = reply(opening, { date: '1740-10-25', title: 't', briefing: 'b', reports: [], world: { weather: { '1740-10-21': 'frost', '1740-10-22': 'thaw', '1740-10-23': 'thunder', '1740-10-24': 'hail' } } });
+  const cw = checkReply(opening, rw, {});
+  out.weather = { kept: Object.values(rw.changes.world.weather), fixes: cw.fixes.filter(f => f.includes('weather')), looks: WEATHER.filter(w => !LOOK[w]), lookKeys: [...new Set(Object.values(LOOK).map(l => ['sun', 'sunC', 'hemi', 'top', 'hor', 'fog', 'near', 'far', 'cover', 'shade', 'wind', 'wet', 'rime'].every(k => k in l)))] };
+  out.sky = { seasons: ['1740-10-21', '1741-01-15', '1741-04-10', '1741-07-01'].map(seasonOf), dec: +sunTimes('1740-12-21').length.toFixed(1), jun: +sunTimes('1741-06-21').length.toFixed(1),
+    noonDec: Math.round(sunVector('1740-12-21', 12).alt), noonJun: Math.round(sunVector('1741-06-21', 12).alt), morningEast: sunVector('1740-10-21', 9).x > 0, newMoon: +moonPhase('2024-04-08').toFixed(2), fullMoon: +moonPhase('2024-04-23').toFixed(2),
+    palettes: Object.keys(LEAVES).every(k => COUNTRY[k] && COUNTRY[k].grass.length === 3 && COUNTRY[k].fields.length === 4) }; }
 console.log(JSON.stringify(out));

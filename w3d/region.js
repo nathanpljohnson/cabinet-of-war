@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { makeNoise, rngFrom, smooth, lerp, polylineFromCurve, makeDistField, stdMat, tint, merge, place, box } from './lib.js';
 import { axis, buildTerrain } from './terrain.js';
-import { buildForest, buildRocks, buildGrass, AUTUMN, FIRS } from './nature.js';
+import { buildForest, buildRocks, buildGrass, FIRS } from './nature.js';
+import { leafColour, LEAVES, COUNTRY, BARE } from './season.js';
 import * as P from './props.js';
 import { makePerson, makeHorse, makeAnimal } from './actors.js';
 import { infantryFrames, FramePool, rider as riderGeo } from './figures.js';
@@ -12,11 +13,15 @@ import { placeCfg, townHouse, church, landmark, viennaSkyline, marianColumn, sta
 /* The explorable ground: headquarters courtyard → road over the river → a small camp.
    Illustrative countryside outside Vienna; not a reconstruction of a particular site. */
 export const HQ = { x: -200, z: -10 }, CAMP = { x: 178, z: 44, r: 50 };
+// grass tips by season, multiplied over the tufts' own colours (autumn as they were drawn)
+const GRASS_TINT = { spring: 0xc4f0a0, summer: 0xe8f0b8, autumn: 0xffffff, winter: 0xc8bca4 };
 const CY = { x0: -193.5, x1: -159.5, z0: -26.5, z1: 6.5 };
 
 export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', name: 'Vienna' }, people = [], mode = 'court', cues = {} }) {
   // cues: what the state says the world looks like — season, mourning, pay, roads, refugees, men in camp, standing, dismissal
-  const winter = cues.season === 'winter', SNOW = new THREE.Color(0xeef1f4);
+  // the season (spring, summer, autumn, winter: snow lies and the trees are bare) and the ground as today's weather left it
+  const season = LEAVES[cues.season] ? cues.season : 'autumn', winter = season === 'winter', SNOW = new THREE.Color(0xeef1f4), RIME = new THREE.Color(0xdfe6ee);
+  const wet = cues.wet || 0, mud = cues.thaw || cues.roads === 'heavy' || cues.roads === 'impassable', CTRY = COUNTRY[season];
   // on a journey you are at a post-house on the high road, with your household and the coach; no town, no camp, no one you know
   const road = !!cues.road;
   // what someone walking through would notice (state.world.scene, chosen by the adjudicator from a fixed list)
@@ -92,8 +97,8 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
     return x + e < 0 || x - e > 128 || z + e < 58 || z - e > 210 ? -1 : 0;
   };
   const C = new THREE.Color(), tmp = new THREE.Color();
-  const G1 = new THREE.Color(0x94a046), G2 = new THREE.Color(0xc4b25c), G3 = new THREE.Color(0x76863e), DIRT = new THREE.Color(0xa8805a), DIRT2 = new THREE.Color(0x8e6c4a), GRAVEL = new THREE.Color(0xc6b597), BANK = new THREE.Color(0xa1977c), MUD = new THREE.Color(0x735e44);
-  const FIELDS = [0xc6ad66, 0x7e5c3e, 0x8ea24c, 0xb59a58].map(c => new THREE.Color(c));
+  const G1 = new THREE.Color(CTRY.grass[0]), G2 = new THREE.Color(CTRY.grass[1]), G3 = new THREE.Color(CTRY.grass[2]), DIRT = new THREE.Color(0xa8805a), DIRT2 = new THREE.Color(0x8e6c4a), GRAVEL = new THREE.Color(0xc6b597), BANK = new THREE.Color(0xa1977c), MUD = new THREE.Color(0x735e44);
+  const FIELDS = CTRY.fields.map(c => new THREE.Color(c));
   const color = (x, z, h, out) => {
     const n = N.fbm(x / 38, z / 38, 3), f = N.fbm(x / 120 - 4, z / 120 + 2, 3);
     out.copy(G1).lerp(G2, smooth(-.15, .55, n)); if (f > .1) out.lerp(G3, smooth(.1, .4, f) * .7);
@@ -104,9 +109,11 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
     const dc = Math.hypot(x - CAMP.x, z - CAMP.z); if (!road && dc < CAMP.r) out.lerp(tmp.set(0x9d8c5c), (1 - smooth(CAMP.r * .5, CAMP.r, dc)) * (.45 + .3 * N(x / 9, z / 9)));
     if (FORT) { const d = fortD(x, z); // turf on the rampart and glacis, a muddy ditch floor, the trodden covered way
       if (d > -20 && d < 72 && !inGate(x, z)) { if (d < -.2 || d > 24) out.copy(G3).lerp(G1, .35 + .25 * N(x / 11, z / 11)); else if (d < 14) out.copy(G3).lerp(MUD, .35 + .2 * N(x / 7, z / 7)); else if (d > 17) out.copy(DIRT2).lerp(G3, .3); } }
-    if (winter && h > .5) out.lerp(SNOW, .55 + .35 * smooth(-.3, .4, N(x / 22, z / 22)));
-    const pm = 1 - smooth(1.6, 3.4, info.dP); if (pm > 0) out.lerp(tmp.copy(cues.roads === 'heavy' || cues.roads === 'impassable' ? MUD : DIRT).lerp(DIRT2, smooth(.6, 1.4, Math.abs(info.dP - 1.1) < .35 ? 1.4 : 0)), pm);
+    if (winter && h > .5) { const sn = .55 + .35 * smooth(-.3, .4, N(x / 22, z / 22)); out.lerp(SNOW, cues.thaw ? sn * smooth(-.05, .25, N(x / 14 + 7, z / 14)) : sn); } // a thaw leaves it in patches
+    if (cues.rime && h > .5) out.lerp(RIME, .38 + .22 * (N(x / 9, z / 9) * .5 + .5)); // hoar frost on grass and furrow
+    const pm = 1 - smooth(1.6, 3.4, info.dP); if (pm > 0) out.lerp(tmp.copy(mud ? MUD : DIRT).lerp(DIRT2, smooth(.6, 1.4, Math.abs(info.dP - 1.1) < .35 ? 1.4 : 0)), pm);
     if (h < .45) out.lerp(BANK, smooth(.45, .05, h)); if (h < -.25) out.copy(MUD);
+    if (wet) out.multiplyScalar(1 - wet * .17); // rain darkens earth and grass
   };
 
   const xs = axis(-264, 264, quality.terrain, 1600, 44), zs = axis(-204, 204, quality.terrain, 1600, 44);
@@ -123,9 +130,9 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   // the glacis is kept clear: a field of fire, no trees or cover within musket shot of the works
   const blocked = (x, z, path = 7) => { const [dP] = pathD(x, z, 20), [dR] = riverD(x, z, 30); return dP < path || dR < 10.5 || inCY(x, z, 6) || (!road && Math.hypot(x - CAMP.x, z - CAMP.z) < CAMP.r + 6) || fieldAt(x, z) !== -1 || (x < -40 && x > -150 && z > 95 && z < 170) || (town && rectD(x, z, TOWN.x0, TOWN.x1, TOWN.z0, TOWN.z1) < 6) || fortD(x, z) < 72; };
   const trees = { broadleaf: [], fir: [], poplar: [], bush: [] }, rocks = [], pick = a => a[Math.floor(rnd() * a.length)];
-  const addFar = (sp, x, z, s) => { const y = hAt(x, z); far[sp].push({ x, y, z, ry: rnd() * 6.28, s, col: sp === 'fir' ? pick(FIRS) : winter ? pick(BARE) : pick(AUTUMN) }); };
-  const addTree = (sp, x, z, s, col) => { const y = hAt(x, z); if (y < .4 || fortD(x, z) < 72) return; trees[sp].push({ x, y, z, ry: rnd() * 6.28, s, col: col || (sp === 'fir' ? pick(FIRS) : winter ? pick(BARE) : pick(AUTUMN)) }); };
-  const BARE = [0x6e5e4e, 0x7a6a58, 0x625446];
+  const leaf = () => winter ? pick(BARE) : leafColour(cues.date || '1740-10-21', rnd, season), inSeason = (autumnCol, k = 0) => season === 'autumn' ? autumnCol : LEAVES[season][k % LEAVES[season].length];
+  const addFar = (sp, x, z, s) => { const y = hAt(x, z); far[sp].push({ x, y, z, ry: rnd() * 6.28, s, col: sp === 'fir' ? pick(FIRS) : leaf() }); };
+  const addTree = (sp, x, z, s, col) => { const y = hAt(x, z); if (y < .4 || fortD(x, z) < 72) return; trees[sp].push({ x, y, z, ry: rnd() * 6.28, s, col: col || (sp === 'fir' ? pick(FIRS) : leaf()) }); };
   const dens = quality.trees;
   for (let x = -264; x < 264; x += 6 / dens) for (let z = -204; z < 204; z += 6 / dens) {
     const px = x + (rnd() - .5) * 5, pz = z + (rnd() - .5) * 5, f = N.fbm(px / 120 - 4, pz / 120 + 2, 3);
@@ -135,13 +142,13 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
       addTree(sp, px, pz, .8 + rnd() * .55);
     } else if (rnd() < smooth(-.05, .08, f) * .25) addTree('bush', px, pz, .8 + rnd() * .7);
   }
-  for (let i = 0; i < 26; i++) { const cx = -250 + rnd() * 500, cz = -190 + rnd() * 380; if (blocked(cx, cz, 12)) continue; const n = 3 + Math.floor(rnd() * 5), col = pick(AUTUMN); for (let k = 0; k < n; k++) { const x = cx + (rnd() - .5) * 14, z = cz + (rnd() - .5) * 14; if (!blocked(x, z)) addTree(k === 0 && rnd() < .3 ? 'fir' : 'broadleaf', x, z, .8 + rnd() * .5, rnd() < .6 ? col : pick(AUTUMN)); } for (let k = 0; k < 4; k++) { const x = cx + (rnd() - .5) * 18, z = cz + (rnd() - .5) * 18; if (!blocked(x, z, 4)) addTree('bush', x, z, .8 + rnd() * .6); } }
+  for (let i = 0; i < 26; i++) { const cx = -250 + rnd() * 500, cz = -190 + rnd() * 380; if (blocked(cx, cz, 12)) continue; const n = 3 + Math.floor(rnd() * 5), col = leaf(); for (let k = 0; k < n; k++) { const x = cx + (rnd() - .5) * 14, z = cz + (rnd() - .5) * 14; if (!blocked(x, z)) addTree(k === 0 && rnd() < .3 ? 'fir' : 'broadleaf', x, z, .8 + rnd() * .5, rnd() < .6 ? col : leaf()); } for (let k = 0; k < 4; k++) { const x = cx + (rnd() - .5) * 18, z = cz + (rnd() - .5) * 18; if (!blocked(x, z, 4)) addTree('bush', x, z, .8 + rnd() * .6); } }
   // riverside poplars and willows
-  for (let i = 0; i < RP.length; i++) { const [x, z] = RP[i]; if (Math.abs(z) > 220 || rnd() > .5) continue; const s = rnd() > .5 ? 1 : -1, d = 12 + rnd() * 6; const px = x + s * d, pz = z + (rnd() - .5) * 4; if (pathD(px, pz, 20)[0] < 8) continue; addTree(rnd() < .55 ? 'poplar' : 'broadleaf', px, pz, .8 + rnd() * .4, winter ? 0x6e5e4e : rnd() < .6 ? 0xd9b13a : 0x9fae4a); }
+  for (let i = 0; i < RP.length; i++) { const [x, z] = RP[i]; if (Math.abs(z) > 220 || rnd() > .5) continue; const s = rnd() > .5 ? 1 : -1, d = 12 + rnd() * 6; const px = x + s * d, pz = z + (rnd() - .5) * 4; if (pathD(px, pz, 20)[0] < 8) continue; addTree(rnd() < .55 ? 'poplar' : 'broadleaf', px, pz, .8 + rnd() * .4, winter ? 0x6e5e4e : inSeason(rnd() < .6 ? 0xd9b13a : 0x9fae4a, i)); }
   // a lime allée from the gate: baroque avenue
-  for (let i = 2; i < 46; i += 4) { const [x0, z0] = PG[i], [x1, z1] = PG[i + 1], dx = x1 - x0, dz = z1 - z0, L = Math.hypot(dx, dz); for (const s of [-1, 1]) { const tx = x0 - dz / L * 6.2 * s, tz = z0 + dx / L * 6.2 * s; if (!(town && rectD(tx, tz, TOWN.x0, TOWN.x1, TOWN.z0, TOWN.z1) < 4)) addTree('broadleaf', tx, tz, 1.0, winter ? 0x6e5e4e : i % 8 ? 0xd8b03c : 0xc79a34); } }
+  for (let i = 2; i < 46; i += 4) { const [x0, z0] = PG[i], [x1, z1] = PG[i + 1], dx = x1 - x0, dz = z1 - z0, L = Math.hypot(dx, dz); for (const s of [-1, 1]) { const tx = x0 - dz / L * 6.2 * s, tz = z0 + dx / L * 6.2 * s; if (!(town && rectD(tx, tz, TOWN.x0, TOWN.x1, TOWN.z0, TOWN.z1) < 4)) addTree('broadleaf', tx, tz, 1.0, winter ? 0x6e5e4e : inSeason(i % 8 ? 0xd8b03c : 0xc79a34, i >> 2)); } }
   // hedges and bushes along the field margins
-  for (let i = 0; i < 260; i++) { const x = -14 + rnd() * 156, z = 44 + rnd() * 180; if (fieldAt(x, z) === -1 && (fieldAt(x + 4, z) === 0 || fieldAt(x - 4, z) === 0 || fieldAt(x, z + 4) === 0 || fieldAt(x, z - 4) === 0) && !blocked(x, z, 4) && rnd() < .7) addTree('bush', x, z, .7 + rnd() * .6, pick([0x7a8a3a, 0xa08a3a, 0x8a5a2a])); }
+  for (let i = 0; i < 260; i++) { const x = -14 + rnd() * 156, z = 44 + rnd() * 180; if (fieldAt(x, z) === -1 && (fieldAt(x + 4, z) === 0 || fieldAt(x - 4, z) === 0 || fieldAt(x, z + 4) === 0 || fieldAt(x, z - 4) === 0) && !blocked(x, z, 4) && rnd() < .7) addTree('bush', x, z, .7 + rnd() * .6, winter ? pick(BARE) : inSeason(pick([0x7a8a3a, 0xa08a3a, 0x8a5a2a]), i)); }
   const forest = buildForest(trees, { variants: 3, seed: 3 }); group.add(forest);
   const far = { broadleaf: [], fir: [], poplar: [], bush: [] };
   // the wider country, coarser, no shadows
@@ -173,7 +180,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
     if (Math.hypot(x - CAMP.x, z - CAMP.z) < 30 && rnd() < .7) continue;
     const r = rnd(); grass.push({ x, y, z, ry: rnd() * 6.28, s: .6 + rnd() * .55, k: (N(x / 9 + 50, z / 9) > .25 && r < .6) ? 3 + Math.floor(rnd() * 3) : r < .03 ? 4 : Math.floor(rnd() * 3) });
   }
-  group.add(buildGrass(grass, 4));
+  group.add(buildGrass(grass, 4, GRASS_TINT[season]));
 
   /* ---------- buildings and props ---------- */
   const solid = [], colliders = [], add = (geo, x, z, ry = 0, y) => { const m = new THREE.Mesh(geo, propsMat); m.position.set(x, y ?? hAt(x, z), z); m.rotation.y = ry; m.castShadow = m.receiveShadow = true; group.add(m); return m; };
@@ -374,7 +381,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   const lanterns = []; for (const z of [-14.15, -5.85]) { const L = new THREE.PointLight(0xffb060, 0, 22, 1.6); L.position.set(CY.x1 - .6, hqH + 4.2, z); group.add(L); lanterns.push(L); const f = new THREE.Mesh(new THREE.ConeGeometry(.16, .5, 5), flameMat); f.position.set(CY.x1 - .6, hqH + 4.15, z); f.visible = false; group.add(f); lanterns.push(f); }
   const setNight = on => { for (const l of lanterns) { if (l.isLight) l.intensity = on ? 40 : 0; else l.visible = on; } };
   // falling snow near the camera
-  let snow = null; if (winter && !cues.ownWeather) { const n = 1800, g = new THREE.BufferGeometry(), pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) { pos[i * 3] = (rnd() - .5) * 80; pos[i * 3 + 1] = rnd() * 40; pos[i * 3 + 2] = (rnd() - .5) * 80; } g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); snow = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: .12, transparent: true, opacity: .85, depthWrite: false })); snow.frustumCulled = false; group.add(snow); }
+  let snow = null; if (winter && !cues.ownWeather && !cues.thaw && !cues.rime) { const n = 1800, g = new THREE.BufferGeometry(), pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) { pos[i * 3] = (rnd() - .5) * 80; pos[i * 3 + 1] = rnd() * 40; pos[i * 3 + 2] = (rnd() - .5) * 80; } g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); snow = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: .12, transparent: true, opacity: .85, depthWrite: false })); snow.frustumCulled = false; group.add(snow); }
 
   // a company at drill and a rank paraded by the colours: instanced figures, cheap
   const drill = new FramePool(infantryFrames('A'), 64, stdMat({ roughness: .85 })); drill.setShadow(false); group.add(drill.group);
@@ -538,7 +545,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
     const wx = -151.5, wz = 9; const W = [placeGeom(P.wagon(), wx, hAt(wx, wz), wz, .35)]; for (const [dx, dz] of [[2, -1.6], [2.6, -.9]]) W.push(placeGeom(P.barrel(), wx + dx, hAt(wx + dx, wz + dz), wz + dz, dx)); W.push(placeGeom(P.crate(), wx + 1.9, hAt(wx + 1.9, wz + .4), wz + .4, .3));
     const wagonM = new THREE.Mesh(merge(W), propsMat); wagonM.castShadow = wagonM.receiveShadow = true; group.add(wagonM); colliders.push({ c: [wx, wz, 2] }, { c: [wx + 2.3, wz - 1.2, .8] });
     // lime leaves blown in from the allée, drifted against the walls
-    if (!winter) { const leaf = tint(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-.07, 0, 0), new THREE.Vector3(0, 0, .09), new THREE.Vector3(.07, 0, 0), new THREE.Vector3(.07, 0, 0), new THREE.Vector3(0, 0, -.09), new THREE.Vector3(-.07, 0, 0)]), 0xffffff);
+    if (season === 'autumn') { const leaf = tint(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-.07, 0, 0), new THREE.Vector3(0, 0, .09), new THREE.Vector3(.07, 0, 0), new THREE.Vector3(.07, 0, 0), new THREE.Vector3(0, 0, -.09), new THREE.Vector3(-.07, 0, 0)]), 0xffffff);
       leaf.computeVertexNormals(); const LC = [0xd8a83a, 0xc98a2e, 0xb8662a, 0xe2bc52, 0x9a7a3a], L = [];
       while (L.length < 900) { const x = lerp(CY.x0, CY.x1, prnd()), z = lerp(CY.z0, CY.z1, prnd()), e = Math.min(x - CY.x0, CY.x1 - x, z - CY.z0, CY.z1 - z); if (prnd() < Math.exp(-e / 2.2) + .06 && Math.hypot(x + 174, z + 10) > 3.8) L.push([x, z]); }
       const im = new THREE.InstancedMesh(leaf, propsMat, L.length); L.forEach(([x, z], i) => { d.position.set(x, hqH + .065, z); d.rotation.set(0, prnd() * 6.28, 0); d.scale.setScalar(.8 + prnd() * .7); d.updateMatrix(); im.setMatrixAt(i, d.matrix); im.setColorAt(i, c.set(LC[Math.floor(prnd() * LC.length)])); });
@@ -547,7 +554,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
     if (!winter) { const weeds = []; for (let i = 0; i < 260; i++) { const side = Math.floor(prnd() * 4), t = prnd(), o = .1 + prnd() * .3;
       const [x, z] = side === 0 ? [CY.x0 + o, lerp(CY.z0, CY.z1, t)] : side === 1 ? [lerp(CY.x0, CY.x1, t), CY.z1 - o] : side === 2 ? [lerp(CY.x0, CY.x1, t), CY.z0 + o] : [CY.x1 - o, lerp(CY.z0, CY.z1, t)];
       if (side === 3 && z > -13.4 && z < -6.6) continue; weeds.push({ x, y: hqH + .04, z, ry: prnd() * 6.28, s: .35 + prnd() * .4, k: prnd() < .12 ? 4 : Math.floor(prnd() * 3) }); }
-      group.add(buildGrass(weeds, 6)); }
+      group.add(buildGrass(weeds, 6, GRASS_TINT[season])); }
   }
   // the fortress: a brick scarp along the trace from the ditch floor to a parapet over the rampart walk, dressed angles,
   // a sentry box and a gun on each salient, and the gate through the east front (illustrative works in the period manner)
@@ -572,11 +579,11 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   }
   // the road worn by wheels: two ruts with grass between, long grass and flowers at the verges, puddles when it is wet, milestones
   function dressRoad() {
-    const prnd = rngFrom(91), wet = cues.roads === 'heavy' || cues.roads === 'impassable', S = [];
+    const prnd = rngFrom(91), wetRoad = mud || wet > .7, S = [];
     const skip = (x, z) => inCY(x, z, 1) || (town && rectD(x, z, TOWN.x0, TOWN.x1, TOWN.z0, TOWN.z1) < 2) || riverD(x, z, 30)[0] < 14;
     for (let i = 0; i < PP.length - 1; i++) { const [x0, z0] = PP[i], [x1, z1] = PP[i + 1], L = Math.hypot(x1 - x0, z1 - z0) || 1; for (const f of [0, .5]) S.push({ x: x0 + (x1 - x0) * f, z: z0 + (z1 - z0) * f, nx: -(z1 - z0) / L, nz: (x1 - x0) / L }); }
     S.forEach(s => { s.off = skip(s.x, s.z); });
-    const pos = [], col = [], RUT = new THREE.Color(wet ? 0x62503a : 0x8c6c48), y = (x, z) => hAt(x, z) + .045;
+    const pos = [], col = [], RUT = new THREE.Color(wetRoad ? 0x62503a : 0x8c6c48), y = (x, z) => hAt(x, z) + .045;
     for (let i = 0; i < S.length - 1; i++) { const a = S[i], b = S[i + 1]; if (a.off || b.off) continue;
       for (const o of [-.75, .75]) { const q = [[a, o - .14], [a, o + .14], [b, o - .14], [b, o + .14]].map(([s, d]) => [s.x + s.nx * d, s.z + s.nz * d]);
         for (const k of [0, 1, 2, 2, 1, 3]) { const [x, z] = q[k]; pos.push(x, y(x, z), z); const t = .9 + prnd() * .15; col.push(RUT.r * t, RUT.g * t, RUT.b * t); } } }
@@ -586,8 +593,8 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
     for (const s of S) { if (s.off) continue;
       if (prnd() < .55 * few) { const d = (prnd() - .5) * .5; tufts.push({ x: s.x + s.nx * d, y: hAt(s.x + s.nx * d, s.z + s.nz * d), z: s.z + s.nz * d, ry: prnd() * 6.28, s: .3 + prnd() * .25, k: Math.floor(prnd() * 3) }); }
       for (const side of [-1, 1]) for (let n = 0; n < 2; n++) { if (prnd() > .85 * few) continue; const d = side * (2.7 + prnd() * 1.2), x = s.x + s.nx * d, z = s.z + s.nz * d; tufts.push({ x, y: hAt(x, z), z, ry: prnd() * 6.28, s: .5 + prnd() * .45, k: prnd() < .16 ? 3 + Math.floor(prnd() * 3) : Math.floor(prnd() * 3) }); } }
-    group.add(buildGrass(tufts, 8));
-    if (wet) { const pm = new THREE.MeshStandardMaterial({ color: 0x8c968f, roughness: .06, metalness: .1, transparent: true, opacity: .6, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }), pg = new THREE.CircleGeometry(1, 10).rotateX(-Math.PI / 2);
+    group.add(buildGrass(tufts, 8, GRASS_TINT[season]));
+    if (wetRoad) { const pm = new THREE.MeshStandardMaterial({ color: 0x8c968f, roughness: .06, metalness: .1, transparent: true, opacity: .6, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }), pg = new THREE.CircleGeometry(1, 10).rotateX(-Math.PI / 2);
       for (let n = 0; n < 22; n++) { const s = S[Math.floor(prnd() * S.length)]; if (s.off) continue; const d = [-.75, .75, 0][Math.floor(prnd() * 3)], x = s.x + s.nx * d, z = s.z + s.nz * d, m = new THREE.Mesh(pg, pm);
         m.position.set(x, hAt(x, z) + .06, z); m.rotation.y = Math.atan2(s.nx, s.nz); m.scale.set(.22 + prnd() * .18, 1, .4 + prnd() * .6); m.receiveShadow = true; group.add(m); } }
     for (let i = 30; i < S.length; i += 70) { const s = S[i]; if (s.off) continue; const x = s.x + s.nx * 4, z = s.z + s.nz * 4; add(P.milestone(), x, z, Math.atan2(s.nx, s.nz)); colliders.push({ c: [x, z, .4] }); }
