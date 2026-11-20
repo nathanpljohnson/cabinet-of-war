@@ -1,0 +1,45 @@
+# Playtest findings (simulated campaign, Nov 2026)
+Format: [turn] area · what · evidence
+
+- [0] opening text · Countess Khevenhüller's letter says "for you and the Empress to decide" — Maria Theresa was not Empress in Oct 1740 (Elisabeth Christine was the Empress, now dowager). Anachronism in src/opening.json.
+- [0] dispatch · Frederick II offered as a recipient "by letter ~4 d" like a subordinate; a minister does not send orders to a foreign king. RULERS set excludes MT and Francis only.
+- [0] harness · page.screenshot times out under SwiftShader (rAF loop); canvas toDataURL after step() works.
+- [0] UI · after sealing, the toast says 'paste the reply back under Orders → Reply received' (old desk wording from src/case.js resolve()); the 3D sheet's control is 'The courier is back — paste Claude's reply here'. The main.js onSeal toast is overwritten.
+- [0] notebook · orders given in person at Vienna (T0-1 Starhemberg, T0-4 Königsegg) are listed as "on the road" in "Your dispatch of 21 Oct"; an in-person order is not on any road.
+- [0] notebook · the order "in your own words" (audience with the Queen) is not tracked in the dispatch list; only itemised orders are.
+- [0] PACKET (major) · liveState() (turn.js:217) strips every letter to {id, from_id, dated, title}. At turn 0 the letters were written by the game, so the adjudicator never sees their figures (Wallis's return, Starhemberg's chests) and can contradict them. In a fresh chat (the packet claims to be self-contained) the same is true every turn.
+- [0] HISTORY (major) · seed makes Wallis "Commanding general in Silesia" (one source) with ~3,600 men. Most accounts: M. U. Browne commanded in Silesia in Dec 1740; Wallis was commandant of Glogau (captured there 9 Mar 1741). Adjudicator flagged independently.
+- [0] packet · no player id for scene participants/lines (adjudicator used "player").
+- [0] packet · "his secretary" is referred to throughout but there is no secretary in the cast (adjudicator invented one).
+- [0] packet · contract requires hidden.purse / household.purse but the opening state has neither; adjudicator invented the household finances from nothing.
+- [0] packet · 36 dormant threads hidden with no id list -> adjudicator created kc-bavarian-protest, kc-neipperg-release, possibly duplicating almanac threads.
+- [0] packet · Demeradt: order says ~4 days by letter; almanac signal says 5-8 days. Two delays for the same route.
+- [0] packet · "Return ONE JSON object and nothing else" vs the game happily accepting fenced block + notes (parseReply handles it). Minor wording.
+- [0] packet · world.tempo has no value for peacetime autumn 1740 (winter quarters/campaigning/truce only).
+- CLAUDE.md says src/ changes need a rebuild but src/desk.js is a dead legacy copy of the desk's code; the live source is src/cabinet-of-war.base.html. Editing desk.js silently does nothing.
+- [0] BLOCKER FIXED · reply refused "Invalid scene." The reply format's scene shape has no `revision`; validateState (base.html) requires a numeric revision. Every audience the player asked for would be refused, and the correction request ("Invalid scene.") gives Claude nothing to fix. Fix: checkReply fills revision/lists (turn.js).
+- [1] FIXED · scene renderer vs reply format: speakers shown as raw ids (MARIA_THERESA, PLAYER), commitments as "○ UNDEFINED: UNDEFINED" (format: strings; renderer: {by,text,binding}), status "closed" not recognised (renderer wants "concluded") so a finished audience offered "Speak (copy to Claude)" — a conversation UI, against "orders only". Fix in base.html renderScene.
+- [1] FIXED (packet) letter text: opening whole, later letters a 260-char gist. FIXED notebook 'given' for in-person orders; seal toast wording; Empress anachronism (opening + contract example 'closeted with the Empress').
+- [2] PACKET growth: 46.9k (t0) -> 57.3k (t1) -> 65.2k (t2). Growth: hidden.dispatches 2.8k (cap 12 not yet hit), canon 2.2k (cap 40), memory 1.6k (5 per person, no cap on people), ledger 1.9k, report gists 2.7k. Projected plateau ~75k: above the 60k bound the tests assert on the opening packet.
+- [2] HISTORY checked · Neipperg imprisoned at Brünn after Belgrade: SUPPORTED (Austria-Forum AEIOU; en.wikipedia) — my doubt was wrong. Wallis/Browne: Carlyle has Wallis as commandant at Glogau; Blumberg (Warfare History Network) has Browne given the Silesian post in Dec 1740 with ~6,000 men. So "Wallis at Glogau" holds; "Wallis commanding general in Silesia" is disputed, and the opening's 3,600 men is low against ~6,000 (moderate confidence). Action: mark Wallis's province-wide command and the figure as disputed in the seed; add Browne as the man who takes the Silesian command about Dec 1740. Not a code bug.
+- [2] packet · the order "in your own words" has no [Tn-k] ref, so the letter answering it cannot carry "re" and the notebook never marks it answered (adjudicator + my own finding at turn 0).
+- [2] packet · the Diarium's days (Wed, Sat) are not stated; playtest 1 asked for them too.
+- [2] packet · Vienna–Berlin delay still contradicts itself (4 d in orders vs 5–8 d in almanac signal).
+- [2] packet · two Wallises: Georg Olivier (Belgrade, arrested with Neipperg) vs Franz Wenzel (Glogau); the packet never distinguishes them.
+- [3] FIXED own-words ref T<n>-0 (shell.js compose/recordSent; contract Answers); contract: express-courier speed vs ordinary post; Diarium Wed/Sat.
+- [3] FIXED opening seeds a secretary (cast) and hidden.purse/household.purse; openingVersion 4.
+- [3] UI · a day with both a route change and letters: passDay's 'You set out…/You arrive at…' toast is immediately replaced by the courier's 'Hoofbeats…' toast (act post:n), so the player never reads that he arrived (11-09/11-10 return from Brünn).
+- [4] FIXED scene narration rule (case.js), GIST 420, Carinthia example removed, toast concatenation (main.js).
+- [4] FIXED (latent leak) the ledger renders as chips on the map timeline (base.html:1593) but the contract never said the player sees it; adjudicators could put hidden causes there. Contract now says so. No leak found in turns 0-3.
+- [4] FIXED (history) calendar anchors: 9 confirmed well-established, homage 22 Nov sourced, Neipperg 22 Dec anchor -> disputed (Jan-Feb 1741). 1 left unchecked (first Conference seating).
+- [5] FIXED weekday in packet header; claim labels unified in contract; scene 'who' guidance in reply format.
+- [5] FIXED (history) opening contradicted the repo's own research: Wallis's letter said ~3,600 for all Silesia; KA II (in state.json research notes) counts 7,359 in late Dec excl. Glatz. Letter now gives ~7,000 on the rolls, ~3,600 fit. Opening knowledge said Vienna–Breslau courier 4–5 days vs the page's 3; aligned.
+- [5] adjudicator · letters carry "re" for orders merely forwarded by the secretary ("Tomorrow at nine re:T4-1,T4-2") so the notebook marks those orders answered before the recipient has replied. Contract could say "re" only for a letter that answers the order.
+- [5] book · addToBook (campaign.js) records letters, orders, gazette and urgent choices, but not the audience (state.scene: the Queen on 21 Oct, the Spielberg gate) nor the council course adopted (draft.option). The book of the campaign loses both.
+- [5] FIXED book: audience + council course recorded; own-words order no longer listed twice (regression from the T-0 ref change, caught in review).
+- [6] FIXED packet: '## Earlier orders with no answer yet' (last 3 turns, minus answered refs from the letter archive) so late answers can carry re. Verified book fix in browser (turn 5 entry has course + named audience).
+- [6] FIXED order sheet no longer offers Frederick II (sovereigns by name excluded). Verified in browser.
+- [6] FIXED opening Wallis entry: which Wallis; province-wide command marked disputed; Browne Dec 1740 noted as secondary.
+- [7] CHANGED letters in packet: whole text (gists failed 3 adjudicators; +2-3k).
+- [7] SIZE · packet 46.9k → 57.3k → 65.2k → 73.2k → 81.0k → 82.5k → 85.4k → 89.0k (t0–t7). Still +3–4k/turn: canon entries lengthen (cap is a count, not a size), memory grows with each new person (11 now), cast grows, whole letters ~6–7k. Projected plateau ~95k chars (~24k tokens). Replies run 27–37k chars. One turn ≈ 35k tokens of chat context, so a 200k chat holds ~5 turns: players must start fresh chats often, which only works because the packet is now self-contained. Recommend: say so in the UI ("a fresh chat each turn is fine"), cap canon by characters, memory 5→3.
+- [7] FIXED canon capped at ~5,000 chars (and 40 entries); memory 3 per person; test added (31 tests).
