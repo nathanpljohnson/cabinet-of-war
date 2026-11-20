@@ -545,7 +545,8 @@ desk.map.on('zoomend', () => { if (mode === 'map' && travel.mode() === 'field' &
 
 /* ---------- HUD ---------- */
 let toastT = 0;
-function toast(m) { const t = $3('w3d-toast'); t.textContent = m; t.classList.add('on'); toastT = 5; }
+// a toast that comes hard on another's heels joins it, so 'You arrive at …' is not lost under the courier's hoofbeats
+function toast(m) { const t = $3('w3d-toast'), fresh = t.classList.contains('on') && toastT > 3.5 && t.textContent && !t.textContent.includes(m); t.textContent = fresh ? t.textContent + ' ' + m : m; t.classList.add('on'); toastT = 5; }
 new MutationObserver(() => { const s = $3('status').textContent; if (s && mode !== 'map') toast(s); }).observe($3('status'), { childList: true, characterData: true, subtree: true });
 function refreshHud() {
   if (!shell) return; const S = state;

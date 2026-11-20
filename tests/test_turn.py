@@ -159,7 +159,7 @@ def test_packet_after_a_turn_is_lean(run):
         assert k not in a["live"]
     assert set(a["reportKeys"]) <= {"id", "from_id", "dated", "title", "re", "gist"}
     # a fresh chat sees what each letter said (clipped), not only its title
-    assert a["gists"] and all(g and len(g) <= 262 for g in a["gists"])
+    assert a["gists"] and all(g and len(g) <= 422 for g in a["gists"])
     assert "decisions" not in a["hiddenKeys"] and "fortune_used" not in a["hiddenKeys"]
     assert "rel-papal-neutrality-1741" not in a["active"]  # its thread says not before June 1741
     assert a["battleUnits"] and not a["openingUnits"]  # units go only once an enemy commander is named

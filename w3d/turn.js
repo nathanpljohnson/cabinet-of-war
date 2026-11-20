@@ -215,7 +215,7 @@ export function activePlots(almanac, threads, date) {
 // a live thread gets its whole model; one only due for a check gets what tells whether it has begun
 const compactPlot = (p, live) => { const o = {}; for (const k of live ? ['id', 'title', 'window', 'actors', 'preconditions', 'historical', 'levers', 'signals', 'failure_modes'] : ['id', 'title', 'window', 'preconditions', 'signals']) if (p[k] != null) o[k] = p[k]; return o; };
 export const KEEP = { ledgerTurns: 3, canon: 40, dispatches: 12, memory: 5 };
-const GIST = 260; // characters of each letter's text the packet carries after the opening
+const GIST = 420; // characters of each letter's text the packet carries after the opening
 export function liveState(state) {
   const s = clone(state); for (const k of STATIC_KEYS) delete s[k];
   if (s.hidden) { delete s.hidden.world; delete s.hidden.threads; } // threads go as the index above the state
