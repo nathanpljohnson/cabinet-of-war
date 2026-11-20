@@ -149,3 +149,4 @@ Decisions (Nathan, 4 Nov): library + live fallback; replay accounts; atlas march
 - [x] Tests 56 pass; browser: the meeting on day 3, Glogau campaigning while Vienna is in winter quarters, Vienna's sights drawn
 - [x] Rules text says "the player" (they/their) instead of he/his: contract, orders section, packet
 - Not done, on purpose: merging hidden.dispatches into the ledger (the ledger is the player's own timeline; dispatches are hidden)
+- [x] The desk map knows only the post that has come by the day shown: the timeline strip (its "now" too), the town pins' last report, the town card, the desk's report list and the movement arrows follow the day walk; movements are redrawn each day and each turn (they were drawn once at load). Browser: day by day, and after a reload mid-turn

@@ -1311,12 +1311,16 @@ function syncView(){
 }
 function updateScale(){if(!$('scale-note'))return;const z=map.getZoom(),mpp=40075016*Math.cos(map.getCenter().lat*Math.PI/180)/(Math.pow(2,z)*256);$('scale-note').textContent='1 px ≈ '+(mpp<10?mpp.toFixed(1):Math.round(mpp))+' m · battalion front ≈ '+Math.round(150/mpp)+' px'}
 
+/* the day the page shows: the 3D page walks a turn day by day (w3d/shell.js), so the map knows only the post that has come by then */
+function shownDay(){return window.__w3dToday?window.__w3dToday():state.date}
+function arrivedReports(){const d=shownDay();return state.reports.filter(r=>(r.arrives||r.dated)<=d)}
+function heardMoves(){const d=shownDay();return(state.movements||[]).filter(m=>!m.reported||m.reported<=d)}
 /* ----- pins ----- */
 function renderPins(){
   for(const k in pinLayer)map.removeLayer(pinLayer[k]);pinLayer={};
   for(const loc of state.locations){
     const isYou=state.player.locationId===loc.id,kind=isYou?'court':loc.kind==='foreign'?'foreign':'';
-    const rs=state.reports.filter(r=>r.place===loc.id).map(r=>r.dated).sort().pop(),age=rs?Math.round((new Date(state.date)-new Date(rs))/864e5):null;
+    const rs=arrivedReports().filter(r=>r.place===loc.id).map(r=>r.dated).sort().pop(),age=rs?Math.round((new Date(shownDay())-new Date(rs))/864e5):null;
     const html='<div class="seal-pin lab-'+(loc.lab||'e')+' '+kind+(selectedPlace===loc.id?' sel':'')+(age!=null&&age>7?' stale':'')+'" role="button" aria-label="'+loc.name.replace(/"/g,'')+'"><i></i>'+(isYou?'<div class="you-ring"></div>':'')+'<span>'+loc.name.replace(/[<>&]/g,'')+(isYou?' · you':'')+'</span></div>';
     const m=L.marker([loc.lat,loc.lon],{icon:L.divIcon({className:'',html,iconSize:[0,0]}),keyboard:true,title:loc.name+(age!=null?' — last report '+age+' d ago':''),riseOnHover:true,zIndexOffset:isYou?1000:500});
     m.on('click',()=>selectPlace(loc.id));m.on('keypress',e=>{if(e.originalEvent.key==='Enter')selectPlace(loc.id)});m.addTo(map);pinLayer[loc.id]=m}
@@ -1345,9 +1349,9 @@ function initRoutes(){
   routesLayer.addTo(map)
 }
 function initMoves(){
-  const DASH={confirmed:null,reported:'12 8',rumour:'3 9'};
-  for(const m of state.movements||[]){const pts=spline(m.pts,8),c=SIDECOL[m.side]||'#fff',w=m.status==='confirmed'?5:4;
-    const age=Math.max(0,Math.round((new Date(state.date)-new Date(m.reported))/864e5)),op=Math.max(.38,1-age/14);
+  const DASH={confirmed:null,reported:'12 8',rumour:'3 9'};movesLayer.clearLayers();
+  for(const m of heardMoves()){const pts=spline(m.pts,8),c=SIDECOL[m.side]||'#fff',w=m.status==='confirmed'?5:4;
+    const age=Math.max(0,Math.round((new Date(shownDay())-new Date(m.reported))/864e5)),op=Math.max(.38,1-age/14);
     const html='<b>'+m.label+'</b><br>'+m.status+' · reported '+fmt(m.reported)+' ('+age+' d old)<br>Source: '+m.source+'<br>'+badge(m.claim)+(age>5?' <span class="meta">may have moved since</span>':'');
     L.polyline(pts,{color:'#1a120b',weight:w+4,opacity:.55*op,interactive:false}).addTo(movesLayer);
     L.polyline(pts,{color:c,weight:w,opacity:op,dashArray:DASH[m.status],lineCap:'round',interactive:true}).bindPopup(html).addTo(movesLayer);
@@ -1778,11 +1782,11 @@ function initMini(){if(mini)return;mini=L.map('minimap',{zoomControl:false,attri
   const upd=()=>rect.setBounds(map.getBounds());map.on('move',upd);mini.on('click',e=>map.flyTo(e.latlng,Math.max(map.getZoom(),5),{duration:.8}))}
 /* timeline */
 function buildTimeline(){const t=$('timeline');t.replaceChildren();const ev=[];
-  for(const r of state.reports)ev.push({d:r.dated,txt:r.title,kind:'report',place:r.place});
-  for(const m of state.movements||[])ev.push({d:m.reported,txt:m.label,kind:'move',pt:m.pts[0]});
-  for(const l of state.ledger||[])ev.push({d:l.date,txt:l.text,kind:'ledger'});
+  for(const r of arrivedReports())ev.push({d:r.dated,txt:r.title,kind:'report',place:r.place});
+  for(const m of heardMoves())ev.push({d:m.reported,txt:m.label,kind:'move',pt:m.pts[0]});
+  for(const l of state.ledger||[])if(!l.date||l.date<=shownDay())ev.push({d:l.date,txt:l.text,kind:'ledger'});
   ev.sort((a,b)=>a.d<b.d?-1:1);
-  const h=el('span',fmt(state.date)+' · now','tl-now');t.append(h);
+  const h=el('span',fmt(shownDay())+' · now','tl-now');t.append(h);
   for(const e of ev){const c=el('button',fmt(e.d)+' — '+e.txt.slice(0,46),'tl-chip '+e.kind);c.onclick=()=>{if(e.place)selectPlace(e.place);else if(e.pt)map.flyTo(e.pt,7,{duration:.8})};t.append(c)}}
 /* sound (WebAudio, synthesised: no files) */
 let ac=null,windG=null,bellT=null;
@@ -1801,7 +1805,7 @@ function renderPlace(){
   const loc=state.locations.find(l=>l.id===selectedPlace);if(!loc)return;
   const c=el('div',null,'card');c.style.borderColor='var(--brass)';
   c.append(el('div','Selected place','eyebrow'),el('h3',loc.name),el('p',loc.report));
-  const reps=state.reports.filter(r=>r.place===loc.id);
+  const reps=arrivedReports().filter(r=>r.place===loc.id);
   for(const r of reps)c.append(el('div','Report dated '+fmt(r.dated)+' — reports describe the past, not the present','meta'));
   const lab=el('label',null,'meta');const cb=el('input',null,null,{type:'checkbox'});cb.checked=referenced.has(loc.id);
   cb.onchange=()=>{cb.checked?referenced.add(loc.id):referenced.delete(loc.id);saveDraft();renderOrders()};
@@ -1821,7 +1825,7 @@ function eta(cid,via){const c=castById(cid),pl=playerLoc();if(!c||!pl)return nul
 function renderLeft(){
   $('player-line').textContent=state.player.name;$('title').textContent=state.title;$('briefing').textContent=state.briefing;
   const rs=$('reports');rs.replaceChildren();
-  for(const r of state.reports){
+  for(const r of arrivedReports()){
     const c=el('article',null,'card click report',{tabindex:'0'});
     const from=(castById(r.from_id)||{}).name||r.from||'Unknown sender';
     const e=el('div',null,'eyebrow');e.append(from+' · '+({courier:'by courier',post:'by post',audience:'in person'}[r.via]||'received')+' · '+fmt(r.dated));const cl=claim(r.claim);if(cl)e.append(cl);

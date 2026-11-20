@@ -446,7 +446,7 @@ function act(a) {
   if (a.startsWith('sound:')) return sound.cue(a.slice(6));
   if (a === 'archive') return shell.showLetters(null, 'archive');
   if (a === 'heir') return beginAsHeir();
-  if (a.startsWith('post:')) { const n = +a.slice(5); newDay().then(() => world.region.setLetters(shell.unread().length)); if (n) sound.cue('letters'); pendingArrival = n > 0; shell.refresh(); world.region.setLetters(shell.unread().length); refreshHud(); if (n) toast(fmtDate(shell.today) + ' — the day passes.'); return; }
+  if (a.startsWith('post:')) { const n = +a.slice(5); redrawMapPost(); newDay().then(() => world.region.setLetters(shell.unread().length)); if (n) sound.cue('letters'); pendingArrival = n > 0; shell.refresh(); world.region.setLetters(shell.unread().length); refreshHud(); if (n) toast(fmtDate(shell.today) + ' — the day passes.'); return; }
   if (a.startsWith('sighting:')) return showSighting(a.slice(9));
   if (a === 'hall') return mode === 'sick' ? toast('The council must come to you, or wait.') : enterHall();
   if (a === 'orders') return shell.toggleSheet();
@@ -468,8 +468,10 @@ function syncCourierOnBoot() {
   if (state.turn > s.turn) { pendingArrival = true; world.region.courierRide.depart(true); } else world.region.courierRide.depart(true);
 }
 let pendingArrival = false, lastTurn = null;
+// the desk map follows the day walk: what has arrived by the day shown, and nothing later
+function redrawMapPost() { buildTimeline(); initMoves(); renderAll(); }
 async function onNewTurn() {
-  buildTimeline(); // the desk's strip of dated events: drawn once at load, so redraw it for the new turn
+  redrawMapPost(); // the desk's strip of dated events, movements and pins: drawn once at load, so redraw them for the new turn
   void shell.today; // the day walk starts on the turn's first day, before anything is built
   loadClock(); applyAtmosphere();
   if (builtFor !== travel.here() || builtMode !== travel.mode() || builtCues !== JSON.stringify(worldCues())) { showLoading(builtFor !== travel.here() ? 'Riding to ' + locName(travel.here()) + '…' : travel.mode() === 'field' ? 'Joining the army in camp…' : 'Returning to headquarters…'); await sleep(40); await buildWorld(); hideLoading(); }
@@ -759,6 +761,7 @@ installMarch(); // lines, columns, giving way and troop types for the desk's bat
   body.classList.add('w3d-on', 'w3d-room');
   showLoading('Raising the country…'); syncGfxUi();
   shell = createShell({ act, onSeal, clock });
+  window.__w3dToday = () => shell.today; redrawMapPost(); // the desk map (drawn before the day walk existed) shows only the post that has come by the day shown
   // the commission, the world and the secretary's remarks came with the 3D page's opening state; older saves at turn 0 take them from it
   // a campaign still at its opening takes the researched opening (letters, counsel, people, household, rival, canon)
   if (state.turn === 0) { const init = JSON.parse(document.getElementById('initial-state').textContent);
