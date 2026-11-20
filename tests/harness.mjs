@@ -7,7 +7,7 @@ const html = read('cabinet-of-war.html'), m = html.match(/id="initial-state">([\
 const opening = JSON.parse(m[1].replace(/\\u003c/g, '<')), almanac = JSON.parse(read('w3d/almanac.json')), contract = read('w3d/contract.md');
 const out = { mocks: {} };
 const reply = (state, changes) => ({ kind: 'turn', schemaVersion: 3, campaignId: state.campaignId, turn: state.turn + 1, parentTurn: state.turn, seal: sealOf(state), changes: JSON.parse(JSON.stringify(changes)) });
-for (const name of ['answers', 'winter', 'dismissed', 'backwards', 'contradiction', 'living', 'ending']) {
+for (const name of ['answers', 'winter', 'dismissed', 'backwards', 'contradiction', 'living', 'ending', 'journey']) {
   const mk = JSON.parse(read('w3d/mocks/' + name + '.json')), r = reply(opening, mk.changes);
   const chk = checkReply(opening, r, { orderRefs: ['T0-1', 'T0-2', 'T0-3'], fortune: rollFortune(opening.campaignId, 0), seal: sealOf(opening) });
   const res = { errors: chk.errors, warns: chk.warns, fixes: chk.fixes };

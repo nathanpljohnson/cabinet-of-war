@@ -14,7 +14,7 @@ def run():
     return json.loads(out.stdout)
 
 
-@pytest.mark.parametrize("name", ["answers", "winter", "dismissed", "living", "ending"])
+@pytest.mark.parametrize("name", ["answers", "winter", "dismissed", "living", "ending", "journey"])
 def test_good_mocks_are_accepted(run, name):
     m = run["mocks"][name]
     assert m["errors"] == []
@@ -23,7 +23,7 @@ def test_good_mocks_are_accepted(run, name):
 
 
 def test_good_mocks_have_no_warnings(run):
-    for name in ["answers", "winter", "dismissed", "living", "ending"]:
+    for name in ["answers", "winter", "dismissed", "living", "ending", "journey"]:
         assert run["mocks"][name]["warns"] == [], name
 
 
