@@ -14,7 +14,7 @@ def run():
     return json.loads(out.stdout)
 
 
-@pytest.mark.parametrize("name", ["answers", "winter", "dismissed", "living", "ending", "journey"])
+@pytest.mark.parametrize("name", ["answers", "winter", "dismissed", "living", "ending", "journey", "battle"])
 def test_good_mocks_are_accepted(run, name):
     m = run["mocks"][name]
     assert m["errors"] == []
@@ -23,7 +23,7 @@ def test_good_mocks_are_accepted(run, name):
 
 
 def test_good_mocks_have_no_warnings(run):
-    for name in ["answers", "winter", "dismissed", "living", "ending", "journey"]:
+    for name in ["answers", "winter", "dismissed", "living", "ending", "journey", "battle"]:
         assert run["mocks"][name]["warns"] == [], name
 
 
@@ -179,3 +179,26 @@ def test_opening_is_not_a_demo(run):
     assert o["scene"] is None and o["movements"] == 0 and o["demoCast"] == 0
     assert o["wallis"] == "glogau"
     assert o["early"] == 0
+
+
+def test_new_battle_replaces_the_field(run):
+    b = run["battle"]
+    assert b["ids"] == b["mockIds"]
+    assert b["options"] == ["hold"] and b["aftermath"] is None
+    assert b["sameId"] == len(b["mockIds"]) - 1
+
+
+def test_ground_is_drawn_from_the_reply(run):
+    b = run["battle"]
+    assert b["cells"] == {"village": 3, "hamlet": 3, "wood": 1, "stream": 2, "bridge": 0, "ford": 0}
+    assert b["unitCells"] == [0]
+    assert b["same"] and b["relief"] == 5.5 and b["size"] == [198, 132, 132, 198]
+    assert {"Neudorf", "Lindenau", "the Fasanerie", "the Mühlbach", "the windmill hill"} <= set(b["names"])
+    assert b["mollwitz"] is None and b["keyChanges"] and b["packet"] == "ground"
+
+
+def test_bad_battle_is_made_safe(run):
+    bad = run["battle"]["bad"]
+    assert bad["kind"] == "farmland" and bad["villages"] == ["Ok:village"]
+    assert bad["units"] == ["X3:0"]
+    assert any("both sides" in w for w in bad["warns"])

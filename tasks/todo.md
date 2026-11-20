@@ -43,3 +43,12 @@
 - [x] Glogau: bastioned trace with rampart, brick scarp, dry ditch, covered way, cleared glacis, gate through the east front, sentry boxes and guns on the salients; brick hall church
 - [x] Brünn: the Spielberg citadel on its hill
 - [x] Browser check (separate profile, muted, autosave off): road summer and winter, Glogau, Brünn, Vienna unchanged; lightCheck passes on the road and at Glogau; tests pass
+
+# Battlefields: each battle its own ground
+- [x] battleDemo.ground: a kind (plain, farmland, wooded, hills, river) plus named villages, woods, streams with crossings, heights
+- [x] w3d/ground.js draws the 30 m grid the rules read; background clears round the armies; a river kind without a river gets one between them
+- [x] A new battle id replaces the field whole (units, courses, aftermath, ground); same id still merges by id
+- [x] 3D field: relief by kind, named heights, valleys and shallow beds by distance to water, dry valleys past the edge
+- [x] Desk: lines and wings read from where the army stands and faces; labels and view on the armies; reset follows the battle
+- [x] Reply checks and format, contract, battle mock and tests (30 pass); browser: Mollwitz unchanged, new field, a phase fought, aftermath ride
+- [ ] Not done: the 2D desk map still shows the real map at the battle's centre, not the drawn ground

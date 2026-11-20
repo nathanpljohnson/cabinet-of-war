@@ -35,11 +35,15 @@ t=t[:tm.start(2)]+json.dumps(TERj,separators=(',',':'))+t[tm.end(2):]
 payload=json.dumps(st,ensure_ascii=False,separators=(',',':')).replace('<','\\u003c')
 t=t[:m.start(2)]+payload+t[m.end(2):]
 # the desk's army groups and battle views use fixed coordinates of the old deployment
-rep("u.type==='inf'&&u.n>=-310)","u.type==='inf'&&u.n>=-1000)",1); rep("u.type==='inf'&&u.n<-310)","u.type==='inf'&&u.n<-1000)",1)
-rep("u.type==='cav'&&u.e<-1000)","u.type==='cav'&&u.e<-640)",1); rep("u.type==='cav'&&u.e>=-1000)","u.type==='cav'&&u.e>=-640)",1)
-rep("[['A',-700,-300,'Imperial (illustrative)'],['B',-600,800,'Opposing (illustrative)']]","[['A',-340,-990,'Imperial (illustrative)'],['B',-300,440,'Opposing (illustrative)']]",1)
-rep("[['A','Imperial army (illustrative)',-700,-520],['B','Opposing army (illustrative)',-600,980]]","[['A','Imperial army (illustrative)',-340,-1210],['B','Opposing army (illustrative)',-300,620]]",1)
-rep("lo(bd.center,-300,200)","lo(bd.center,-320,-275)",2)
+# any battle, not only Mollwitz: lines and wings are read from where the army stands and which way it faces; the army
+# labels and the view sit on the armies; the units "reset" restores are those of the battle now on the table
+rep("function armyGroups(){","function armyFrame(side){const U=state.battleDemo.units.filter(u=>u.side===side&&u.type==='inf'),A=U.length?U:state.battleDemo.units.filter(u=>u.side===side);if(!A.length)return{e:0,n:0,fe:0,fn:1};const f=A.reduce((s,u)=>s+(u.facing||0),0)/A.length*Math.PI/180;return{e:A.reduce((s,u)=>s+u.e,0)/A.length,n:A.reduce((s,u)=>s+u.n,0)/A.length,fe:Math.sin(f),fn:Math.cos(f)}}\nfunction armyFront(u){const F=armyFrame(u.side);return(u.e-F.e)*F.fe+(u.n-F.n)*F.fn}\nfunction armySide(u){const F=armyFrame(u.side);return(u.e-F.e)*F.fn-(u.n-F.n)*F.fe}\nfunction armyAt(side,back){const F=armyFrame(side);return[F.e-F.fe*back,F.n-F.fn*back]}\nconst ILL=()=>state.battleDemo.id==='bd-demo'?' (illustrative)':'';\nfunction armyGroups(){",1)
+rep("u.type==='inf'&&u.n>=-310)","u.type==='inf'&&armyFront(u)>=0)",1); rep("u.type==='inf'&&u.n<-310)","u.type==='inf'&&armyFront(u)<0)",1)
+rep("u.type==='cav'&&u.e<-1000)","u.type==='cav'&&armySide(u)<0)",1); rep("u.type==='cav'&&u.e>=-1000)","u.type==='cav'&&armySide(u)>=0)",1)
+rep("[['A',-700,-300,'Imperial (illustrative)'],['B',-600,800,'Opposing (illustrative)']]","[['A',...armyAt('A',0),'Imperial'+ILL()],['B',...armyAt('B',0),'Opposing'+ILL()]]",1)
+rep("[['A','Imperial army (illustrative)',-700,-520],['B','Opposing army (illustrative)',-600,980]]","[['A','Imperial army'+ILL(),...armyAt('A',220)],['B','Opposing army'+ILL(),...armyAt('B',220)]]",1)
+rep("lo(bd.center,-300,200)","lo(bd.center,(armyAt('A',0)[0]+armyAt('B',0)[0])/2,(armyAt('A',0)[1]+armyAt('B',0)[1])/2)",2)
+rep("if(!unitsOrig)unitsOrig=JSON.parse(JSON.stringify(state.battleDemo.units));","if(!unitsOrig||unitsOrig.bid!==state.battleDemo.id){unitsOrig=JSON.parse(JSON.stringify(state.battleDemo.units));unitsOrig.bid=state.battleDemo.id}",1)
 m=re.search(r'(<script type="application/json" id="initial-state">)(.*?)(</script>)',t,flags=re.S)
 st=json.loads(m[2].replace('\\u003c','<'))
 # the opening, researched (src/opening.json): letters, counsel, people, household, the rival and the canon. Certainty of
