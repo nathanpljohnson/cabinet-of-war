@@ -7,7 +7,7 @@ import { cleanGround, GROUNDS, GROUND_KINDS, VILLAGE_SIZES, FIELD } from './grou
 export const REPLY_SCHEMA = 3;
 // reference the adjudicator does not need to see or return every turn (kept in the page and the campaign file)
 export const STATIC_KEYS = ['labels', 'routes', 'routesNote', 'sources', 'sourcesAppendix', 'regionLabels', 'movementsNote', 'annotations', 'openingVersion'];
-// the player's own: a reply cannot change them
+// the player’s own: a reply cannot change them
 export const PLAYER_KEYS = ['trust', 'legacy', 'campaignId', 'record', 'span'];
 // lists merged by id: give only new or changed items (with only the changed fields); {"id": x, "_remove": true} removes one
 export const BY_ID = ['cast', 'locations', 'forces', 'fortresses', 'movements', 'hidden.threads', 'battleDemo.units', 'battleDemo.options'];
@@ -17,7 +17,7 @@ const appendPath = p => APPEND.includes(p) || p.startsWith('hidden.memory.');
 // per-turn things: when a reply leaves them out, they are cleared rather than carried into the next turn
 const PER_TURN_LISTS = ['reports', 'overheard', 'whereabouts', 'gazette'], PER_TURN_HIDDEN = ['decisions', 'fortune_used'], PER_TURN_NULL = ['decision', 'scene'];
 export const WEATHER = ['clear', 'haze', 'overcast', 'mist', 'frost', 'rain', 'thaw', 'snow', 'storm', 'thunder'];
-export const SCENE_TAGS = ['alarm', 'idle_soldiers', 'bread_queue', 'empty_market', 'recruiting', 'wagons_in', 'wounded', 'prisoners', 'celebration', 'smoke'];
+export const SIGHTS = ['alarm', 'idle_soldiers', 'bread_queue', 'empty_market', 'recruiting', 'wagons_in', 'wounded', 'prisoners', 'celebration', 'smoke'];
 export const THREAD_STATUS = ['dormant', 'building', 'triggered', 'resolved', 'abandoned'];
 export const TEMPERS = ['rash', 'bold', 'steady', 'cautious', 'timid'];
 export const TEMPO = ['winter quarters', 'campaigning', 'truce'];
@@ -36,6 +36,8 @@ export function fingerprint(s) {
   h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
   return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
 }
+// a scene's lines with names: the player as "You", narration with no speaker, others by the cast or the scene's participants
+export const sceneLines = (scene, cast) => (scene.lines || []).map(l => ({ who: l.who === 'player' || l.who === 'You' ? 'You' : l.who === 'Narration' ? '' : (((cast || []).find(c => c.id === l.who) || (scene.participants || []).find(x => x.id === l.who) || {}).name || l.who), text: l.text }));
 export const sealOf = state => { const c = ((state.record || {}).chain || []); return c.length ? c[c.length - 1].h : fingerprint('origin:' + state.campaignId); };
 // the next link: the head of the chain and what this reply changed
 export const nextLink = (state, payload, turn, date) => ({ turn, date, h: fingerprint(sealOf(state) + ':' + fingerprint(JSON.stringify(payload))) });
@@ -84,7 +86,7 @@ export function mergeTurn(prev, reply) {
   for (const k of PER_TURN_NULL) if (!(k in ch)) next[k] = null;
   next.hidden = next.hidden || {};
   for (const k of PER_TURN_HIDDEN) if (!(isObj(ch.hidden) && k in ch.hidden)) next.hidden[k] = [];
-  if (next.world) for (const k of ['weather', 'scene']) if (!(isObj(ch.world) && k in ch.world)) delete next.world[k];
+  if (next.world) for (const k of ['weather', 'sights', 'scene']) if (!(isObj(ch.world) && k in ch.world)) delete next.world[k]; // world.scene: the old name of sights
   if (next.battleDemo) delete next.battleDemo._sim;
   next.span = { from: prev.date, at: (prev.player || {}).locationId || null };
   next.turn = reply.turn; next.parentTurn = reply.parentTurn; next.schemaVersion = prev.schemaVersion || 2;
@@ -135,13 +137,18 @@ export function checkReply(prev, reply, ctx = {}) {
   }
   const w = isObj(ch.world) ? ch.world : null;
   if (w && isObj(w.weather)) for (const [d, k] of Object.entries(w.weather)) if (!WEATHER.includes(k)) { fixes.push('Unknown weather "' + k + '" on ' + d + ' was left out.'); delete w.weather[d]; }
-  if (w && isObj(w.scene)) for (const [place, tags] of Object.entries(w.scene)) { if (!Array.isArray(tags)) { delete w.scene[place]; continue; }
-    const bad = tags.filter(t => !SCENE_TAGS.includes(t)); if (bad.length) { fixes.push('Unknown scene tags at ' + place + ' were left out: ' + bad.join(', ') + '.'); w.scene[place] = tags.filter(t => SCENE_TAGS.includes(t)); } }
+  if (w && w.scene !== undefined) { if (w.sights === undefined) w.sights = w.scene; delete w.scene; fixes.push('world.scene is now called world.sights; it was read as sights.'); }
+  if (w && isObj(w.sights)) for (const [place, tags] of Object.entries(w.sights)) { if (!Array.isArray(tags)) { delete w.sights[place]; continue; }
+    const bad = tags.filter(t => !SIGHTS.includes(t)); if (bad.length) { fixes.push('Unknown sights at ' + place + ' were left out: ' + bad.join(', ') + '.'); w.sights[place] = tags.filter(t => SIGHTS.includes(t)); } }
   // an audience: the format gives its shape; the page also keeps a revision and needs lists it can walk
   if (ch.scene != null && !isObj(ch.scene)) { fixes.push('The scene was not an object and was left out.'); delete ch.scene; }
   if (isObj(ch.scene)) { const sc = ch.scene;
     for (const k of ['lines', 'commitments', 'participants']) if (!Array.isArray(sc[k])) sc[k] = [];
     if (typeof sc.revision !== 'number') sc.revision = 1;
+    // the day of the meeting: it arrives in the post that day
+    if (sc.date == null) sc.date = ch.date || prev.date;
+    else if (!/^\d{4}-\d{2}-\d{2}$/.test(sc.date)) { fixes.push('The scene\'s date "' + sc.date + '" was not a date; it is put on the last day of the turn.'); sc.date = ch.date || prev.date; }
+    else if (sc.date < prev.date || (ch.date && sc.date > ch.date)) { const d = sc.date < prev.date ? prev.date : ch.date; fixes.push('The scene was dated ' + sc.date + ', outside this turn; it is put on ' + d + '.'); sc.date = d; }
     if (!sc.lines.length) warns.push('The scene "' + (sc.title || sc.id || '') + '" has no lines.'); }
   const h = isObj(ch.hidden) ? ch.hidden : {};
   if (ctx.fortune && ctx.fortune.length && !(Array.isArray(h.fortune_used) && h.fortune_used.length)) warns.push('The reply does not say how this turn’s fortune was used (hidden.fortune_used).');
@@ -153,7 +160,7 @@ export function checkReply(prev, reply, ctx = {}) {
     const old = ((prev.hidden || {}).threads || []).find(x => x.id === (t && t.id));
     if (old && ['resolved', 'abandoned'].includes(old.status) && t.status && ['dormant', 'building'].includes(t.status) && !t.note) warns.push('Thread "' + (old.title || old.id) + '" was ' + old.status + ' and is open again without a note why.');
   }
-  if (ch.reports.some(r => r && r.battle) && !isObj(ch.battleDemo)) warns.push('A letter is marked as a battle account, but battleDemo was not set for that battle; the ground he sees will be the old one.');
+  if (ch.reports.some(r => r && r.battle) && !isObj(ch.battleDemo)) warns.push('A letter is marked as a battle account, but battleDemo was not set for that battle; the ground the player sees will be the old one.');
   // movements are drawn on his map: a line needs two points; side and status pick its colour and dash
   if (Array.isArray(ch.movements)) ch.movements = ch.movements.filter(m => { if (!isObj(m) || !m.id) return false; if (m._remove) return true;
     const known = ((prev.movements || []).find(x => x.id === m.id)), pts = m.pts || (known && known.pts);
@@ -163,12 +170,12 @@ export function checkReply(prev, reply, ctx = {}) {
     return true; });
   const route = ch.player && ch.player.route;
   if (Array.isArray(route)) ch.player.route = route.filter((s, i) => { const ok = isObj(s) && typeof s.date === 'string' && s.date >= prev.date && s.date <= date && (s.place === 'road' || locIds.has(s.place));
-    if (!ok) fixes.push('Stage ' + (i + 1) + ' of his route was left out (it needs a date within the turn and a location id or "road").'); return ok; });
+    if (!ok) fixes.push('Stage ' + (i + 1) + ' of the player’s route was left out (it needs a date within the turn and a location id or "road").'); return ok; });
   // in bed: the days he keeps to it ({from, to?} within or after the turn's start); health stays the word for how he is
   const ab = ch.player && ch.player.abed;
   if (ab != null) { const iso = d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
     if (!isObj(ab) || !iso(ab.from) || (ab.to != null && (!iso(ab.to) || ab.to < ab.from))) { fixes.push('player.abed needs {"from": a date, "to": a later date or none}; it was left out.'); delete ch.player.abed; }
-    else { if (ab.from < prev.date) ab.from = prev.date; if (ab.to === undefined && !['ill', 'gravely ill'].includes(ch.player.health || prev.player.health)) warns.push('player.abed has no end, but he is not ill: he leaves his bed at once. Give "to", or health "ill".'); } }
+    else { if (ab.from < prev.date) ab.from = prev.date; if (ab.to === undefined && !['ill', 'gravely ill'].includes(ch.player.health || prev.player.health)) warns.push('player.abed has no end, but the player is not ill: they leave their bed at once. Give "to", or health "ill".'); } }
   if (isObj(ch.battleDemo)) checkBattle(prev.battleDemo, ch.battleDemo, warns, fixes);
   const en = ch.battleDemo && ch.battleDemo.enemy; if (en && en.temper && !TEMPERS.includes(en.temper)) { fixes.push('Unknown enemy temper "' + en.temper + '" read as steady.'); en.temper = 'steady'; }
   for (const k of PLAYER_KEYS) if (k in ch && k !== 'campaignId') fixes.push('A change to ' + k + ' was ignored: it is yours to set.');
@@ -176,6 +183,10 @@ export function checkReply(prev, reply, ctx = {}) {
   if (ctx.seal) { if (reply.seal && reply.seal !== ctx.seal) errors.push('This reply was written for a different packet (its seal ' + reply.seal + ' is not this turn’s ' + ctx.seal + '). Paste the reply to the latest packet.'); else if (!reply.seal) warns.push('The reply does not carry this turn’s seal.'); }
   if (ctx.volumeDue && !(Array.isArray(h.volumes) && h.volumes.length)) warns.push('A volume of the chronicle was due this turn (hidden.volumes).');
   if (w && w.tempo && !TEMPO.includes(w.tempo)) { fixes.push('Unknown tempo "' + w.tempo + '" was left out.'); delete w.tempo; }
+  // a place's own tempo: a location, or a fortress by its place (f-glogau → glogau)
+  if (w && w.tempoAt != null) { const places = new Set([...locIds, ...(prev.fortresses || []).map(f => f && String(f.id).replace(/^f-/, ''))]);
+    if (!isObj(w.tempoAt)) { fixes.push('world.tempoAt must be {place id: tempo}; it was left out.'); delete w.tempoAt; }
+    else for (const [k, v] of Object.entries(w.tempoAt)) if (v !== null && (!TEMPO.includes(v) || !places.has(k))) { fixes.push('world.tempoAt "' + k + '": "' + v + '" was left out (' + (places.has(k) ? 'unknown tempo' : 'not a location or fortress on the map') + ').'); delete w.tempoAt[k]; } }
   if (Array.isArray(ch.gazette)) ch.gazette = ch.gazette.filter((g, i) => { if (!isObj(g) || !g.date || !Array.isArray(g.items) || !g.items.length) { fixes.push('Gazette issue ' + (i + 1) + ' had no date or items and was left out.'); return false; } g.id = g.id || 'gz-' + g.date; if (g.date < prev.date) g.date = prev.date; if (g.date > ch.date) g.date = ch.date; return true; });
   // the phases of an account: times, formations by id, losses, arrows; what cannot be drawn is left out with a fix
   const phs = ch.battleDemo && ch.battleDemo.phases;
@@ -211,7 +222,7 @@ function checkBattle(old, bd, warns, fixes) {
     normalizeUnit(u); }
   const fresh = bd.id && (!old || bd.id !== old.id);
   if (fresh) { const miss = ['title', 'center', 'date', 'ground'].filter(k => !bd[k]); if (miss.length) warns.push('The new battle "' + bd.id + '" has no ' + miss.join(', ') + '.');
-    const sides = new Set((Array.isArray(bd.units) ? bd.units : []).map(u => u && u.side)); if (!sides.has('A') || !sides.has('B')) warns.push('The new battle "' + bd.id + '" needs units for both sides (A his, B the enemy); the field replaces the old one whole.'); }
+    const sides = new Set((Array.isArray(bd.units) ? bd.units : []).map(u => u && u.side)); if (!sides.has('A') || !sides.has('B')) warns.push('The new battle "' + bd.id + '" needs units for both sides (A the player’s, B the enemy); the field replaces the old one whole.'); }
   if ('ground' in bd) bd.ground = cleanGround(bd.ground, fixes, warns);
   if (Array.isArray(bd.units)) bd.units = bd.units.filter((u, i) => {
     if (!isObj(u) || typeof u.id !== 'string') { fixes.push('Unit ' + (i + 1) + ' had no id and was left out.'); return false; }
@@ -285,7 +296,7 @@ export function liveState(state) {
   // the opening's Mollwitz preview is an illustration, never the live field: its units go only once a reply has made it a real battle
   const preview = bd && bd.id === 'bd-demo' && !bd.enemy && !bd.aftermath;
   const phaseIndex = bd && Array.isArray(bd.phases) && bd.phases.length ? bd.phases.map(p => (p.t ? p.t + ' ' : '') + (p.label || '')).join(' · ') : undefined;
-  const battleNear = bd && !preview && (bd.enemy || bd.aftermath || (state.world || {}).tempo === 'campaigning' || state.player.mode === 'field');
+  const battleNear = bd && !preview && (bd.enemy || bd.aftermath || [(state.world || {}).tempo, ...Object.values((state.world || {}).tempoAt || {})].includes('campaigning') || state.player.mode === 'field');
   if (preview) s.battleDemo = { id: bd.id, note: 'No battle has been fought or described yet; this is the page\'s preview field. For a battle, give battleDemo a new id with its place, date, ground and units.' };
   else if (bd && !battleNear) s.battleDemo = { id: bd.id, title: bd.title, place: bd.place, center: bd.center, date: bd.date, ground: bd.ground, phases: phaseIndex, note: 'Units and positions are sent when a battle may come (campaigning, an enemy commander named, or the player with the army).' };
   else if (bd) s.battleDemo = { id: bd.id, date: bd.date, title: bd.title, place: bd.place, center: bd.center, enemy: bd.enemy, aftermath: bd.aftermath, ground: bd.ground, phases: phaseIndex, unitsAs: 'id, side, type, e, n, facing', units: (bd.units || []).map(u => [u.id, u.side, u.kind || u.type, u.e, u.n, u.facing]) };
@@ -306,15 +317,15 @@ Return ONE JSON object (a fenced json block is fine). The page reads only that o
 - These lists merge by id — give only new or changed items, each with its id and only the fields that changed; {"id": "…", "_remove": true} removes one: ${BY_ID.join(', ')}.
 - These lists only grow — give only the new entries: ${APPEND.join(', ')}, and each list in hidden.memory.
 - Every other list you give replaces the old one whole (reports, knowledge, remarks, hidden.standingOrders, refugees, decision.options …).
-- Cleared unless you give them again: reports, gazette, overheard, whereabouts, decision, scene, world.weather, world.scene, hidden.decisions, hidden.fortune_used.
+- Cleared unless you give them again: reports, gazette, overheard, whereabouts, decision, scene, world.weather, world.sights, hidden.decisions, hidden.fortune_used.
 - Never change: ${PLAYER_KEYS.join(', ')}.
 - Player-facing text holds only what the character could know. Keep ids stable.
-- Optional, give only when they apply: gazette (the Diarium issues of this turn), movements (forces on the move as he has heard of them, drawn on his map: {"id","label","side":"habsburg"|"prussia"|"bavaria"|"saxony"|"france","status":"confirmed"|"reported"|"rumour","reported":"YYYY-MM-DD","source","claim","pts":[[lat,lon],[lat,lon],…]} from where they were to where they are said to go; change one by id as news comes), weather (only the days it changes; each day keeps the last weather given), overheard, whereabouts, decision (only a real fork), scene (an audience he asked for: {"id","title","setting","participants":[{"id","name"}],"lines":[{"who","text"}]; his part goes as narration (who "Narration") or in the words of his orders (who "player"),"commitments":["…"],"status":"closed"}).
-- Illness: player.health says how he is at the end of the turn. player.abed {"from","to"} gives the days he keeps to his bed (leave out "to" if he is still abed); without it, "ill" or "gravely ill" keeps him abed the whole turn. While abed, those whereabouts put with him that day come to his bedside, with his household; anyone else is reached by a note. He cannot inspect, ride out or attend the Conference.
-- A journey: give player.locationId where he ends the turn, and player.route [{"date","place"}] (place a location id or "road") if he stops anywhere or arrives on a day other than the distance implies. Without a route he is on the road from the first day of the turn and arrives after the usual days for the distance.
-- A battle account (a report with "battle": true) needs battleDemo for that battle. The same battle (same id): move or remove its units by id. A new battle takes a new id and replaces the whole field: give id, title, place, center [lat, lon], date, ground and every unit of both sides ({"id","side":"A" his | "B" the enemy,"type":${Object.keys(TROOPS).map(k => '"' + k + '"').join('|')},"name","e","n","facing"}, metres east and north of center, within ±${FIELD.w / 2} and ±${FIELD.h / 2}; facing in degrees, 0 = north). For a battle outside this campaign, write an ordinary letter instead.
+- Optional, give only when they apply: gazette (the Diarium issues of this turn), movements (forces on the move as the player has heard of them, drawn on their map: {"id","label","side":"habsburg"|"prussia"|"bavaria"|"saxony"|"france","status":"confirmed"|"reported"|"rumour","reported":"YYYY-MM-DD","source","claim","pts":[[lat,lon],[lat,lon],…]} from where they were to where they are said to go; change one by id as news comes), weather (only the days it changes; each day keeps the last weather given), overheard, whereabouts, decision (only a real fork), scene (when the player meets someone in person — an audience, a Council they sit in, a visitor at their bed — the meeting that mattered most this turn: {"id","title","date":"YYYY-MM-DD" (the day of the meeting),"setting","participants":[{"id","name"}],"lines":[{"who","text"}]; the player’s part goes as narration (who "Narration") or in the words of their orders (who "player"),"commitments":["…"],"status":"closed"}).
+- Illness: player.health says how the player is at the end of the turn. player.abed {"from","to"} gives the days the player keeps to their bed (leave out "to" if they are still abed); without it, "ill" or "gravely ill" keeps them abed the whole turn. While abed, those whereabouts put with them that day come to their bedside, with their household; anyone else is reached by a note. They cannot inspect, ride out or attend the Conference.
+- A journey: give player.locationId where the player ends the turn, and player.route [{"date","place"}] (place a location id or "road") if they stop anywhere or arrive on a day other than the distance implies. Without a route they are on the road from the first day of the turn and arrives after the usual days for the distance.
+- A battle account (a report with "battle": true) needs battleDemo for that battle. The same battle (same id): move or remove its units by id. A new battle takes a new id and replaces the whole field: give id, title, place, center [lat, lon], date, ground and every unit of both sides ({"id","side":"A" the player’s | "B" the enemy,"type":${Object.keys(TROOPS).map(k => '"' + k + '"').join('|')},"name","e","n","facing"}, metres east and north of center, within ±${FIELD.w / 2} and ±${FIELD.h / 2}; facing in degrees, 0 = north). For a battle outside this campaign, write an ordinary letter instead.
 - battleDemo.ground is the field it is drawn on and the table battle is fought over: one of ${GROUNDS.join(', ')} (the library, real ground: no features needed), or for a field elsewhere {"kind": ${GROUND_KINDS.map(k => '"' + k + '"').join(' | ')}, "villages":[{"name","e","n","size": ${Object.keys(VILLAGE_SIZES).map(k => '"' + k + '"').join(' | ')}}], "woods":[{"name","e","n","w","d"}] (w, d its extent in metres east–west and north–south), "streams":[{"name","kind":"stream"|"river","path":[[e,n],…],"crossings":[[e,n]]}] (bridges and fords), "heights":[{"name","e","n","r","h"}] (radius and height in metres)}. The page lays that kind of country on the real relief at center; name the features the account mentions and put them where it says. Units stand in metres from center (e east, n north) on a field ${FIELD.w} m by ${FIELD.h} m. A unit's type is one of ${Object.keys(TROOPS).map(k => k + ' (' + TROOPS[k].word.toLowerCase() + ')').join(', ')}. Woods and villages slow troops and give cover; water stops them except at crossings.
-- A battle account may carry battleDemo.phases, the battle as his staff describe it, in order: [{"t": "07:30", "label": "…", "text": "what the staff report of this hour", "units": [{"id", "e", "n", "facing", "form": ${PHASE_FORMS.map(k => '"' + k + '"').join(' | ')}, "losses": ${LOSSES.map(k => '"' + k + '"').join(' | ')}}], "arrows": [{"side": "A" | "B", "kind": ${ARROW_KINDS.map(k => '"' + k + '"').join(' | ')}, "p": [[e, n], …]}]}]. battleDemo.units is where they stood before the first phase; a phase names only the formations that moved or changed, and losses run on from phase to phase. The packet carries only the phase index; give the whole list again when it changes. For a battle outside this campaign, write an ordinary letter instead.
+- A battle account may carry battleDemo.phases, the battle as the player’s staff describe it, in order: [{"t": "07:30", "label": "…", "text": "what the staff report of this hour", "units": [{"id", "e", "n", "facing", "form": ${PHASE_FORMS.map(k => '"' + k + '"').join(' | ')}, "losses": ${LOSSES.map(k => '"' + k + '"').join(' | ')}}], "arrows": [{"side": "A" | "B", "kind": ${ARROW_KINDS.map(k => '"' + k + '"').join(' | ')}, "p": [[e, n], …]}]}]. battleDemo.units is where they stood before the first phase; a phase names only the formations that moved or changed, and losses run on from phase to phase. The packet carries only the phase index; give the whole list again when it changes. For a battle outside this campaign, write an ordinary letter instead.
 
 Skeleton (fill it from the story; leave out what did not change):
 {"kind":"turn","schemaVersion":3,"campaignId":"${cid}","turn":${n},"parentTurn":${t0},"seal":"${seal}","changes":{
@@ -322,9 +333,9 @@ Skeleton (fill it from the story; leave out what did not change):
  "player":{"locationId":"…","mode":"court","health":"well"},
  "reports":[{"id":"t${n}-1","from_id":"…","place":"…","dated":"…","arrives":"…","via":"courier","source":"…","category":"…","title":"…","text":"…","claim":"invention","re":["T${t0}-1"]}],
  "decision":{"id":"…","title":"…","options":[{"id":"…","by":"…","title":"…","objective":"…","reasoning":"…","risks":"…"}]},
- "world":{"tempo":"winter quarters","weather":{"YYYY-MM-DD":"overcast"},"scene":{"vienna":["recruiting"]}},
+ "world":{"tempo":"winter quarters","tempoAt":{"glogau":"campaigning"},"weather":{"YYYY-MM-DD":"overcast"},"sights":{"vienna":["recruiting"]}},
  "gazette":[{"date":"YYYY-MM-DD","items":[{"head":"…","text":"…"}]}],
- "household":{"purse":"what his steward would say of his money, in a sentence"},
+ "household":{"purse":"what the player’s steward would say of their money, in a sentence"},
  "whereabouts":[{"date":"…","place":"vienna","who":["…","…"],"doing":"…"}],
  "cast":[{"id":"…","place":"…"}],
  "remarks":["…"],
@@ -347,7 +358,7 @@ export const rulesVersion = ({ contract, almanac }) => fingerprint(contract.trim
 export const rulesFileName = v => 'cabinet-of-war-rules-' + v + '.md';
 export function rulesText({ contract, almanac }) {
   const v = rulesVersion({ contract, almanac });
-  return '# CABINET OF WAR — the rules (version ' + v + ')\n\nThe standing rules of the campaign: how to adjudicate, how the world reaches the player, the reply format, and the almanac\'s systems and stakes. Each turn\'s packet carries the rest (the state, his orders, the fortune, the threads and almanac entries in play) and names the rules version it expects.\n\n'
+  return '# CABINET OF WAR — the rules (version ' + v + ')\n\nThe standing rules of the campaign: how to adjudicate, how the world reaches the player, the reply format, and the almanac\'s systems and stakes. Each turn\'s packet carries the rest (the state, the player’s orders, the fortune, the threads and almanac entries in play) and names the rules version it expects.\n\n'
     + contract.trim() + '\n\n' + replyFormat(null) + '\n\n## Almanac: systems and stakes\n' + systemsText(almanac) + '\n';
 }
 export function buildPacket({ state, contract, orders, almanac, fortune, wake, trust, choices, endRequested, purse, waiting, rulesInProject }) {
@@ -359,18 +370,18 @@ export function buildPacket({ state, contract, orders, almanac, fortune, wake, t
   const tr = Object.entries(trust || {}), trusts = tr.filter(([, v]) => v === 'trust').map(([k]) => k), doubts = tr.filter(([, v]) => v === 'doubt').map(([k]) => k);
   const P = !!rulesInProject, rv = P ? rulesVersion({ contract, almanac }) : '';
   return '# CABINET OF WAR — turn ' + state.turn + ' → ' + (state.turn + 1) + ' · ' + longDate(state.date) + '\n\nAct as a historian and impartial adjudicator. '
-    + (P ? 'The rules are in this project\'s knowledge: the file ' + rulesFileName(rv) + ' (rules version ' + rv + '). Follow them. If the project has no rules file of version ' + rv + ', do not adjudicate: tell the player to download the current rules (Notebook → The record) and add them to the project. This packet carries the rest: the current state, his orders, this turn\'s fortune and the parts of the almanac now in play.'
-      : 'This packet is self-contained: the current state, his orders, this turn\'s fortune and the parts of the almanac now in play.\n\n' + contract.trim())
-    + '\n\n## When to wake him\n' + (wake || 'When there is news he must decide on.')
-    + (endRequested ? '\n\n## He ends his service\nHe asks to end his service here. End the campaign this turn: set "ended" and write the epilogue.' : '')
+    + (P ? 'The rules are in this project\'s knowledge: the file ' + rulesFileName(rv) + ' (rules version ' + rv + '). Follow them. If the project has no rules file of version ' + rv + ', do not adjudicate: tell the player to download the current rules (Notebook → The record) and add them to the project. This packet carries the rest: the current state, the player’s orders, this turn\'s fortune and the parts of the almanac now in play.'
+      : 'This packet is self-contained: the current state, the player’s orders, this turn\'s fortune and the parts of the almanac now in play.\n\n' + contract.trim())
+    + '\n\n## When to wake the player\n' + (wake || 'When there is news the player must decide on.')
+    + (endRequested ? '\n\n## The player ends their service\nThe player asks to end their service here. End the campaign this turn: set "ended" and write the epilogue.' : '')
     + '\n\n' + orders.trim()
-    + '\n\n## His judgement of sources\nTrusts: ' + (trusts.join('; ') || '(none marked)') + '\nDoubts: ' + (doubts.join('; ') || '(none marked)')
+    + '\n\n## The player’s judgement of sources\nTrusts: ' + (trusts.join('; ') || '(none marked)') + '\nDoubts: ' + (doubts.join('; ') || '(none marked)')
     + ((waiting || []).length ? '\n\n## Earlier orders with no answer yet\nA letter that answers one of these carries its reference in "re" like this turn\'s.\n' + waiting.map(o => '- [' + o.ref + '] ' + (o.line.length > 200 ? o.line.slice(0, 200) + ' …' : o.line)).join('\n') : '')
-    + '\n\n## Urgent letters he answered this turn\n' + ((choices || []).map(c => '- On “' + c.title + '” (' + c.id + '): he chose “' + c.label + '”' + (c.byDefault ? ' (the day passed without his answer; the default applied)' : '') + '.').join('\n') || '(none)')
-    + '\n\n## His own purse\n' + (purse && purse.length ? 'Orders he pays for himself: ' + purse.join(' | ') : '(nothing from his own purse this turn)')
+    + '\n\n## Urgent letters the player answered this turn\n' + ((choices || []).map(c => '- On “' + c.title + '” (' + c.id + '): the player chose “' + c.label + '”' + (c.byDefault ? ' (the day passed without their answer; the default applied)' : '') + '.').join('\n') || '(none)')
+    + '\n\n## The player’s own purse\n' + (purse && purse.length ? 'Orders the player pays for themselves: ' + purse.join(' | ') : '(nothing from the player’s own purse this turn)')
     + (volumeDue(state) ? '\n\n## A volume closes\nThis reply makes turn ' + (state.turn + 1) + '. Add one entry to hidden.volumes: {"n": ' + ((state.turn + 1) / 10) + ', "turns": "' + (state.turn - 8) + '–' + (state.turn + 1) + '", "title", "text"} — these ten turns, this reply\'s events included, in at most 200 words. Then write hidden.chronicle afresh as the opening of the next volume: how things stand now, who wants what, what is unresolved.' : '')
     + '\n\n## The seal\nThis packet\'s seal is ' + sealOf(state) + '. Copy it into the reply as "seal".' + ((state.record || {}).ironman ? ' The record is sealed (ironman): this turn cannot be replayed.' : '')
-    + '\n\n## Fortune for this turn\n' + (fortune || []).join(', ') + '\nUse in order for genuinely uncertain outcomes; low is bad for him and his side, high is good. Record each one you use in hidden.fortune_used; rolls left over are simply unused.'
+    + '\n\n## Fortune for this turn\n' + (fortune || []).join(', ') + '\nUse in order for genuinely uncertain outcomes; low is bad for the player and their side, high is good. Record each one you use in hidden.fortune_used; rolls left over are simply unused.'
     + (P ? '' : '\n\n## Almanac: systems and stakes\n' + systemsText(almanac))
     + (cal ? '\n\n## Almanac: calendar anchors in the next four months (reference, not script)\n' + cal : '')
     + '\n\n## Threads (hidden.threads)\n' + (index || '(none)')

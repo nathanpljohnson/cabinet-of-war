@@ -931,6 +931,7 @@ body.rm .leaflet-pdxSel-pane{animation:none}
 #pdx-modes button:focus-visible{outline:2px solid #ffe7a8;outline-offset:1px}
 #pdx-modes button[aria-pressed=true]{color:#fff4d2;border-color:#f3d27a;background:radial-gradient(circle at 50% 32%,#94712f,#3d2b13);box-shadow:0 0 12px rgba(243,210,122,.5),inset 0 1px 0 rgba(255,240,200,.3)}
 #pdx-modes svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+#pdx-modes .pdx-sep{width:1px;margin:4px 3px;background:#6b5636}
 #pdx-modes kbd{position:absolute;right:3px;bottom:1px;font:600 8px var(--caps);color:#c9b07a;opacity:.85}
 #pdx-legend{position:fixed;z-index:510;right:var(--pdx-r,450px);bottom:140px;width:290px;padding:8px 11px 9px;background:linear-gradient(180deg,rgba(40,30,22,.94),rgba(22,16,12,.94));border:1px solid var(--line);box-shadow:0 6px 16px rgba(0,0,0,.45);color:var(--vellum);font:13px/1.35 var(--fell);transition:right .25s}
 #pdx-legend .n{font:600 10px var(--caps);letter-spacing:.16em;text-transform:uppercase;color:var(--brass);margin-bottom:2px}
@@ -1020,9 +1021,10 @@ body:has(#armybar:not(:empty)) #pdx-legend{bottom:222px}
  <div class="eyebrow tt">Measure &amp; notes</div>
  <div class="tgrid"><button class="btn small" id="tool-measure">Measure (m)</button><button class="btn small" id="tool-note">Note (n)</button><button class="btn small quiet" id="tool-clear">Clear</button></div>
  <div class="key" id="measure-out"></div><div class="key" id="scale-note"></div>
- <div class="eyebrow tt">Reach rings</div>
+ <div class="eyebrow tt">Marching rings</div>
  <div class="tgrid"><select id="reach-place" style="width:auto"></select><button class="btn small" id="reach-btn">Show</button></div>
- <div class="tgrid"><label><input type="checkbox" id="r-courier" checked> courier</label><label><input type="checkbox" id="r-foot" checked> foot</label><label><input type="checkbox" id="r-wagon"> wagons</label></div>
+ <div class="tgrid"><label><input type="checkbox" id="r-foot" checked> foot</label><label><input type="checkbox" id="r-wagon" checked> wagons</label></div>
+ <div class="key">1, 3 and 7 days on the march. For couriers, use the Courier reach map mode (R).</div>
  <div class="eyebrow tt">Overview</div><div id="minimap"></div>
  <div class="eyebrow tt">Comfort</div>
  <label><input type="checkbox" id="a-motion"> Reduce motion</label><label><input type="checkbox" id="a-contrast"> High-contrast labels</label><label><input type="checkbox" id="a-sound"> Ambient sound</label>
@@ -1068,7 +1070,7 @@ const PMODES=[
    icon:'<path d="M3 19h18M4 19 3 8l5 4 4-7 4 7 5-4-1 11"/>',ov:{routes:0,moves:0,forts:0}},
   {id:'terrain',key:'e',name:'Terrain',hint:'Relief, rivers and forests without political colour. Modern elevation, coast and forest data; ground detail around towns and the battlefield is illustrative.',
    icon:'<path d="M2 20 9 8l4 6 3-4 6 10z"/>',ov:{routes:0,moves:0,forts:0}},
-  {id:'reach',key:'r',name:'Courier reach',hint:'Days for a courier from your location: your staff’s estimate (same rule as the reach rings), not live knowledge.',
+  {id:'reach',key:'r',name:'Courier reach',hint:'Days for a courier from your location: your staff’s estimate (same rule as the marching rings), not live knowledge.',
    icon:'<path d="M6 3h12M6 21h12M7 3c0 5 10 6 10 9s-10 4-10 9M17 3c0 5-10 6-10 9s10 4 10 9"/>',ov:{routes:0,moves:0,forts:0}},
   {id:'trade',key:'t',name:'Trade',hint:'Roads, rivers and salt routes (placeholders until sourced).',
    icon:'<path d="M12 3v18M7 21h10M4 7h16M6 7l-3 7a3 3 0 0 0 6 0zM18 7l-3 7a3 3 0 0 0 6 0z"/>',ov:{routes:1,moves:0,forts:0}},
@@ -1196,6 +1198,11 @@ function pdxUI(){
   const bar=el('div',null,null,{id:'pdx-modes',role:'toolbar','aria-label':'Map modes'});
   for(const m of PMODES){const b=el('button',null,null,{type:'button','data-mode':m.id,'aria-pressed':'false','aria-label':m.name+' map mode ('+m.key.toUpperCase()+')',title:m.name+' ('+m.key.toUpperCase()+')'});
     b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true">'+m.icon+'</svg><kbd>'+m.key.toUpperCase()+'</kbd>';b.onclick=()=>pdxSetMode(m.id);bar.append(b)}
+  // the map's tools and layers open from here too, so they are found on the map itself
+  bar.append(el('span',null,'pdx-sep',{'aria-hidden':'true'}));
+  for(const [id,tog,name,icon] of [['tools','toggleT','Map tools','<path d="M12 3 6 21M12 3l6 18M8.2 15h7.6"/><circle cx="12" cy="3" r="1.2"/>'],['layers','toggleY','Map layers','<path d="m12 4 9 5-9 5-9-5z"/><path d="m3 14 9 5 9-5"/>']]){
+    const b=el('button',null,null,{type:'button','data-panel':id,'aria-pressed':'false','aria-label':name,title:name});b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true">'+icon+'</svg>';b.onclick=()=>$(tog).click();bar.append(b)}
+  document.addEventListener('mappanels',()=>bar.querySelectorAll('[data-panel]').forEach(b=>b.setAttribute('aria-pressed',$(b.dataset.panel).classList.contains('on'))));
   document.body.append(bar,el('div',null,null,{id:'pdx-legend','aria-live':'polite'}),el('div',null,null,{id:'pdx-tip',role:'tooltip'}));
   const dock=()=>{const r=$('right'),hid=r.classList.contains('hide')||innerWidth<=860;document.documentElement.style.setProperty('--pdx-r',(hid?14:r.offsetWidth+30)+'px')};
   new MutationObserver(dock).observe($('right'),{attributes:true,attributeFilter:['class']});addEventListener('resize',dock);dock();
@@ -1311,12 +1318,16 @@ function syncView(){
 }
 function updateScale(){if(!$('scale-note'))return;const z=map.getZoom(),mpp=40075016*Math.cos(map.getCenter().lat*Math.PI/180)/(Math.pow(2,z)*256);$('scale-note').textContent='1 px ≈ '+(mpp<10?mpp.toFixed(1):Math.round(mpp))+' m · battalion front ≈ '+Math.round(150/mpp)+' px'}
 
+/* the day the page shows: the 3D page walks a turn day by day (w3d/shell.js), so the map knows only the post that has come by then */
+function shownDay(){return window.__w3dToday?window.__w3dToday():state.date}
+function arrivedReports(){const d=shownDay();return state.reports.filter(r=>(r.arrives||r.dated)<=d)}
+function heardMoves(){const d=shownDay();return(state.movements||[]).filter(m=>!m.reported||m.reported<=d)}
 /* ----- pins ----- */
 function renderPins(){
   for(const k in pinLayer)map.removeLayer(pinLayer[k]);pinLayer={};
   for(const loc of state.locations){
     const isYou=state.player.locationId===loc.id,kind=isYou?'court':loc.kind==='foreign'?'foreign':'';
-    const rs=state.reports.filter(r=>r.place===loc.id).map(r=>r.dated).sort().pop(),age=rs?Math.round((new Date(state.date)-new Date(rs))/864e5):null;
+    const rs=arrivedReports().filter(r=>r.place===loc.id).map(r=>r.dated).sort().pop(),age=rs?Math.round((new Date(shownDay())-new Date(rs))/864e5):null;
     const html='<div class="seal-pin lab-'+(loc.lab||'e')+' '+kind+(selectedPlace===loc.id?' sel':'')+(age!=null&&age>7?' stale':'')+'" role="button" aria-label="'+loc.name.replace(/"/g,'')+'"><i></i>'+(isYou?'<div class="you-ring"></div>':'')+'<span>'+loc.name.replace(/[<>&]/g,'')+(isYou?' · you':'')+'</span></div>';
     const m=L.marker([loc.lat,loc.lon],{icon:L.divIcon({className:'',html,iconSize:[0,0]}),keyboard:true,title:loc.name+(age!=null?' — last report '+age+' d ago':''),riseOnHover:true,zIndexOffset:isYou?1000:500});
     m.on('click',()=>selectPlace(loc.id));m.on('keypress',e=>{if(e.originalEvent.key==='Enter')selectPlace(loc.id)});m.addTo(map);pinLayer[loc.id]=m}
@@ -1345,9 +1356,9 @@ function initRoutes(){
   routesLayer.addTo(map)
 }
 function initMoves(){
-  const DASH={confirmed:null,reported:'12 8',rumour:'3 9'};
-  for(const m of state.movements||[]){const pts=spline(m.pts,8),c=SIDECOL[m.side]||'#fff',w=m.status==='confirmed'?5:4;
-    const age=Math.max(0,Math.round((new Date(state.date)-new Date(m.reported))/864e5)),op=Math.max(.38,1-age/14);
+  const DASH={confirmed:null,reported:'12 8',rumour:'3 9'};movesLayer.clearLayers();
+  for(const m of heardMoves()){const pts=spline(m.pts,8),c=SIDECOL[m.side]||'#fff',w=m.status==='confirmed'?5:4;
+    const age=Math.max(0,Math.round((new Date(shownDay())-new Date(m.reported))/864e5)),op=Math.max(.38,1-age/14);
     const html='<b>'+m.label+'</b><br>'+m.status+' · reported '+fmt(m.reported)+' ('+age+' d old)<br>Source: '+m.source+'<br>'+badge(m.claim)+(age>5?' <span class="meta">may have moved since</span>':'');
     L.polyline(pts,{color:'#1a120b',weight:w+4,opacity:.55*op,interactive:false}).addTo(movesLayer);
     L.polyline(pts,{color:c,weight:w,opacity:op,dashArray:DASH[m.status],lineCap:'round',interactive:true}).bindPopup(html).addTo(movesLayer);
@@ -1716,8 +1727,10 @@ function initTools(){
     const k={'1':'europe','2':'theatre','3':'vienna','4':'prague','5':'battle'}[e.key];if(k)BOOK[k]();
     if(e.key==='m')setTool(toolMode==='measure'?null:'measure');
     if(e.key==='n')setTool(toolMode==='note'?null:'note')});
-  $('toggleT').onclick=()=>{const o=$('tools').classList.toggle('on');$('toggleT').setAttribute('aria-expanded',o);if(o)initMini()};
-  $('toggleY').onclick=()=>{const o=$('layers').classList.toggle('on');$('toggleY').setAttribute('aria-expanded',o)};
+  // one panel at a time: they open in the same place
+  const panel=(id,other)=>{const o=$(id).classList.toggle('on');if(o)$(other).classList.remove('on');$('toggleT').setAttribute('aria-expanded',$('tools').classList.contains('on'));$('toggleY').setAttribute('aria-expanded',$('layers').classList.contains('on'));if($('tools').classList.contains('on'))initMini();document.dispatchEvent(new Event('mappanels'))};
+  $('toggleT').onclick=()=>panel('tools','layers');
+  $('toggleY').onclick=()=>panel('layers','tools');
   // layers
   $('ly-places').onchange=e=>{placesOn=e.target.checked;syncPlaces()};
   $('ly-natural').onchange=e=>{e.target.checked?natLabels.addTo(map):map.removeLayer(natLabels)};
@@ -1754,7 +1767,7 @@ function drawMeasure(){measureLayer.clearLayers();if(!measurePts.length)return;
   const out=Math.round(km)+' km (road allowance +12%) — foot ≈ '+Math.max(.1,km/(KMD.foot*f)).toFixed(1)+' d · horse ≈ '+Math.max(.1,km/(KMD.horse*f)).toFixed(1)+' d · wagons ≈ '+Math.max(.1,km/(KMD.wagon*f)).toFixed(1)+' d · courier ≈ '+Math.max(.1,km/(KMD.courier*f)).toFixed(1)+' d';
   $('measure-out').textContent=out+' ('+seasonName+')';status(out)}
 function showReach(id){reachLayer.clearLayers();const l=state.locations.find(x=>x.id===id);if(!l)return;const f=season()*.8;
-  const arms=[['courier','#7fa6ee',$('r-courier').checked],['foot','#f3d27a',$('r-foot').checked],['wagon','#d98a5a',$('r-wagon').checked]];
+  const arms=[['foot','#f3d27a',$('r-foot').checked],['wagon','#d98a5a',$('r-wagon').checked]];
   for(const [a,col,on] of arms){if(!on)continue;for(const d of[1,3,7]){const r=KMD[a]*d*f*1000;if(r>1800000)continue;
     L.circle([l.lat,l.lon],{radius:r,color:col,weight:2,fill:false,dashArray:d===1?null:'8 6',opacity:.9,interactive:false}).addTo(reachLayer);
     L.marker(destPoint(l,r,a==='courier'?10:a==='foot'?100:190),{interactive:false,icon:L.divIcon({className:'',html:'<div class="mv-lbl">'+a+' · '+d+' d</div>',iconSize:[0,0]})}).addTo(reachLayer)}}
@@ -1778,11 +1791,11 @@ function initMini(){if(mini)return;mini=L.map('minimap',{zoomControl:false,attri
   const upd=()=>rect.setBounds(map.getBounds());map.on('move',upd);mini.on('click',e=>map.flyTo(e.latlng,Math.max(map.getZoom(),5),{duration:.8}))}
 /* timeline */
 function buildTimeline(){const t=$('timeline');t.replaceChildren();const ev=[];
-  for(const r of state.reports)ev.push({d:r.dated,txt:r.title,kind:'report',place:r.place});
-  for(const m of state.movements||[])ev.push({d:m.reported,txt:m.label,kind:'move',pt:m.pts[0]});
-  for(const l of state.ledger||[])ev.push({d:l.date,txt:l.text,kind:'ledger'});
+  for(const r of arrivedReports())ev.push({d:r.dated,txt:r.title,kind:'report',place:r.place});
+  for(const m of heardMoves())ev.push({d:m.reported,txt:m.label,kind:'move',pt:m.pts[0]});
+  for(const l of state.ledger||[])if(!l.date||l.date<=shownDay())ev.push({d:l.date,txt:l.text,kind:'ledger'});
   ev.sort((a,b)=>a.d<b.d?-1:1);
-  const h=el('span',fmt(state.date)+' · now','tl-now');t.append(h);
+  const h=el('span',fmt(shownDay())+' · now','tl-now');t.append(h);
   for(const e of ev){const c=el('button',fmt(e.d)+' — '+e.txt.slice(0,46),'tl-chip '+e.kind);c.onclick=()=>{if(e.place)selectPlace(e.place);else if(e.pt)map.flyTo(e.pt,7,{duration:.8})};t.append(c)}}
 /* sound (WebAudio, synthesised: no files) */
 let ac=null,windG=null,bellT=null;
@@ -1801,12 +1814,12 @@ function renderPlace(){
   const loc=state.locations.find(l=>l.id===selectedPlace);if(!loc)return;
   const c=el('div',null,'card');c.style.borderColor='var(--brass)';
   c.append(el('div','Selected place','eyebrow'),el('h3',loc.name),el('p',loc.report));
-  const reps=state.reports.filter(r=>r.place===loc.id);
+  const reps=arrivedReports().filter(r=>r.place===loc.id);
   for(const r of reps)c.append(el('div','Report dated '+fmt(r.dated)+' — reports describe the past, not the present','meta'));
   const lab=el('label',null,'meta');const cb=el('input',null,null,{type:'checkbox'});cb.checked=referenced.has(loc.id);
   cb.onchange=()=>{cb.checked?referenced.add(loc.id):referenced.delete(loc.id);saveDraft();renderOrders()};
   lab.append(cb,' Reference in my orders (does not move anyone)');c.append(lab);
-  const site=META.sites.find(x=>x.id===loc.id&&x.blocks);const rb=el('button','Reach rings','btn small quiet');rb.style.margin='8px 6px 0 0';rb.onclick=()=>{$('reach-place').value=loc.id;showReach(loc.id)};c.append(el('div',null),rb);if(site){const eb=el('button','Enter the town (3D)','btn small');eb.style.marginTop='8px';eb.onclick=()=>{map.setMaxZoom(18);map.flyTo([site.lat,site.lon],16,{duration:1.2})};c.append(eb)}
+  const site=META.sites.find(x=>x.id===loc.id&&x.blocks);const rb=el('button','Marching rings','btn small quiet');rb.style.margin='8px 6px 0 0';rb.onclick=()=>{$('reach-place').value=loc.id;showReach(loc.id)};c.append(el('div',null),rb);if(site){const eb=el('button','Enter the town (3D)','btn small');eb.style.marginTop='8px';eb.onclick=()=>{map.setMaxZoom(18);map.flyTo([site.lat,site.lon],16,{duration:1.2})};c.append(eb)}
   box.append(c);
 }
 function seal(name,cls){const s=el('span',(name||'?').trim().charAt(0).toUpperCase(),'mseal '+(cls||''));return s}
@@ -1821,7 +1834,7 @@ function eta(cid,via){const c=castById(cid),pl=playerLoc();if(!c||!pl)return nul
 function renderLeft(){
   $('player-line').textContent=state.player.name;$('title').textContent=state.title;$('briefing').textContent=state.briefing;
   const rs=$('reports');rs.replaceChildren();
-  for(const r of state.reports){
+  for(const r of arrivedReports()){
     const c=el('article',null,'card click report',{tabindex:'0'});
     const from=(castById(r.from_id)||{}).name||r.from||'Unknown sender';
     const e=el('div',null,'eyebrow');e.append(from+' · '+({courier:'by courier',post:'by post',audience:'in person'}[r.via]||'received')+' · '+fmt(r.dated));const cl=claim(r.claim);if(cl)e.append(cl);
@@ -1927,13 +1940,13 @@ function packetOrders(){
   const army=Object.keys(armyOrders()).map(id=>{const u=unitById(id),o=armyOrders()[id];return '- '+u.name+' ('+u.id+'): '+JSON.stringify(o)}).join('\n');
   const places=[...referenced].map(id=>(state.locations.find(l=>l.id===id)||{name:id}).name).join(', ');
   const fought=BS.log.length||draft.battleResult;
-  return '## Location rule\nPlayer mode: '+state.player.mode+' (location: '+state.player.locationId+'; he gave these orders there). '+(field?'Player may direct only assigned forces directly; political influence travels by letter.':'Player may not direct battles; armies act on written orders that arrive after the stated delay.')
-   +'\n\n## How orders work\nThe player gives one order of the day in plain words; he does not write letters. His secretary, staff and the proper offices turn it into whatever dispatches it needs, off-screen: choose recipients, channel, signature (where his office requires another’s authority) and timing. Each recipient reacts from their own priorities and knowledge when the dispatch arrives after a realistic delay. Do not show the player the dispatches or how they were worded or understood: record them in hidden.dispatches (to, via, sent, arrives, gist). He learns only results, through reports, events and what he can see. Open a scene (a conversation; its shape is in the reply format) only when his orders ask for an audience or events truly require him in person; keep scenes rare. Write what the others say. Do not invent his words: give his part as narration (who "Narration": "You put the case for the regiments.") or in the words of his orders.'
-   +'\n\n## Standing orders (kept by his staff; hidden from the player)\nCampaign invention: the character’s routine instructions. Keep them as a competent officer in his post would, adding, refining or dropping items as his knowledge and duties change, without asking the player. Apply them whenever time advances. The orders of the day override them.\n'+standing.map(s=>'- '+s).join('\n')
-   +'\n\n## Orders of the day\n'+(c.text.trim()||'(none: continue under standing orders)')+(places?'\nPlaces he marked on the map for these orders: '+places:'')
+  return '## Location rule\nPlayer mode: '+state.player.mode+' (location: '+state.player.locationId+'; the player gave these orders there). '+(field?'Player may direct only assigned forces directly; political influence travels by letter.':'Player may not direct battles; armies act on written orders that arrive after the stated delay.')
+   +'\n\n## How orders work\nThe player gives one order of the day in plain words; they do not write letters. Their secretary, staff and the proper offices turn it into whatever dispatches it needs, off-screen: choose recipients, channel, signature (where their office requires another’s authority) and timing. Each recipient reacts from their own priorities and knowledge when the dispatch arrives after a realistic delay. Do not show the player the dispatches or how they were worded or understood: record them in hidden.dispatches (to, via, sent, arrives, gist). The player learns only results, through reports, events and what they can see. Write a scene (a conversation; its shape is in the reply format) whenever the player meets someone in person: an audience, a Council they sit in, a visitor at their bed. One a turn, the meeting that mattered most, dated the day it happened; it reaches them on paper that day. Write what the others say. Do not invent the player’s words: give their part as narration (who "Narration": "You put the case for the regiments.") or in the words of their orders.'
+   +'\n\n## Standing orders (kept by the player’s staff; hidden from the player)\nCampaign invention: the character’s routine instructions. Keep them as a competent officer in that post would, adding, refining or dropping items as the player’s knowledge and duties change, without asking the player. Apply them whenever time advances. The orders of the day override them.\n'+standing.map(s=>'- '+s).join('\n')
+   +'\n\n## Orders of the day\n'+(c.text.trim()||'(none: continue under standing orders)')+(places?'\nPlaces the player marked on the map for these orders: '+places:'')
    +(dec||draft.freeOption||(state.annotations||[]).length?'\n\n## Course chosen with the council\n'+(dec?dec.id+' — '+dec.title:'(none)')+'\nPlayer-proposed alternative: '+(draft.freeOption||'(none)')+'\nPlayer map notes: '+((state.annotations||[]).map(n=>n.text).join(' | ')||'(none)'):'')
-   +(army?'\n\n## Army orders drafted on the table ('+(field?'given directly':'sent to the commanders with his orders')+')\nPositions are metres east/north of '+bd.place+' centre; dest = destination, mode = hold/advance/retire, form = line/column.\n'+army:'')
-   +(fought?'\n\n## Table battle (an input, not a verdict)\n'+(field?'':'The player is at court: this battle was fought by the field commander under his general orders, and the table result is how that commander’s battle went. ')+'Turn it into campaign consequences realistically. The player has not read this account.\n'+JSON.stringify({result:draft.battleResult||null,finished:!!draft.battleResult,phases:BS.log,enemy_adaptation_memory:battleMem(),seed:BS.rngSeed}):'')
+   +(army?'\n\n## Army orders drafted on the table ('+(field?'given directly':'sent to the commanders with the player’s orders')+')\nPositions are metres east/north of '+bd.place+' centre; dest = destination, mode = hold/advance/retire, form = line/column.\n'+army:'')
+   +(fought?'\n\n## Table battle (an input, not a verdict)\n'+(field?'':'The player is at court: this battle was fought by the field commander under the player’s general orders, and the table result is how that commander’s battle went. ')+'Turn it into campaign consequences realistically. The player has not read this account.\n'+JSON.stringify({result:draft.battleResult||null,finished:!!draft.battleResult,phases:BS.log,enemy_adaptation_memory:battleMem(),seed:BS.rngSeed}):'')
    +(state.scene&&state.scene.status!=='closed'?'\n\n## Scene still open\n'+JSON.stringify({id:state.scene.id,status:state.scene.status,revision:state.scene.revision,commitments:state.scene.commitments,lines:state.scene.lines}):'')
 ;
 }

@@ -1,6 +1,6 @@
 // Runs the reply pipeline (w3d/turn.js, w3d/continuity.js) on the opening state and the mock replies; prints JSON for pytest.
 import { readFileSync } from 'node:fs';
-import { replyFormat, rulesText, rulesVersion, tableOf, TABLES, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS } from '../w3d/turn.js';
+import { replyFormat, rulesText, rulesVersion, tableOf, TABLES, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS, sceneLines } from '../w3d/turn.js';
 import { checkContinuity } from '../w3d/continuity.js';
 import { stampFeatures, FIELD } from '../w3d/groundspec.js';
 import { wheel, separation, findRoute, rasterize, normalizeUnit, TROOPS, bearing, crestBetween, slopePace } from '../w3d/march.js';
@@ -11,7 +11,7 @@ const html = read('cabinet-of-war.html'), m = html.match(/id="initial-state">([\
 const opening = JSON.parse(m[1].replace(/\\u003c/g, '<')), almanac = JSON.parse(read('w3d/almanac.json')), contract = read('w3d/contract.md');
 const out = { mocks: {} };
 const reply = (state, changes) => ({ kind: 'turn', schemaVersion: 3, campaignId: state.campaignId, turn: state.turn + 1, parentTurn: state.turn, seal: sealOf(state), changes: JSON.parse(JSON.stringify(changes)) });
-for (const name of ['answers', 'winter', 'dismissed', 'backwards', 'contradiction', 'living', 'ending', 'journey', 'battle', 'account', 'fever']) {
+for (const name of ['answers', 'winter', 'dismissed', 'backwards', 'contradiction', 'living', 'ending', 'journey', 'battle', 'account', 'fever', 'meeting']) {
   const mk = JSON.parse(read('w3d/mocks/' + name + '.json')), r = reply(opening, mk.changes);
   const chk = checkReply(opening, r, { orderRefs: ['T0-1', 'T0-2', 'T0-3'], fortune: rollFortune(opening.campaignId, 0), seal: sealOf(opening) });
   const res = { errors: chk.errors, warns: chk.warns, fixes: chk.fixes };
@@ -26,7 +26,7 @@ out.merge = { s1, notes };
 // reading pasted text
 out.parse = { fenced: parseReply('Here it is:\n```json\n{"a": 1, "b": [1,2,],}\n```\nGood luck'), truncated: parseReply('{"a": {"b": "c'), none: parseReply('no json here'), bad: parseReply('{"a": nope}') };
 // fixes on arrival
-const late = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [{ id: 'x', title: 'x', text: 'x', dated: '1740-10-22', arrives: '1740-12-01', source: 's', re: ['T0-1', 'T9-9'] }, { id: 'y', title: 'y', text: 'y', dated: '1740-10-22', source: 's', urgent: { prompt: 'p', options: [{ id: 'one', label: 'One' }] } }], world: { weather: { '1740-10-22': 'hail' }, scene: { vienna: ['alarm', 'dragons'] } }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } });
+const late = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [{ id: 'x', title: 'x', text: 'x', dated: '1740-10-22', arrives: '1740-12-01', source: 's', re: ['T0-1', 'T9-9'] }, { id: 'y', title: 'y', text: 'y', dated: '1740-10-22', source: 's', urgent: { prompt: 'p', options: [{ id: 'one', label: 'One' }] } }], world: { weather: { '1740-10-22': 'hail' }, sights: { vienna: ['alarm', 'dragons'] } }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } });
 const lc = checkReply(opening, late, { orderRefs: ['T0-1'] });
 out.fixes = { fixes: lc.fixes, warns: lc.warns, letter: late.changes.reports[0], urgent: late.changes.reports[1], world: late.changes.world };
 // the packet
@@ -125,4 +125,21 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
   out.sky = { seasons: ['1740-10-21', '1741-01-15', '1741-04-10', '1741-07-01'].map(seasonOf), dec: +sunTimes('1740-12-21').length.toFixed(1), jun: +sunTimes('1741-06-21').length.toFixed(1),
     noonDec: Math.round(sunVector('1740-12-21', 12).alt), noonJun: Math.round(sunVector('1741-06-21', 12).alt), morningEast: sunVector('1740-10-21', 9).x > 0, newMoon: +moonPhase('2024-04-08').toFixed(2), fullMoon: +moonPhase('2024-04-23').toFixed(2),
     palettes: Object.keys(LEAVES).every(k => COUNTRY[k] && COUNTRY[k].grass.length === 3 && COUNTRY[k].fields.length === 4) }; }
+// a place's own tempo: bad values and unknown places are left out; it lasts, merges per place, and makes a battle near
+{ const h = { chronicle: 'c', decisions: [{}], fortune_used: [{}] }, real = JSON.parse(JSON.stringify(opening)); real.battleDemo = { ...real.battleDemo, id: 'bd-real' };
+  const r1 = reply(real, { date: '1740-10-25', title: 't', briefing: 'b', reports: [], world: { tempo: 'winter quarters', tempoAt: { glogau: 'campaigning', brieg: 'truce', prague: 'marching', atlantis: 'campaigning' } }, hidden: h });
+  const c1 = checkReply(real, r1, {}), n1 = mergeTurn(real, r1).next;
+  const r2 = reply(n1, { date: '1740-10-30', title: 't', briefing: 'b', reports: [], world: { tempoAt: { brieg: null, neisse: 'campaigning' } }, hidden: h }); checkReply(n1, r2, {});
+  const n2 = mergeTurn(n1, r2).next, r3 = reply(n2, { date: '1740-11-04', title: 't', briefing: 'b', reports: [], hidden: h }), n3 = mergeTurn(n2, r3).next;
+  const quiet = JSON.parse(JSON.stringify(n3)); quiet.world.tempoAt = { glogau: 'truce', neisse: 'truce' };
+  out.tempoAt = { kept: r1.changes.world.tempoAt, fixes: c1.fixes.filter(f => f.includes('tempoAt')).length, merged: n2.world.tempoAt, lasts: n3.world.tempoAt, near: !!liveState(n3).battleDemo.units, notNear: !!liveState(quiet).battleDemo.units, fmt: replyFormat(opening).includes('"tempoAt"'), contract: contract.includes('**tempoAt**') }; }
+// a scene on its day: none given → the last day of the turn; outside the turn → clamped; a bad date → the last day
+{ const h = { chronicle: 'c', decisions: [{}], fortune_used: [{}] }, sc = date => ({ id: 's', title: 't', lines: [{ who: 'player', text: 'x' }], ...(date === undefined ? {} : { date }) });
+  const one = date => { const r = reply(opening, { date: '1740-10-28', title: 't', briefing: 'b', reports: [], scene: sc(date), hidden: h }), c = checkReply(opening, r, {}); return [r.changes.scene.date, c.fixes.filter(f => /scene/i.test(f)).length]; };
+  const mk = JSON.parse(read('w3d/mocks/meeting.json')).changes, mr = reply(opening, mk); checkReply(opening, mr, {});
+  out.sceneDate = { none: one(), inside: one('1740-10-24'), before: one('1740-10-01'), after: one('1740-11-30'), bad: one('Thursday'), mock: mergeTurn(opening, mr).next.scene.date, fmt: replyFormat(opening).includes('"date":"YYYY-MM-DD" (the day of the meeting)'),
+    names: sceneLines(mk.scene, opening.cast).map(l => l.who) }; }
+// world.scene is the old name of world.sights: read as sights with a fix, and an old save's tags are cleared at the next turn
+{ const r = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], world: { scene: { vienna: ['alarm', 'dragons'] } }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } }), c = checkReply(opening, r, {});
+  out.sights = { world: r.changes.world, fixes: c.fixes.filter(f => /scene|sights/.test(f)).length, fmt: replyFormat(opening).includes('"sights":{"vienna"') && !replyFormat(opening).includes('"scene":{"vienna"') }; }
 console.log(JSON.stringify(out));

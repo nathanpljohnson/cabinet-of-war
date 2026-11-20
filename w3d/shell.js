@@ -5,6 +5,7 @@
    desk's own orders text (draft.case.text), so the packet for the adjudicator is unchanged in form. */
 import { travel, loc, roadKm, letterDays, travelDays, placeOn, playerOn, routeDays, abedOn, abedDays, bedsideOn } from './places.js';
 import { choose, choiceFor, trustOf, setTrust, book } from './campaign.js';
+import { sceneLines } from './turn.js';
 import { personOf } from './people.js';
 const $ = id => document.getElementById(id);
 const ARCHIVE_KEY = 'cabinet-of-war:w3d-archive', CIPHER_KEY = 'cabinet-of-war:w3d-cipher', HEARD_KEY = 'cabinet-of-war:w3d-overheard', FAIR_KEY = 'cabinet-of-war:w3d-fair';
@@ -200,7 +201,10 @@ export function createShell({ act, onSeal, clock }) {
   const arrives = r => r.arrives || r.dated;
   // the Wiennerisches Diarium's issues come with the post like letters (state.gazette, from the reply)
   const gazettes = () => (state.gazette || []).map(g => ({ id: g.id || 'gz-' + g.date, kind: 'gazette', from: 'Wiennerisches Diarium', place: 'vienna', dated: g.date, arrives: g.date, title: (g.items[0] || {}).head || 'The Diarium', text: '', items: g.items, via: 'post' }));
-  const post = () => [...state.reports, ...gazettes()];
+  // a meeting in person comes on its day too, written out on paper (state.scene, from the reply)
+  const scenes = () => { const sc = state.scene; if (!sc || !(sc.lines || []).length) return []; const d = sc.date || state.date, who = (sc.participants || []).find(p => p.id !== 'player') || {};
+    return [{ id: 'scene-' + (sc.id || d), kind: 'scene', from_id: who.id, from: who.name || 'In person', place: sc.place || playerOn(d), dated: d, arrives: d, title: sc.title || 'A meeting', via: 'audience', scene: sc }]; };
+  const post = () => [...state.reports, ...gazettes(), ...scenes()];
   const postDays = () => [...new Set(post().map(arrives))].sort();
   // the days worth living through: the post, your own setting out and arriving, anyone to be seen where you are, and the day you are woken
   const turnFrom = () => (state.span && state.span.from) || null;
@@ -216,7 +220,7 @@ export function createShell({ act, onSeal, clock }) {
     if (abedOn(next) !== bedWas) act('toast:' + (abedOn(next) ? 'You keep to your bed.' : 'You are out of your bed again.'));
     return post().filter(r => arrives(r) === next).length; }
   const seen = () => post().filter(r => arrives(r) <= today());
-  const seenLetters = () => seen().filter(r => r.kind !== 'gazette');
+  const seenLetters = () => seen().filter(r => r.kind !== 'gazette' && r.kind !== 'scene');
   // your commission and your advisers' counsel come as letters as well
   function letters() {
     const out = [], m = state.mandate, d = state.decision;
@@ -262,14 +266,14 @@ export function createShell({ act, onSeal, clock }) {
     if (mode) listMode = mode; if (id && !letters().some(x => x.id === id)) listMode = 'archive'; else if (id) listMode = 'now';
     closeAll('sh-letters'); $('sh-letters').classList.remove('sh-single'); $('sh-l-title').textContent = 'Your correspondence'; const here = travel.here();
     $('sh-l-eyebrow').textContent = 'Letters · ' + locName(here) + ' · ' + fmtDate(shownDate());
-    const all = letters(), arch = archived(), rs = listMode === 'archive' ? arch : [...all.filter(x => x.kind && x.kind !== 'gazette'), ...all.filter(x => !x.kind || x.kind === 'gazette').reverse()], r = readSet(), a = acted();
+    const all = letters(), arch = archived(), rs = listMode === 'archive' ? arch : [...all.filter(x => x.kind && x.kind !== 'gazette' && x.kind !== 'scene'), ...all.filter(x => !x.kind || x.kind === 'gazette' || x.kind === 'scene').reverse()], r = readSet(), a = acted();
     openLetter = id || openLetter && rs.find(x => x.id === openLetter)?.id || (unread()[0] || rs[0] || {}).id;
     const ul = $('sh-l-list'); ul.replaceChildren();
     const tabs = el('li', 'sh-l-tabs'); for (const [m, lab] of [['now', 'This turn'], ['archive', 'Your archive' + (arch.length ? ' (' + arch.length + ')' : '')]]) { const b = el('button', listMode === m ? 'on' : null, lab); b.onclick = () => { openLetter = null; showLetters(null, m); }; tabs.append(b); } ul.append(tabs);
     for (const x of rs) {
       const li = el('li', (x.id === openLetter ? 'sh-l-on ' : '') + (r.has(rk(x)) ? 'sh-l-read' : 'sh-l-sealed')); li.tabIndex = 0;
       const sl = (personOf(x.from_id).seal || ['#8a2f26', '#f3ead8', (fromName(x)[0] || '·')]);
-      li.innerHTML = '<i class="sh-seal" style="--seal-c:' + sl[0] + ';--seal-t:' + sl[1] + '">' + esc(sl[2]) + '</i><b>' + esc(fromName(x)) + '</b><small>' + (x.kind === 'mandate' ? 'your commission' : x.kind === 'advice' ? 'counsel' : x.kind === 'gazette' ? 'the gazette · ' + short(x.dated) : esc(locName(x.place)) + ' · ' + short(x.dated)) + (a[x.id] ? ' · ' + ({ filed: 'filed', adopted: 'adopted', aside: 'set aside' }[a[x.id]] || 'answered') : '') + '</small><span>' + esc(x.title) + '</span>';
+      li.innerHTML = '<i class="sh-seal" style="--seal-c:' + sl[0] + ';--seal-t:' + sl[1] + '">' + esc(sl[2]) + '</i><b>' + esc(fromName(x)) + '</b><small>' + (x.kind === 'mandate' ? 'your commission' : x.kind === 'advice' ? 'counsel' : x.kind === 'gazette' ? 'the gazette · ' + short(x.dated) : x.kind === 'scene' ? 'in person · ' + esc(locName(x.place)) + ' · ' + short(x.dated) : esc(locName(x.place)) + ' · ' + short(x.dated)) + (a[x.id] ? ' · ' + ({ filed: 'filed', adopted: 'adopted', aside: 'set aside' }[a[x.id]] || 'answered') : '') + '</small><span>' + esc(x.title) + '</span>';
       li.onclick = li.onkeydown = ev => { if (ev.type === 'keydown' && ev.key !== 'Enter') return; showLetters(x.id); }; ul.append(li);
     }
     if (!rs.length) ul.append(el('li', 'sh-empty', listMode === 'archive' ? 'Nothing kept from earlier turns yet.' : 'No letters have reached you.'));
@@ -280,6 +284,7 @@ export function createShell({ act, onSeal, clock }) {
   }
   function drawLetter(r) {
     if (r.kind === 'gazette') return drawGazette(r);
+    if (r.kind === 'scene') return drawScene(r);
     const box = $('sh-letter'), here = travel.here(), c = cast(r.from_id), d = days(r.place, here), a = acted()[r.id];
     const via = { courier: 'by courier', post: 'by the post', audience: 'given you in person' }[r.via] || 'received';
     // only what the letter itself says it answers; the notebook may guess, the letter does not
@@ -329,6 +334,16 @@ export function createShell({ act, onSeal, clock }) {
     row.append(el('span', null, 'Their source, ' + r.source + ':'));
     for (const [k, lab] of [['trust', 'I trust it'], ['doubt', 'I doubt it']]) { const b = el('button', m === k ? 'on' : null, lab); b.onclick = () => { setTrust(r.source, m === k ? null : k); act('toast:' + (m === k ? 'Your staff will weigh this source as they see fit.' : k === 'trust' ? 'Your staff will treat this source as reliable.' : 'Your staff will treat this source with caution.')); showLetters(r.id); }; row.append(b); }
     box.append(row);
+  }
+  // a meeting as it was said: the setting, each speaker by name, you as "You", narration in italics, what was promised
+  function drawScene(r) {
+    const sc = r.scene, box = $('sh-letter'), cm = (sc.commitments || []).map(c => typeof c === 'string' ? c : c.text).filter(Boolean);
+    box.innerHTML = '<div class="sh-lt-sheet sh-scene"><div class="sh-lt-head">' + esc(locName(r.place)) + ', ' + esc(fmtDate(r.dated)) + '</div><h3>' + esc(r.title) + '</h3>'
+      + (sc.setting ? '<p class="sc-setting">' + esc(sc.setting) + '</p>' : '')
+      + sceneLines(sc, state.cast).map(l => l.who ? '<p class="sc-line"><b>' + esc(l.who) + '.</b> ' + esc(l.text) + '</p>' : '<p class="sc-narr">' + esc(l.text) + '</p>').join('')
+      + (cm.length ? '<div class="sc-commit"><i>Undertaken</i><ul>' + cm.map(c => '<li>' + esc(c) + '</li>').join('') + '</ul></div>' : '')
+      + '<p class="sh-lt-foot">in person · set down by your secretary</p></div>';
+    const acts = el('div', 'sh-lt-acts'), file = el('button', null, 'Put it with your papers'); file.onclick = () => { setActed(r.id, 'filed'); showLetters(); }; acts.append(file); box.append(acts);
   }
   // the public version: printed, late, deferential, sometimes wrong
   function drawGazette(r) {

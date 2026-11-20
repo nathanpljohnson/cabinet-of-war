@@ -141,3 +141,13 @@ Decisions (Nathan, 4 Nov): library + live fallback; replay accounts; atlas march
 - [x] Wind sways trees and grass by the weather; rain falls in streaks slanted by it; thunderstorms flash, and thunder follows
 - [x] The battlefield takes the season and weather of its day
 - [x] lightCheck passes for every weather in all four seasons; frame rate unchanged against main
+
+# Tempo per place, scenes on their day, sights (20 Nov 2026; spec in tasks/next-tempo-and-scenes.md)
+- [x] `world.tempoAt` {place: tempo}: a location or a fortress's place (f-glogau → glogau); unknown places and tempos left out; lasts until changed, merges per place, null removes; any place campaigning makes a battle near; the place you are in takes its own tempo
+- [x] Scenes: written whenever he meets someone in person (one a turn); `scene.date` defaults to the reply's and is kept inside the turn; it arrives in the post that day on paper (setting, names, You, narration, what was undertaken); not counted as a letter to answer; shared `sceneLines()` for the book
+- [x] `world.scene` (the tags) renamed `world.sights`; the old name is read as sights with a fix, and old saves lose the old tags at the next turn
+- [x] Tests 56 pass; browser: the meeting on day 3, Glogau campaigning while Vienna is in winter quarters, Vienna's sights drawn
+- [x] Rules text says "the player" (they/their) instead of he/his: contract, orders section, packet
+- Not done, on purpose: merging hidden.dispatches into the ledger (the ledger is the player's own timeline; dispatches are hidden)
+- [x] The desk map knows only the post that has come by the day shown: the timeline strip (its "now" too), the town pins' last report, the town card, the desk's report list and the movement arrows follow the day walk; movements are redrawn each day and each turn (they were drawn once at load). Browser: day by day, and after a reload mid-turn
+- [x] Map tools cleanup: Map tools and Map layers buttons on the map-mode bar (lit while open); the two panels open one at a time in one place, clear of the bars at the foot of the map; the map's season follows the day shown ("(now)"), another can be picked to plan with until the next day; reach rings are now marching rings (foot, wagons) from where you are, couriers being the Courier reach map mode; the map's own ambient-sound switch is hidden in the 3D page (the game's setting rules)

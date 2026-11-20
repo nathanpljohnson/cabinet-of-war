@@ -14,7 +14,7 @@ def run():
     return json.loads(out.stdout)
 
 
-@pytest.mark.parametrize("name", ["answers", "winter", "dismissed", "living", "ending", "journey", "battle", "account", "fever"])
+@pytest.mark.parametrize("name", ["answers", "winter", "dismissed", "living", "ending", "journey", "battle", "account", "fever", "meeting"])
 def test_good_mocks_are_accepted(run, name):
     m = run["mocks"][name]
     assert m["errors"] == []
@@ -23,7 +23,7 @@ def test_good_mocks_are_accepted(run, name):
 
 
 def test_good_mocks_have_no_warnings(run):
-    for name in ["answers", "winter", "dismissed", "living", "ending", "journey", "battle", "account", "fever"]:
+    for name in ["answers", "winter", "dismissed", "living", "ending", "journey", "battle", "account", "fever", "meeting"]:
         assert run["mocks"][name]["warns"] == [], name
     assert run["mocks"]["account"]["fixes"] == []
 
@@ -48,7 +48,7 @@ def test_living_world(run):
     assert n["kessler"]["invented"] is True
     assert n["thread"]["status"] == "building"
     assert n["world"]["weather"]["1740-10-22"] == "rain"
-    assert "recruiting" in n["world"]["scene"]["vienna"]
+    assert "recruiting" in n["world"]["sights"]["vienna"]
     assert n["enemy"]["commander"] == "Schwerin"
     assert sum(1 for o in n["urgent"]["options"] if o.get("default")) == 1
 
@@ -92,7 +92,7 @@ def test_fixes_on_arrival(run):
     assert f["letter"]["re"] == ["T0-1"]
     assert "urgent" not in f["urgent"]
     assert "1740-10-22" not in f["world"]["weather"]
-    assert f["world"]["scene"]["vienna"] == ["alarm"]
+    assert f["world"]["sights"]["vienna"] == ["alarm"]
 
 
 def test_packet(run):
@@ -354,3 +354,25 @@ def test_packet_tables_and_rules_in_a_project(run):
     # with the rules in a Claude Project the packet names their version and leaves them out
     assert l["names"] and l["noContract"] and l["header"] and l["lean"] < l["full"] * 0.6
     assert l["rulesHave"] and l["rulesNoState"] and len(l["v"]) == 8
+
+
+def test_tempo_per_place(run):
+    t = run["tempoAt"]
+    assert t["kept"] == {"glogau": "campaigning", "brieg": "truce"} and t["fixes"] == 2
+    assert t["merged"] == {"glogau": "campaigning", "neisse": "campaigning"}
+    assert t["lasts"] == t["merged"]
+    assert t["near"] and not t["notNear"]
+    assert t["fmt"] and t["contract"]
+
+
+def test_scene_is_dated_within_the_turn(run):
+    d = run["sceneDate"]
+    assert d["none"] == ["1740-10-28", 0] and d["inside"] == ["1740-10-24", 0]
+    assert d["before"] == ["1740-10-21", 1] and d["after"] == ["1740-10-28", 1] and d["bad"] == ["1740-10-28", 1]
+    assert d["mock"] == "1740-10-24" and d["fmt"]
+    assert d["names"] == ["", "Johann Christoph Bartenstein", "You", "Johann Christoph Bartenstein"]
+
+
+def test_sights_renamed_from_world_scene(run):
+    s = run["sights"]
+    assert s["world"] == {"sights": {"vienna": ["alarm"]}} and s["fixes"] == 2 and s["fmt"]

@@ -176,7 +176,7 @@ function worldCues() {
   return { season: forcedSeason || (m === 11 || m <= 1 || snowed ? 'winter' : seasonOf(d)), date: d, wet: L.wet, rime: L.rime, thaw, mourning: W.mourning ?? (state.date >= '1740-10-20' && state.date < '1741-10-20'), pay: W.pay || 'paid', roads: W.roads || 'good',
     refugees: !road && (W.refugees || []).includes(here), men: road ? null : men || null, standing: (state.hidden || {}).standing || {}, dismissed: !!state.player.dismissed,
     overheard: road ? [] : (state.overheard || []).filter(o => !o.place || o.place === here), carried: carriedOrders(), rivalHere: !road && rivalHere(here),
-    tempo: W.tempo || null, scene: road ? [] : ((W.scene || {})[here]) || [], ownWeather: !!W.weather, snowed: !!snowed, present: presentToday(here).map(c => c.id), groups: road ? [] : groupsOn(here, d), castNames: names, road, roadTo: road ? locName(state.player.locationId) : null,
+    tempo: (W.tempoAt || {})[here] || W.tempo || null, sights: road ? [] : ((W.sights || W.scene || {})[here]) || [], ownWeather: !!W.weather, snowed: !!snowed, present: presentToday(here).map(c => c.id), groups: road ? [] : groupsOn(here, d), castNames: names, road, roadTo: road ? locName(state.player.locationId) : null,
     rulerWith: ruler ? 'Her Majesty is with ' + ruler.who.filter(id => id !== 'maria_theresa').map(id => (names[id] || id).split(',')[0]).join(' and ') + (ruler.doing ? ' — ' + ruler.doing : '') : null };
 }
 // the rival's courier leaves at dawn wherever the rival is lodged (state.hidden.rival, kept by the adjudicator)
@@ -446,7 +446,7 @@ function act(a) {
   if (a.startsWith('sound:')) return sound.cue(a.slice(6));
   if (a === 'archive') return shell.showLetters(null, 'archive');
   if (a === 'heir') return beginAsHeir();
-  if (a.startsWith('post:')) { const n = +a.slice(5); newDay().then(() => world.region.setLetters(shell.unread().length)); if (n) sound.cue('letters'); pendingArrival = n > 0; shell.refresh(); world.region.setLetters(shell.unread().length); refreshHud(); if (n) toast(fmtDate(shell.today) + ' — the day passes.'); return; }
+  if (a.startsWith('post:')) { const n = +a.slice(5); redrawMapPost(); newDay().then(() => world.region.setLetters(shell.unread().length)); if (n) sound.cue('letters'); pendingArrival = n > 0; shell.refresh(); world.region.setLetters(shell.unread().length); refreshHud(); if (n) toast(fmtDate(shell.today) + ' — the day passes.'); return; }
   if (a.startsWith('sighting:')) return showSighting(a.slice(9));
   if (a === 'hall') return mode === 'sick' ? toast('The council must come to you, or wait.') : enterHall();
   if (a === 'orders') return shell.toggleSheet();
@@ -468,8 +468,16 @@ function syncCourierOnBoot() {
   if (state.turn > s.turn) { pendingArrival = true; world.region.courierRide.depart(true); } else world.region.courierRide.depart(true);
 }
 let pendingArrival = false, lastTurn = null;
+// the desk map follows the day walk: what has arrived by the day shown, and nothing later
+function redrawMapPost() { buildTimeline(); initMoves(); renderAll(); mapSeason(); }
+// the map's season follows the day shown (another can still be picked to plan with, until the next day); marching rings start from where you are
+function mapSeason() {
+  const d = shell.today, m = +d.slice(5, 7), s = m === 12 || m <= 2 ? 'winter' : seasonOf(d), sel = $3('season'), rp = $3('reach-place');
+  if (sel) { for (const o of sel.options) o.textContent = o.value[0].toUpperCase() + o.value.slice(1) + (o.value === s ? ' (now)' : ''); if (sel.value !== s) { sel.value = s; sel.dispatchEvent(new Event('change')); } }
+  if (rp) { const here = travel.here(); rp.replaceChildren(...state.locations.map(l => new Option(l.name, l.id))); rp.value = state.locations.some(l => l.id === here) ? here : state.player.locationId; }
+}
 async function onNewTurn() {
-  buildTimeline(); // the desk's strip of dated events: drawn once at load, so redraw it for the new turn
+  redrawMapPost(); // the desk's strip of dated events, movements and pins: drawn once at load, so redraw them for the new turn
   void shell.today; // the day walk starts on the turn's first day, before anything is built
   loadClock(); applyAtmosphere();
   if (builtFor !== travel.here() || builtMode !== travel.mode() || builtCues !== JSON.stringify(worldCues())) { showLoading(builtFor !== travel.here() ? 'Riding to ' + locName(travel.here()) + '…' : travel.mode() === 'field' ? 'Joining the army in camp…' : 'Returning to headquarters…'); await sleep(40); await buildWorld(); hideLoading(); }
@@ -645,7 +653,7 @@ function refreshHud() {
   else if (mode === 'map') shell.refresh('map', 'The map table', (battleCentreIn(desk.map) && desk.map.getZoom() >= 10 ? 'Zoom in on the battle ground to go down into the field · ' : '') + 'Right-click a place to add it to your orders · scroll out or Esc to stand up');
   else if (mode === 'hall') shell.refresh('room', 'The Conference chamber', 'The council in session · Esc to step back outside');
   else if (mode === 'sick') shell.refresh('room', 'Your bedchamber · ' + locName(travel.here()), (state.player.health === 'gravely ill' ? 'You are gravely ill' : 'You keep to your bed') + ' · those who come to you stand at your bedside');
-  else shell.refresh(view, travel.onRoad() ? 'A post-house on the road to ' + locName(state.player.locationId) : world ? world.region.zoneName(pl.x, pl.z) : 'Headquarters', ({ 'winter quarters': 'Winter quarters · ', campaigning: 'The armies are in the field · ', truce: 'A truce · ' }[(state.world || {}).tempo] || '') + (worldCues().season === 'winter' ? 'Snow on the ground · ' : '') + ({ clear: 'fair weather', haze: 'a hazy day', overcast: 'grey skies', mist: 'mist on the fields', rain: 'rain', snow: 'snow falling', storm: 'a storm blowing', frost: 'a hard frost', thaw: 'the snow thawing', thunder: 'thunder about' }[atmos] || 'fair weather').replace(/^./, c => worldCues().season === 'winter' ? c : c.toUpperCase()));
+  else shell.refresh(view, travel.onRoad() ? 'A post-house on the road to ' + locName(state.player.locationId) : world ? world.region.zoneName(pl.x, pl.z) : 'Headquarters', ({ 'winter quarters': 'Winter quarters · ', campaigning: 'The armies are in the field · ', truce: 'A truce · ' }[worldCues().tempo] || '') + (worldCues().season === 'winter' ? 'Snow on the ground · ' : '') + ({ clear: 'fair weather', haze: 'a hazy day', overcast: 'grey skies', mist: 'mist on the fields', rain: 'rain', snow: 'snow falling', storm: 'a storm blowing', frost: 'a hard frost', thaw: 'the snow thawing', thunder: 'thunder about' }[atmos] || 'fair weather').replace(/^./, c => worldCues().season === 'winter' ? c : c.toUpperCase()));
   $3('w3d-help').innerHTML = mode === 'sick' ? 'Click someone at your bedside to give orders in person · <kbd>M</kbd> map · <kbd>R</kbd> letters · <kbd>O</kbd> dispatch · <kbd>N</kbd> notebook · <kbd>T</kbd> travel'
     : mode === 'field' && aftermath ? 'Drag to look · <kbd>WASD</kbd> or right-drag to ride over the ground · wheel to rise · <kbd>Esc</kbd> ride back'
     : mode === 'field' && account ? 'Drag to turn · right-drag or <kbd>WASD</kbd> to pan · wheel to zoom · click a formation to read what is known of it · <kbd>Esc</kbd> put the account down'
@@ -759,6 +767,7 @@ installMarch(); // lines, columns, giving way and troop types for the desk's bat
   body.classList.add('w3d-on', 'w3d-room');
   showLoading('Raising the country…'); syncGfxUi();
   shell = createShell({ act, onSeal, clock });
+  window.__w3dToday = () => shell.today; redrawMapPost(); // the desk map (drawn before the day walk existed) shows only the post that has come by the day shown
   // the commission, the world and the secretary's remarks came with the 3D page's opening state; older saves at turn 0 take them from it
   // a campaign still at its opening takes the researched opening (letters, counsel, people, household, rival, canon)
   if (state.turn === 0) { const init = JSON.parse(document.getElementById('initial-state').textContent);

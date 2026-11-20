@@ -13,6 +13,7 @@ body.rm .leaflet-pdxSel-pane{animation:none}
 #pdx-modes button:focus-visible{outline:2px solid #ffe7a8;outline-offset:1px}
 #pdx-modes button[aria-pressed=true]{color:#fff4d2;border-color:#f3d27a;background:radial-gradient(circle at 50% 32%,#94712f,#3d2b13);box-shadow:0 0 12px rgba(243,210,122,.5),inset 0 1px 0 rgba(255,240,200,.3)}
 #pdx-modes svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+#pdx-modes .pdx-sep{width:1px;margin:4px 3px;background:#6b5636}
 #pdx-modes kbd{position:absolute;right:3px;bottom:1px;font:600 8px var(--caps);color:#c9b07a;opacity:.85}
 #pdx-legend{position:fixed;z-index:510;right:var(--pdx-r,450px);bottom:140px;width:290px;padding:8px 11px 9px;background:linear-gradient(180deg,rgba(40,30,22,.94),rgba(22,16,12,.94));border:1px solid var(--line);box-shadow:0 6px 16px rgba(0,0,0,.45);color:var(--vellum);font:13px/1.35 var(--fell);transition:right .25s}
 #pdx-legend .n{font:600 10px var(--caps);letter-spacing:.16em;text-transform:uppercase;color:var(--brass);margin-bottom:2px}

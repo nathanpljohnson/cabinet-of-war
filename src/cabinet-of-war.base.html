@@ -985,9 +985,10 @@ details{margin:6px 0}summary{cursor:pointer;font:600 10px var(--caps);letter-spa
  <div class="eyebrow tt">Measure &amp; notes</div>
  <div class="tgrid"><button class="btn small" id="tool-measure">Measure (m)</button><button class="btn small" id="tool-note">Note (n)</button><button class="btn small quiet" id="tool-clear">Clear</button></div>
  <div class="key" id="measure-out"></div><div class="key" id="scale-note"></div>
- <div class="eyebrow tt">Reach rings</div>
+ <div class="eyebrow tt">Marching rings</div>
  <div class="tgrid"><select id="reach-place" style="width:auto"></select><button class="btn small" id="reach-btn">Show</button></div>
- <div class="tgrid"><label><input type="checkbox" id="r-courier" checked> courier</label><label><input type="checkbox" id="r-foot" checked> foot</label><label><input type="checkbox" id="r-wagon"> wagons</label></div>
+ <div class="tgrid"><label><input type="checkbox" id="r-foot" checked> foot</label><label><input type="checkbox" id="r-wagon" checked> wagons</label></div>
+ <div class="key">1, 3 and 7 days on the march. For couriers, use the Courier reach map mode (R).</div>
  <div class="eyebrow tt">Overview</div><div id="minimap"></div>
  <div class="eyebrow tt">Comfort</div>
  <label><input type="checkbox" id="a-motion"> Reduce motion</label><label><input type="checkbox" id="a-contrast"> High-contrast labels</label><label><input type="checkbox" id="a-sound"> Ambient sound</label>
@@ -1117,12 +1118,16 @@ function syncView(){
 }
 function updateScale(){if(!$('scale-note'))return;const z=map.getZoom(),mpp=40075016*Math.cos(map.getCenter().lat*Math.PI/180)/(Math.pow(2,z)*256);$('scale-note').textContent='1 px ≈ '+(mpp<10?mpp.toFixed(1):Math.round(mpp))+' m · battalion front ≈ '+Math.round(150/mpp)+' px'}
 
+/* the day the page shows: the 3D page walks a turn day by day (w3d/shell.js), so the map knows only the post that has come by then */
+function shownDay(){return window.__w3dToday?window.__w3dToday():state.date}
+function arrivedReports(){const d=shownDay();return state.reports.filter(r=>(r.arrives||r.dated)<=d)}
+function heardMoves(){const d=shownDay();return(state.movements||[]).filter(m=>!m.reported||m.reported<=d)}
 /* ----- pins ----- */
 function renderPins(){
   for(const k in pinLayer)map.removeLayer(pinLayer[k]);pinLayer={};
   for(const loc of state.locations){
     const isYou=state.player.locationId===loc.id,kind=isYou?'court':loc.kind==='foreign'?'foreign':'';
-    const rs=state.reports.filter(r=>r.place===loc.id).map(r=>r.dated).sort().pop(),age=rs?Math.round((new Date(state.date)-new Date(rs))/864e5):null;
+    const rs=arrivedReports().filter(r=>r.place===loc.id).map(r=>r.dated).sort().pop(),age=rs?Math.round((new Date(shownDay())-new Date(rs))/864e5):null;
     const html='<div class="seal-pin lab-'+(loc.lab||'e')+' '+kind+(selectedPlace===loc.id?' sel':'')+(age!=null&&age>7?' stale':'')+'" role="button" aria-label="'+loc.name.replace(/"/g,'')+'"><i></i>'+(isYou?'<div class="you-ring"></div>':'')+'<span>'+loc.name.replace(/[<>&]/g,'')+(isYou?' · you':'')+'</span></div>';
     const m=L.marker([loc.lat,loc.lon],{icon:L.divIcon({className:'',html,iconSize:[0,0]}),keyboard:true,title:loc.name+(age!=null?' — last report '+age+' d ago':''),riseOnHover:true,zIndexOffset:isYou?1000:500});
     m.on('click',()=>selectPlace(loc.id));m.on('keypress',e=>{if(e.originalEvent.key==='Enter')selectPlace(loc.id)});m.addTo(map);pinLayer[loc.id]=m}
@@ -1151,9 +1156,9 @@ function initRoutes(){
   routesLayer.addTo(map)
 }
 function initMoves(){
-  const DASH={confirmed:null,reported:'12 8',rumour:'3 9'};
-  for(const m of state.movements||[]){const pts=spline(m.pts,8),c=SIDECOL[m.side]||'#fff',w=m.status==='confirmed'?5:4;
-    const age=Math.max(0,Math.round((new Date(state.date)-new Date(m.reported))/864e5)),op=Math.max(.38,1-age/14);
+  const DASH={confirmed:null,reported:'12 8',rumour:'3 9'};movesLayer.clearLayers();
+  for(const m of heardMoves()){const pts=spline(m.pts,8),c=SIDECOL[m.side]||'#fff',w=m.status==='confirmed'?5:4;
+    const age=Math.max(0,Math.round((new Date(shownDay())-new Date(m.reported))/864e5)),op=Math.max(.38,1-age/14);
     const html='<b>'+m.label+'</b><br>'+m.status+' · reported '+fmt(m.reported)+' ('+age+' d old)<br>Source: '+m.source+'<br>'+badge(m.claim)+(age>5?' <span class="meta">may have moved since</span>':'');
     L.polyline(pts,{color:'#1a120b',weight:w+4,opacity:.55*op,interactive:false}).addTo(movesLayer);
     L.polyline(pts,{color:c,weight:w,opacity:op,dashArray:DASH[m.status],lineCap:'round',interactive:true}).bindPopup(html).addTo(movesLayer);
@@ -1517,8 +1522,10 @@ function initTools(){
     const k={'1':'europe','2':'theatre','3':'vienna','4':'prague','5':'battle'}[e.key];if(k)BOOK[k]();
     if(e.key==='m')setTool(toolMode==='measure'?null:'measure');
     if(e.key==='n')setTool(toolMode==='note'?null:'note')});
-  $('toggleT').onclick=()=>{const o=$('tools').classList.toggle('on');$('toggleT').setAttribute('aria-expanded',o);if(o)initMini()};
-  $('toggleY').onclick=()=>{const o=$('layers').classList.toggle('on');$('toggleY').setAttribute('aria-expanded',o)};
+  // one panel at a time: they open in the same place
+  const panel=(id,other)=>{const o=$(id).classList.toggle('on');if(o)$(other).classList.remove('on');$('toggleT').setAttribute('aria-expanded',$('tools').classList.contains('on'));$('toggleY').setAttribute('aria-expanded',$('layers').classList.contains('on'));if($('tools').classList.contains('on'))initMini();document.dispatchEvent(new Event('mappanels'))};
+  $('toggleT').onclick=()=>panel('tools','layers');
+  $('toggleY').onclick=()=>panel('layers','tools');
   // layers
   $('ly-places').onchange=e=>{placesOn=e.target.checked;syncPlaces()};
   $('ly-natural').onchange=e=>{e.target.checked?natLabels.addTo(map):map.removeLayer(natLabels)};
@@ -1557,7 +1564,7 @@ function drawMeasure(){measureLayer.clearLayers();if(!measurePts.length)return;
   const out=Math.round(km)+' km (road allowance +12%) — foot ≈ '+Math.max(.1,km/(KMD.foot*f)).toFixed(1)+' d · horse ≈ '+Math.max(.1,km/(KMD.horse*f)).toFixed(1)+' d · wagons ≈ '+Math.max(.1,km/(KMD.wagon*f)).toFixed(1)+' d · courier ≈ '+Math.max(.1,km/(KMD.courier*f)).toFixed(1)+' d';
   $('measure-out').textContent=out+' ('+seasonName+')';status(out)}
 function showReach(id){reachLayer.clearLayers();const l=state.locations.find(x=>x.id===id);if(!l)return;const f=season()*.8;
-  const arms=[['courier','#7fa6ee',$('r-courier').checked],['foot','#f3d27a',$('r-foot').checked],['wagon','#d98a5a',$('r-wagon').checked]];
+  const arms=[['foot','#f3d27a',$('r-foot').checked],['wagon','#d98a5a',$('r-wagon').checked]];
   for(const [a,col,on] of arms){if(!on)continue;for(const d of[1,3,7]){const r=KMD[a]*d*f*1000;if(r>1800000)continue;
     L.circle([l.lat,l.lon],{radius:r,color:col,weight:2,fill:false,dashArray:d===1?null:'8 6',opacity:.9,interactive:false}).addTo(reachLayer);
     L.marker(destPoint(l,r,a==='courier'?10:a==='foot'?100:190),{interactive:false,icon:L.divIcon({className:'',html:'<div class="mv-lbl">'+a+' · '+d+' d</div>',iconSize:[0,0]})}).addTo(reachLayer)}}
@@ -1585,11 +1592,11 @@ function initMini(){if(mini)return;mini=L.map('minimap',{zoomControl:false,attri
   const upd=()=>rect.setBounds(map.getBounds());map.on('move',upd);mini.on('click',e=>map.flyTo(e.latlng,Math.max(map.getZoom(),5),{duration:.8}))}
 /* timeline */
 function buildTimeline(){const t=$('timeline');t.replaceChildren();const ev=[];
-  for(const r of state.reports)ev.push({d:r.dated,txt:r.title,kind:'report',place:r.place});
-  for(const m of state.movements||[])ev.push({d:m.reported,txt:m.label,kind:'move',pt:m.pts[0]});
-  for(const l of state.ledger||[])ev.push({d:l.date,txt:l.text,kind:'ledger'});
+  for(const r of arrivedReports())ev.push({d:r.dated,txt:r.title,kind:'report',place:r.place});
+  for(const m of heardMoves())ev.push({d:m.reported,txt:m.label,kind:'move',pt:m.pts[0]});
+  for(const l of state.ledger||[])if(!l.date||l.date<=shownDay())ev.push({d:l.date,txt:l.text,kind:'ledger'});
   ev.sort((a,b)=>a.d<b.d?-1:1);
-  const h=el('span',fmt(state.date)+' · now','tl-now');t.append(h);
+  const h=el('span',fmt(shownDay())+' · now','tl-now');t.append(h);
   for(const e of ev){const c=el('button',fmt(e.d)+' — '+e.txt.slice(0,46),'tl-chip '+e.kind);c.onclick=()=>{if(e.place)selectPlace(e.place);else if(e.pt)map.flyTo(e.pt,7,{duration:.8})};t.append(c)}}
 /* sound (WebAudio, synthesised: no files) */
 let ac=null,windG=null,bellT=null;
@@ -1608,12 +1615,12 @@ function renderPlace(){
   const loc=state.locations.find(l=>l.id===selectedPlace);if(!loc)return;
   const c=el('div',null,'card');c.style.borderColor='var(--brass)';
   c.append(el('div','Selected place','eyebrow'),el('h3',loc.name),el('p',loc.report));
-  const reps=state.reports.filter(r=>r.place===loc.id);
+  const reps=arrivedReports().filter(r=>r.place===loc.id);
   for(const r of reps)c.append(el('div','Report dated '+fmt(r.dated)+' — reports describe the past, not the present','meta'));
   const lab=el('label',null,'meta');const cb=el('input',null,null,{type:'checkbox'});cb.checked=referenced.has(loc.id);
   cb.onchange=()=>{cb.checked?referenced.add(loc.id):referenced.delete(loc.id);saveDraft();renderOrders()};
   lab.append(cb,' Reference in my orders (does not move anyone)');c.append(lab);
-  const site=META.sites.find(x=>x.id===loc.id&&x.blocks);const rb=el('button','Reach rings','btn small quiet');rb.style.margin='8px 6px 0 0';rb.onclick=()=>{$('reach-place').value=loc.id;showReach(loc.id)};c.append(el('div',null),rb);if(site){const eb=el('button','Enter the town (3D)','btn small');eb.style.marginTop='8px';eb.onclick=()=>{map.setMaxZoom(18);map.flyTo([site.lat,site.lon],16,{duration:1.2})};c.append(eb)}
+  const site=META.sites.find(x=>x.id===loc.id&&x.blocks);const rb=el('button','Marching rings','btn small quiet');rb.style.margin='8px 6px 0 0';rb.onclick=()=>{$('reach-place').value=loc.id;showReach(loc.id)};c.append(el('div',null),rb);if(site){const eb=el('button','Enter the town (3D)','btn small');eb.style.marginTop='8px';eb.onclick=()=>{map.setMaxZoom(18);map.flyTo([site.lat,site.lon],16,{duration:1.2})};c.append(eb)}
   box.append(c);
 }
 function seal(name,cls){const s=el('span',(name||'?').trim().charAt(0).toUpperCase(),'mseal '+(cls||''));return s}
@@ -1628,7 +1635,7 @@ function eta(cid,via){const c=castById(cid),pl=playerLoc();if(!c||!pl)return nul
 function renderLeft(){
   $('player-line').textContent=state.player.name;$('title').textContent=state.title;$('briefing').textContent=state.briefing;
   const rs=$('reports');rs.replaceChildren();
-  for(const r of state.reports){
+  for(const r of arrivedReports()){
     const c=el('article',null,'card click report',{tabindex:'0'});
     const from=(castById(r.from_id)||{}).name||r.from||'Unknown sender';
     const e=el('div',null,'eyebrow');e.append(from+' · '+({courier:'by courier',post:'by post',audience:'in person'}[r.via]||'received')+' · '+fmt(r.dated));const cl=claim(r.claim);if(cl)e.append(cl);
