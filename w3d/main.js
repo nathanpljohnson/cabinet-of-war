@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { initActors, makePerson, makeHorse } from './actors.js';
 import { buildRegion } from './region.js';
-import { setWindTime, disposeTree } from './lib.js';
+import { setWindTime, disposeTree, makeNoise } from './lib.js';
 import { createShell, locName, fmtDate } from './shell.js';
 import { createSound } from './sound.js';
 import { travel, loc, roadKm, travelDays, letterDays, placeOn, groupsOn } from './places.js';
 import { initCampaign } from './campaign.js';
+import { makeGround, groundKey } from './ground.js';
 import { createPost } from './post.js';
 
 /* Cabinet of War: the 3D world over the desk's engine. Views: room (walk), map (the desk's live map, reached by leaning
@@ -142,9 +143,9 @@ function worldCues() {
   const ruler = here === 'vienna' && groupsOn('vienna', d).find(g => g.who.includes('maria_theresa') && g.who.length > 1);
   const men = (state.forces || []).filter(f => f.locationId === here).reduce((s, f) => s + (+f.men || 0), 0);
   return { season: forcedSeason || (m === 11 || m <= 1 || snowed ? 'winter' : 'open'), mourning: W.mourning ?? (state.date >= '1740-10-20' && state.date < '1741-10-20'), pay: W.pay || 'paid', roads: W.roads || 'good',
-    refugees: (W.refugees || []).includes(here), men: men || null, standing: (state.hidden || {}).standing || {}, dismissed: !!state.player.dismissed,
+    refugees: !road && (W.refugees || []).includes(here), men: road ? null : men || null, standing: (state.hidden || {}).standing || {}, dismissed: !!state.player.dismissed,
     overheard: road ? [] : (state.overheard || []).filter(o => !o.place || o.place === here), carried: carriedOrders(), rivalHere: !road && rivalHere(here),
-    tempo: W.tempo || null, scene: road ? [] : ((W.scene || {})[here]) || [], ownWeather: !!W.weather, snowed: !!snowed, present: presentToday(here).map(c => c.id), groups: road ? [] : groupsOn(here, d), castNames: names, road,
+    tempo: W.tempo || null, scene: road ? [] : ((W.scene || {})[here]) || [], ownWeather: !!W.weather, snowed: !!snowed, present: presentToday(here).map(c => c.id), groups: road ? [] : groupsOn(here, d), castNames: names, road, roadTo: road ? locName(state.player.locationId) : null,
     rulerWith: ruler ? 'Her Majesty is with ' + ruler.who.filter(id => id !== 'maria_theresa').map(id => (names[id] || id).split(',')[0]).join(' and ') + (ruler.doing ? ' — ' + ruler.doing : '') : null };
 }
 // the rival's courier leaves at dawn wherever the rival is lodged (state.hidden.rival, kept by the adjudicator)
@@ -277,13 +278,43 @@ async function mapToRoom() {
   const tp = activeTable || world.region.tablePose; camera.up.set(0, 0, -1); const lift = tweenCamera(o.pos, o.quat, 1.2, true, { l0: V3(tp.x, tp.y, tp.z), l1: cam.tgt.clone(), u0: V3(0, 0, -1), u1: V3(0, 1, 0) }); setView('trans'); tick(0); await fadeCanvas(true, 380);
   await lift; setView('room');
 }
+// the ground the table battle is fought over: Mollwitz keeps its mapped grid; a battle the adjudicator described gets one drawn
+// from its ground (w3d/ground.js). TER is the desk engine's grid, read by its rules and by the 3D field.
+const TER0 = JSON.parse(JSON.stringify(TER));
+function syncGround() {
+  const bd = state.battleDemo, k = groundKey(bd); if (TER.key === k) return;
+  const g = makeGround(bd); for (const f of Object.keys(TER)) delete TER[f]; Object.assign(TER, g || JSON.parse(JSON.stringify(TER0)), { key: k });
+  drawGroundOnMap();
+}
+// on the desk's map the drawn ground lies over the real one, under the units, whenever the battle is shown (Mollwitz: the real map is the ground)
+const groundLayer = L.layerGroup();
+function drawGroundOnMap() {
+  groundLayer.clearLayers(); if (!TER.kind) return;
+  const m = desk.map; if (!m.getPane('w3dGround')) { m.createPane('w3dGround').style.zIndex = 350; }
+  // painted like the desk's map: the same warped outlines as the 3D field (battle3d.js landAt), fields in soft patches, red-roofed villages
+  const CW = 1188, CH = Math.round(CW * TER.h / TER.w), cv = document.createElement('canvas'); cv.width = CW; cv.height = CH;
+  const x = cv.getContext('2d'), img = x.createImageData(CW, CH), D = img.data, N = makeNoise(1741);
+  const mix = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
+  const FIELD = [214, 200, 156], PASTURE = [178, 178, 124], PLOUGH = [190, 158, 116], WOOD = [104, 122, 76], WATER = [112, 150, 160], VILLAGE = [178, 112, 84];
+  for (let j = 0; j < CH; j++) for (let i = 0; i < CW; i++) {
+    const wx = -TER.w / 2 + (i + .5) / CW * TER.w, wz = -TER.h / 2 + (j + .5) / CH * TER.h, t = terrainAt(wx + 18 * N(wx / 95, wz / 95), -(wz + 18 * N(wx / 95 + 31, wz / 95 - 17)));
+    let col = t === 1 ? WOOD : t === 2 ? WATER : t === 3 ? VILLAGE : mix(mix(FIELD, PASTURE, Math.max(0, Math.min(1, .5 + N.fbm(wx / 500, wz / 500, 3) * 1.6))), PLOUGH, Math.max(0, Math.min(1, N(wx / 160 + 7, wz / 160 - 3) * 1.4)) * .45);
+    const k = 1 + N(wx / 40, wz / 40) * .05, o = (j * CW + i) * 4; D[o] = col[0] * k; D[o + 1] = col[1] * k; D[o + 2] = col[2] * k; D[o + 3] = 255;
+  }
+  x.putImageData(img, 0, 0); x.filter = 'blur(1px)'; x.drawImage(cv, 0, 0); x.filter = 'none';
+  const c = state.battleDemo.center, sw = lo(c, -TER.w / 2, -TER.h / 2), ne = lo(c, TER.w / 2, TER.h / 2);
+  L.imageOverlay(cv.toDataURL(), [sw, ne], { pane: 'w3dGround', opacity: .9, interactive: false }).addTo(groundLayer);
+  for (const f of TER.names || []) L.marker(lo(c, f.e, f.n), { pane: 'w3dGround', interactive: false, icon: L.divIcon({ className: 'w3d-gname ' + f.what, html: f.name.replace(/[<>&]/g, ''), iconSize: [0, 0] }) }).addTo(groundLayer);
+}
+desk.map.on('layeradd', e => { if (e.layer === battleLayer && !desk.map.hasLayer(groundLayer)) groundLayer.addTo(desk.map); });
+desk.map.on('layerremove', e => { if (e.layer === battleLayer) desk.map.removeLayer(groundLayer); });
 const battleCentreIn = m => m.getBounds().contains(lo(state.battleDemo.center, 0, 0));
 // the ground is painted for the season: of the battle itself when you read an account of it, else of today
 const fieldSeason = () => { const bd = state.battleDemo || {}; const bdd = bd.date || (bd.aftermath || {}).date; if ((account || aftermath) && bdd) { const m = new Date(bdd + 'T12:00:00').getMonth(); return m === 11 || m <= 1 ? 'winter' : 'open'; } return worldCues().season; };
 async function ensureBattle() {
-  if (battle && battle.season !== fieldSeason()) battle = null;
+  syncGround(); if (battle && (battle.season !== fieldSeason() || battle.groundKey !== TER.key)) { battle.dispose(); battle = null; }
   if (battle) return battle; showLoading('Laying out the field…'); await actors.ready;
-  const season = fieldSeason(), mod = await import('./battle3d.js'); battle = await mod.createBattle({ renderer, actors, quality: Q(), makeSky, makeLights, toast, onRise: (x, z) => fieldToMap(x, z), winter: season === 'winter' }); battle.season = season;
+  const season = fieldSeason(), mod = await import('./battle3d.js'); battle = await mod.createBattle({ renderer, actors, quality: Q(), makeSky, makeLights, toast, onRise: (x, z) => fieldToMap(x, z), winter: season === 'winter' }); battle.season = season; battle.groundKey = TER.key;
   hideLoading(); return battle;
 }
 async function mapToField() {
@@ -548,7 +579,7 @@ async function rebuild() { showLoading('Replanting…'); await sleep(30); await 
 /* ---------- loop ---------- */
 const clk = new THREE.Clock(); let frames = 0, acc = 0, ftimes = [], shadowTick = 0, paperTick = 0;
 const perf = { fps: 0, ms: 0, calls: 0, tris: 0 };
-function loop() { requestAnimationFrame(loop); const dt = Math.min(.05, clk.getDelta()); if (mode === 'map' && state.turn !== lastTurn) { lastTurn = state.turn; onNewTurn(); } if (mode === 'loading' || mode === 'map' || document.hidden) { sound.update(dt, uTime.value, 1e9, 1e9, true); return; } tick(dt); }
+function loop() { requestAnimationFrame(loop); if (state.battleDemo) syncGround(); const dt = Math.min(.05, clk.getDelta()); if (mode === 'map' && state.turn !== lastTurn) { lastTurn = state.turn; onNewTurn(); } if (mode === 'loading' || mode === 'map' || document.hidden) { sound.update(dt, uTime.value, 1e9, 1e9, true); return; } tick(dt); }
 function tick(dt) {
   const t0 = performance.now(); adaptResolution(dt);
   uTime.value += dt; setWindTime(uTime.value);
@@ -615,7 +646,7 @@ let shell = null; const sound = createSound();
   try { const lg = JSON.parse(localStorage.getItem('cabinet-of-war:w3d-legacy') || 'null'); if (lg && state.turn === 0 && !state.legacy) { state.legacy = lg; state.player.name = 'The heir of ' + lg.from; state.player.note = 'A new campaign as the heir of ' + lg.from + '; the adjudicator decides who that is. ' + (state.player.note || ''); persistState(); } } catch { }
   // older saves predate the open-ground deployment (see src/w3d_build.py); move an un-fought battle the same way
   { const bd = state.battleDemo, SHIFT = { A: [360, -690], B: [300, -360] };
-    if (!bd.deployment && !BS.log.length && !draft.battleResult) {
+    if (bd.id === 'bd-demo' && !bd.deployment && !BS.log.length && !draft.battleResult) {
       for (const u of bd.units) { const [de, dn] = SHIFT[u.side]; u.e += de; u.n += dn; if (u.seenE != null) { u.seenE += de; u.seenN += dn; } }
       for (const o of bd.options || []) for (const a of o.arrows || []) { const [de, dn] = SHIFT[a.side]; a.from = [a.from[0] + de, a.from[1] + dn]; a.to = [a.to[0] + de, a.to[1] + dn]; }
       bd.deployment = 'Armies moved as whole formations to open ground (older save).'; draft.armyOrders = {}; persistState(); saveDraft();

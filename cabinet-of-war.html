@@ -1425,12 +1425,17 @@ function armyOrders(){draft.armyOrders=draft.armyOrders||{};return draft.armyOrd
 function myUnits(){return state.battleDemo.units.filter(u=>u.side==='A')}
 function unitById(id){return state.battleDemo.units.find(u=>u.id===id)}
 const COMMANDER={inf:'inf-general',cav:'cav-general',art:'art-officer'};
+function armyFrame(side){const U=state.battleDemo.units.filter(u=>u.side===side&&u.type==='inf'),A=U.length?U:state.battleDemo.units.filter(u=>u.side===side);if(!A.length)return{e:0,n:0,fe:0,fn:1};const f=A.reduce((s,u)=>s+(u.facing||0),0)/A.length*Math.PI/180;return{e:A.reduce((s,u)=>s+u.e,0)/A.length,n:A.reduce((s,u)=>s+u.n,0)/A.length,fe:Math.sin(f),fn:Math.cos(f)}}
+function armyFront(u){const F=armyFrame(u.side);return(u.e-F.e)*F.fe+(u.n-F.n)*F.fn}
+function armySide(u){const F=armyFrame(u.side);return(u.e-F.e)*F.fn-(u.n-F.n)*F.fe}
+function armyAt(side,back){const F=armyFrame(side);return[F.e-F.fe*back,F.n-F.fn*back]}
+const ILL=()=>state.battleDemo.id==='bd-demo'?' (illustrative)':'';
 function armyGroups(){const A=myUnits(),g=[];
   g.push({id:'all',name:'Whole army',ids:A.map(u=>u.id)});
-  g.push({id:'l1',name:'First line',ids:A.filter(u=>u.type==='inf'&&u.n>=-1000).map(u=>u.id)});
-  g.push({id:'l2',name:'Second line',ids:A.filter(u=>u.type==='inf'&&u.n<-1000).map(u=>u.id)});
-  g.push({id:'cl',name:'Left cavalry',ids:A.filter(u=>u.type==='cav'&&u.e<-640).map(u=>u.id)});
-  g.push({id:'cr',name:'Right cavalry',ids:A.filter(u=>u.type==='cav'&&u.e>=-640).map(u=>u.id)});
+  g.push({id:'l1',name:'First line',ids:A.filter(u=>u.type==='inf'&&armyFront(u)>=0).map(u=>u.id)});
+  g.push({id:'l2',name:'Second line',ids:A.filter(u=>u.type==='inf'&&armyFront(u)<0).map(u=>u.id)});
+  g.push({id:'cl',name:'Left cavalry',ids:A.filter(u=>u.type==='cav'&&armySide(u)<0).map(u=>u.id)});
+  g.push({id:'cr',name:'Right cavalry',ids:A.filter(u=>u.type==='cav'&&armySide(u)>=0).map(u=>u.id)});
   g.push({id:'art',name:'Artillery',ids:A.filter(u=>u.type==='art').map(u=>u.id)});
   return g.filter(x=>x.ids.length)}
 function selCentroid(){let e=0,n=0,k=0;for(const id of selUnits){const u=unitById(id);if(u){e+=u.e;n+=u.n;k++}}return k?[e/k,n/k]:[0,0]}
@@ -1459,9 +1464,9 @@ function drawOrders(){orderLayer.clearLayers();const bd=state.battleDemo,c=bd.ce
     else if(o.mode==='hold'){L.circleMarker(lo(c,u.e,u.n),{radius:9,color:'#2a2118',weight:2,fill:false,dashArray:'2 3',interactive:false}).addTo(orderLayer)}}}
 function rectPts(c,u){const a=u.facing*Math.PI/180,f=[Math.sin(a),Math.cos(a)],r=[Math.cos(a),-Math.sin(a)];return [[-u.w/2,-u.d/2],[u.w/2,-u.d/2],[u.w/2,u.d/2],[-u.w/2,u.d/2]].map(([x,y])=>lo(c,u.e+x*r[0]+y*f[0],u.n+x*r[1]+y*f[1]))}
 function drawBattle(){
-  initSim();if(!unitsOrig)unitsOrig=JSON.parse(JSON.stringify(state.battleDemo.units));unitGroups={};battleLayer.clearLayers();
+  initSim();if(!unitsOrig||unitsOrig.bid!==state.battleDemo.id){unitsOrig=JSON.parse(JSON.stringify(state.battleDemo.units));unitsOrig.bid=state.battleDemo.id}unitGroups={};battleLayer.clearLayers();
   const bd=state.battleDemo,c=bd.center,z=map.getZoom();
-  if(z<13){for(const [side,e,n,t] of [['A',-340,-990,'Imperial (illustrative)'],['B',-300,440,'Opposing (illustrative)']])L.marker(lo(c,e,n),{interactive:false,icon:L.divIcon({className:'',html:'<div class="army-counter '+side+'">'+t+' · '+bd.units.filter(u=>u.side===side).length+' blocks</div>',iconSize:[0,0]})}).addTo(battleLayer);return}
+  if(z<13){for(const [side,e,n,t] of [['A',...armyAt('A',0),'Imperial'+ILL()],['B',...armyAt('B',0),'Opposing'+ILL()]])L.marker(lo(c,e,n),{interactive:false,icon:L.divIcon({className:'',html:'<div class="army-counter '+side+'">'+t+' · '+bd.units.filter(u=>u.side===side).length+' blocks</div>',iconSize:[0,0]})}).addTo(battleLayer);return}
   if(z<15){for(const u of bd.units){if(!alive(u))continue;if(u.side==='B'&&!u.vis){if(u.seenE!=null)L.marker(lo(c,u.seenE,u.seenN),{interactive:false,icon:L.divIcon({className:'',html:'<div class="cnt B ghost"></div>',iconSize:[0,0]})}).addTo(battleLayer);continue}const m=L.marker(lo(c,u.e,u.n),{keyboard:false,icon:L.divIcon({className:'',html:'<div class="cnt '+u.side+' '+u.type+(selUnits.has(u.id)?' sel':'')+(u.st==='routing'?' rout':u.st==='wavering'?' wav':'')+'"></div>',iconSize:[0,0]})}).bindTooltip(u.name+' — '+Math.round(u.men)+' men, '+moraleWord(u),{className:'unit-lbl'});m.on('click',ev=>{L.DomEvent.stopPropagation(ev);selectUnits([u.id],ev.originalEvent&&(ev.originalEvent.shiftKey||ev.originalEvent.metaKey))});m.addTo(battleLayer);unitGroups[u.id]=m}drawOrders();orderLayer.addTo(map);return}
   for(const u0 of bd.units){
     if(!alive(u0))continue;
@@ -1474,7 +1479,7 @@ function drawBattle(){
     if(u.type==='art'){g.addLayer(L.circle(lo(c,u.e,u.n),{radius:9,color:edge,weight:1.5,fillColor:'#1d1710',fillOpacity:1,interactive:false}));g.addLayer(L.polyline([P(0,0),P(0,26)],{color:edge,weight:3,interactive:false}))}
     g.addLayer(L.polygon([P(-6,u.d/2+1),P(6,u.d/2+1),P(0,u.d/2+9)],{color:edge,weight:1,fillColor:sel?'#ffd45e':edge,fillOpacity:.9,interactive:false}));
     g.bindTooltip(u.name+' — '+Math.round(u0.men)+' men, '+moraleWord(u0),{sticky:true,className:'unit-lbl'});unitGroups[u.id]=g;g.on('click',ev=>{L.DomEvent.stopPropagation(ev);selectUnits([u.id],ev.originalEvent&&(ev.originalEvent.shiftKey||ev.originalEvent.metaKey))});g.addTo(battleLayer)}
-  for(const [side,lbl,e,n] of [['A','Imperial army (illustrative)',-340,-1210],['B','Opposing army (illustrative)',-300,620]])L.marker(lo(c,e,n),{interactive:false,icon:L.divIcon({className:'',html:'<div class="army-counter '+side+'">'+lbl+'</div>',iconSize:[0,0]})}).addTo(battleLayer);
+  for(const [side,lbl,e,n] of [['A','Imperial army'+ILL(),...armyAt('A',220)],['B','Opposing army'+ILL(),...armyAt('B',220)]])L.marker(lo(c,e,n),{interactive:false,icon:L.divIcon({className:'',html:'<div class="army-counter '+side+'">'+lbl+'</div>',iconSize:[0,0]})}).addTo(battleLayer);
   drawOrders();orderLayer.addTo(map);
 }
 function drawArrows(){arrowLayer.clearLayers()}
@@ -1482,7 +1487,7 @@ function syncBattle(){const on=battleOn&&map.getZoom()>=10;for(const l of[battle
   $('armybar').style.display=battleOn?'flex':'none';
   if(on&&!marching){const z=map.getZoom(),mode=z<13?0:z<15?1:2;if(syncBattle.mode!==mode){syncBattle.mode=mode;drawBattle()}}}
 function showBattle(on){battleOn=on;syncBattle.mode=-1;if(on)drawBattle();syncBattle();renderBattle();renderArmyBar()}
-function flyBattle(z){const bd=state.battleDemo;map.flyTo(lo(bd.center,-320,-275),z||14,{duration:1})}
+function flyBattle(z){const bd=state.battleDemo;map.flyTo(lo(bd.center,(armyAt('A',0)[0]+armyAt('B',0)[0])/2,(armyAt('A',0)[1]+armyAt('B',0)[1])/2),z||14,{duration:1})}
 function selectUnit(id){selectUnits([id])}
 function playOrders(){runPhase(1)}
 function resetUnits(){newBattle()}
@@ -1654,7 +1659,7 @@ function checkEnd(){const mA=armyMorale('A'),mB=armyMorale('B'),lA=losses('A'),l
 function draftToOrders(){const ord=armyOrders();for(const u of state.battleDemo.units)if(u.side==='A'){const o=ord[u.id];u.ord=o?JSON.parse(JSON.stringify(o)):(u.ord&&u.ord.dest?u.ord:{mode:'hold'})}}
 async function runPhase(n){
   initSim();if(BS.running||marching||BS.result)return;BS.running=true;marching=true;const bd=state.battleDemo,us=bd.units;
-  if(!battleOn)showBattle(true);if(map.getZoom()<14)map.setView(lo(bd.center,-320,-275),14,{animate:false});
+  if(!battleOn)showBattle(true);if(map.getZoom()<14)map.setView(lo(bd.center,(armyAt('A',0)[0]+armyAt('B',0)[0])/2,(armyAt('A',0)[1]+armyAt('B',0)[1])/2),14,{animate:false});
   for(let ph=0;ph<n&&!BS.result;ph++){
     BS.phase++;const ev=[];draftToOrders();const plan=enemyPlan();enemyOrders(plan);const snap=us.map(u=>u.men);
     soundDrums(true);

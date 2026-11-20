@@ -1,0 +1,69 @@
+{
+ "note": "Test reply: he rides post from Vienna to Glogau, on the road from the first day, there on the 26th. A letter catches him on the road. Illustrative.",
+ "changes": {
+  "date": "1740-10-30",
+  "player": {
+   "name": "Ludwig Andreas, Count Khevenhüller",
+   "mode": "court",
+   "locationId": "glogau",
+   "route": [
+    {
+     "date": "1740-10-21",
+     "place": "road"
+    },
+    {
+     "date": "1740-10-26",
+     "place": "glogau"
+    }
+   ]
+  },
+  "reports": [
+   {
+    "id": "r40",
+    "place": "vienna",
+    "dated": "1740-10-22",
+    "arrives": "1740-10-24",
+    "category": "The court",
+    "title": "A note on the road",
+    "text": "A line to find you on the road: the Conference has asked after you twice.",
+    "claim": "demo",
+    "from_id": "harrach_joseph",
+    "via": "courier",
+    "source": "the Hofkriegsrat"
+   },
+   {
+    "id": "r41",
+    "place": "glogau",
+    "dated": "1740-10-27",
+    "arrives": "1740-10-27",
+    "category": "The army",
+    "title": "The works at Glogau",
+    "text": "The ramparts want turf and the palisades on the covered way are rotten in places. I have set the garrison to it.",
+    "claim": "demo",
+    "from_id": "wallis",
+    "via": "in person",
+    "source": "the commandant"
+   }
+  ],
+  "hidden": {
+   "chronicle": "Test chronicle: the journey to Glogau.",
+   "fortune_used": [
+    {
+     "roll": 50,
+     "for": "test",
+     "outcome": "test"
+    }
+   ],
+   "decisions": [
+    {
+     "who": "Frederick II",
+     "knows": "The Emperor is dead; Vienna is in mourning and short of money.",
+     "wants": "Silesia before Vienna recovers.",
+     "decides": "Keeps his counsel and orders the regiments readied, quietly."
+    }
+   ]
+  },
+  "title": "At Glogau",
+  "briefing": "Five days on the post road brought you to Glogau on the 26th. Wallis shows you the works."
+ }
+}

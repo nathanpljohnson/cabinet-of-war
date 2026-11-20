@@ -2,12 +2,13 @@
 import { readFileSync } from 'node:fs';
 import { parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue } from '../w3d/turn.js';
 import { checkContinuity } from '../w3d/continuity.js';
+import { makeGround, groundKey } from '../w3d/ground.js';
 const root = new URL('../', import.meta.url), read = p => readFileSync(new URL(p, root), 'utf8');
 const html = read('cabinet-of-war.html'), m = html.match(/id="initial-state">([\s\S]*?)<\/script>/);
 const opening = JSON.parse(m[1].replace(/\\u003c/g, '<')), almanac = JSON.parse(read('w3d/almanac.json')), contract = read('w3d/contract.md');
 const out = { mocks: {} };
 const reply = (state, changes) => ({ kind: 'turn', schemaVersion: 3, campaignId: state.campaignId, turn: state.turn + 1, parentTurn: state.turn, seal: sealOf(state), changes: JSON.parse(JSON.stringify(changes)) });
-for (const name of ['answers', 'winter', 'dismissed', 'backwards', 'contradiction', 'living', 'ending']) {
+for (const name of ['answers', 'winter', 'dismissed', 'backwards', 'contradiction', 'living', 'ending', 'journey', 'battle']) {
   const mk = JSON.parse(read('w3d/mocks/' + name + '.json')), r = reply(opening, mk.changes);
   const chk = checkReply(opening, r, { orderRefs: ['T0-1', 'T0-2', 'T0-3'], fortune: rollFortune(opening.campaignId, 0), seal: sealOf(opening) });
   const res = { errors: chk.errors, warns: chk.warns, fixes: chk.fixes };
@@ -47,4 +48,18 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
   const rc = checkReply(opening, rt, {}); out.route = { fixes: rc.fixes, route: rt.changes.player.route };
   out.salt = [rollFortune('c', 1, 8, 'aa'), rollFortune('c', 1, 8, 'aa'), rollFortune('c', 1, 8, 'bb'), rollFortune('c', 1)];
   out.opening = { briefing: opening.briefing, scene: opening.scene, movements: opening.movements.length, wallis: opening.cast.find(c => c.id === 'wallis').place, early: opening.hidden.threads.filter(t => t.next_check && t.next_check < opening.date).length, demoCast: opening.cast.filter(c => c.claim === 'demo').length }; }
+// a new battle replaces the field whole; its ground is drawn from what the reply described, the same way every time
+{ const mk = JSON.parse(read('w3d/mocks/battle.json')).changes, r = reply(opening, mk); checkReply(opening, r, {}); const { next } = mergeTurn(opening, r), bd = next.battleDemo;
+  const g = makeGround(bd), g2 = makeGround(JSON.parse(JSON.stringify(bd))), at = (e, n) => { const c = Math.floor((e + g.w / 2) / g.cell), rr = Math.floor((g.h / 2 - n) / g.cell); return +g.rows_str[rr][c]; };
+  const G = bd.ground, s = G.streams[0];
+  out.battle = { ids: bd.units.map(u => u.id).sort(), mockIds: mk.battleDemo.units.map(u => u.id).sort(), options: (bd.options || []).map(o => o.id), aftermath: bd.aftermath || null,
+    cells: { village: at(G.villages[0].e, G.villages[0].n), hamlet: at(G.villages[1].e, G.villages[1].n), wood: at(G.woods[0].e, G.woods[0].n), stream: at(s.path[2][0], s.path[2][1]), bridge: at(...s.crossings[0]), ford: at(...s.crossings[1]) },
+    unitCells: [...new Set(bd.units.map(u => at(u.e, u.n)))], same: JSON.stringify(g) === JSON.stringify(g2), relief: g.relief, names: g.names.map(x => x.name),
+    mollwitz: makeGround(opening.battleDemo), keyChanges: groundKey(opening.battleDemo) !== groundKey(bd), size: [g.cols, g.rows, g.rows_str.length, g.rows_str[0].length],
+    packet: (liveState(next).battleDemo || {}).ground ? 'ground' : 'none' };
+  const sameId = reply(next, { date: '1740-12-23', title: 't', briefing: 'b', reports: [], battleDemo: { units: [{ id: 'GA1', e: -880 }, { id: 'GB7', _remove: true }] } });
+  out.battle.sameId = mergeTurn(next, sameId).next.battleDemo.units.length;
+  const badB = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], battleDemo: { id: 'bd-x', ground: { kind: 'swamp', villages: [{ name: 'Far', e: 9000, n: 0 }, { name: 'Ok', e: 0, n: 0, size: 'city' }] }, units: [{ id: 'X1', side: 'C', type: 'inf', e: 0, n: 0 }, { id: 'X2', side: 'A', type: 'inf', e: 0, n: 99999 }, { id: 'X3', side: 'A', type: 'cav', e: 10, n: 10 }] } });
+  const bb = checkReply(opening, badB, {}); out.battle.bad = { fixes: bb.fixes, warns: bb.warns, kind: badB.changes.battleDemo.ground.kind, villages: badB.changes.battleDemo.ground.villages.map(v => v.name + ':' + v.size), units: badB.changes.battleDemo.units.map(u => u.id + ':' + u.facing) };
+}
 console.log(JSON.stringify(out));

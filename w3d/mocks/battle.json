@@ -1,0 +1,357 @@
+{
+ "note": "Test reply: a new battle away from Mollwitz (hilly ground near Glogau, a stream with a bridge and a ford, villages, a wood, a height). Its units replace the demo field whole. Illustrative: the places and the engagement are invented.",
+ "changes": {
+  "date": "1740-12-22",
+  "title": "Before the Mühlbach",
+  "briefing": "The armies face each other across the Mühlbach south of Glogau.",
+  "world": {
+   "tempo": "campaigning"
+  },
+  "reports": [
+   {
+    "id": "r50",
+    "from_id": "wallis",
+    "place": "glogau",
+    "dated": "1740-12-21",
+    "arrives": "1740-12-22",
+    "via": "courier",
+    "source": "the commandant's patrols",
+    "category": "The army",
+    "title": "The enemy across the Mühlbach",
+    "text": "The enemy has drawn up on the far side of the Mühlbach, his right on Neudorf, his left on the windmill hill. The bridge below Lindenau still stands; there is a ford further east.",
+    "claim": "invention",
+    "battle": true
+   }
+  ],
+  "battleDemo": {
+   "id": "bd-muehlbach",
+   "title": "Before the Mühlbach (illustrative)",
+   "place": "South of Glogau, Silesia — invented ground",
+   "center": [
+    51.62,
+    16.08
+   ],
+   "date": "1740-12-22",
+   "enemy": {
+    "commander": "Schwerin",
+    "temper": "bold",
+    "favours": "cavalry",
+    "habit": "flanks"
+   },
+   "ground": {
+    "kind": "hills",
+    "villages": [
+     {
+      "name": "Neudorf",
+      "e": -1700,
+      "n": 1150,
+      "size": "village"
+     },
+     {
+      "name": "Lindenau",
+      "e": -500,
+      "n": -150,
+      "size": "hamlet"
+     }
+    ],
+    "woods": [
+     {
+      "name": "the Fasanerie",
+      "e": -2200,
+      "n": -600,
+      "w": 700,
+      "d": 900
+     }
+    ],
+    "streams": [
+     {
+      "name": "the Mühlbach",
+      "kind": "stream",
+      "path": [
+       [
+        -2970,
+        120
+       ],
+       [
+        -1200,
+        60
+       ],
+       [
+        0,
+        180
+       ],
+       [
+        1300,
+        40
+       ],
+       [
+        2970,
+        150
+       ]
+      ],
+      "crossings": [
+       [
+        -380,
+        90
+       ],
+       [
+        900,
+        90
+       ]
+      ]
+     }
+    ],
+    "heights": [
+     {
+      "name": "the windmill hill",
+      "e": 1300,
+      "n": 1100,
+      "r": 600,
+      "h": 30
+     }
+    ]
+   },
+   "units": [
+    {
+     "id": "GA1",
+     "side": "A",
+     "type": "inf",
+     "name": "Imperial battalion 1",
+     "e": -900,
+     "n": -650,
+     "facing": 0
+    },
+    {
+     "id": "GA2",
+     "side": "A",
+     "type": "inf",
+     "name": "Imperial battalion 2",
+     "e": -540,
+     "n": -650,
+     "facing": 0
+    },
+    {
+     "id": "GA3",
+     "side": "A",
+     "type": "inf",
+     "name": "Imperial battalion 3",
+     "e": -180,
+     "n": -650,
+     "facing": 0
+    },
+    {
+     "id": "GA4",
+     "side": "A",
+     "type": "inf",
+     "name": "Imperial battalion 4",
+     "e": 180,
+     "n": -650,
+     "facing": 0
+    },
+    {
+     "id": "GA5",
+     "side": "A",
+     "type": "inf",
+     "name": "Imperial battalion 5",
+     "e": 540,
+     "n": -650,
+     "facing": 0
+    },
+    {
+     "id": "GA6",
+     "side": "A",
+     "type": "inf",
+     "name": "Imperial battalion 6",
+     "e": -720,
+     "n": -800,
+     "facing": 0
+    },
+    {
+     "id": "GA7",
+     "side": "A",
+     "type": "inf",
+     "name": "Imperial battalion 7",
+     "e": -360,
+     "n": -800,
+     "facing": 0
+    },
+    {
+     "id": "GA8",
+     "side": "A",
+     "type": "inf",
+     "name": "Imperial battalion 8",
+     "e": 0,
+     "n": -800,
+     "facing": 0
+    },
+    {
+     "id": "GAC1",
+     "side": "A",
+     "type": "cav",
+     "name": "Imperial horse, left",
+     "e": -1500,
+     "n": -700,
+     "facing": 0
+    },
+    {
+     "id": "GAC2",
+     "side": "A",
+     "type": "cav",
+     "name": "Imperial horse, right",
+     "e": 1100,
+     "n": -700,
+     "facing": 0
+    },
+    {
+     "id": "GAA1",
+     "side": "A",
+     "type": "art",
+     "name": "Imperial battery",
+     "e": -180,
+     "n": -520,
+     "facing": 0
+    },
+    {
+     "id": "GB1",
+     "side": "B",
+     "type": "inf",
+     "name": "Prussian battalion 1",
+     "e": -800,
+     "n": 700,
+     "facing": 180
+    },
+    {
+     "id": "GB2",
+     "side": "B",
+     "type": "inf",
+     "name": "Prussian battalion 2",
+     "e": -400,
+     "n": 700,
+     "facing": 180
+    },
+    {
+     "id": "GB3",
+     "side": "B",
+     "type": "inf",
+     "name": "Prussian battalion 3",
+     "e": 0,
+     "n": 700,
+     "facing": 180
+    },
+    {
+     "id": "GB4",
+     "side": "B",
+     "type": "inf",
+     "name": "Prussian battalion 4",
+     "e": 400,
+     "n": 700,
+     "facing": 180
+    },
+    {
+     "id": "GB5",
+     "side": "B",
+     "type": "inf",
+     "name": "Prussian battalion 5",
+     "e": -600,
+     "n": 860,
+     "facing": 180
+    },
+    {
+     "id": "GB6",
+     "side": "B",
+     "type": "inf",
+     "name": "Prussian battalion 6",
+     "e": -200,
+     "n": 860,
+     "facing": 180
+    },
+    {
+     "id": "GB7",
+     "side": "B",
+     "type": "inf",
+     "name": "Prussian battalion 7",
+     "e": 200,
+     "n": 860,
+     "facing": 180
+    },
+    {
+     "id": "GBC1",
+     "side": "B",
+     "type": "cav",
+     "name": "Prussian horse, right",
+     "e": -1400,
+     "n": 750,
+     "facing": 180
+    },
+    {
+     "id": "GBC2",
+     "side": "B",
+     "type": "cav",
+     "name": "Prussian horse, left",
+     "e": 1000,
+     "n": 750,
+     "facing": 180
+    },
+    {
+     "id": "GBC3",
+     "side": "B",
+     "type": "cav",
+     "name": "Prussian hussars",
+     "e": 1500,
+     "n": 900,
+     "facing": 180
+    },
+    {
+     "id": "GBA1",
+     "side": "B",
+     "type": "art",
+     "name": "Prussian battery",
+     "e": 200,
+     "n": 560,
+     "facing": 180
+    }
+   ],
+   "options": [
+    {
+     "id": "hold",
+     "title": "Hold the bridge and the ford",
+     "objective": "Let him come across the Mühlbach to you.",
+     "by": "Wallis",
+     "reasoning": "He must cross under our guns.",
+     "risks": "His horse may find another ford.",
+     "arrows": [
+      {
+       "side": "A",
+       "from": [
+        -380,
+        -500
+       ],
+       "to": [
+        -380,
+        -60
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "hidden": {
+   "chronicle": "Test chronicle: the armies face each other across the Mühlbach.",
+   "decisions": [
+    {
+     "who": "Frederick II",
+     "knows": "The Emperor is dead; Vienna is in mourning and short of money.",
+     "wants": "Silesia before Vienna recovers.",
+     "decides": "Keeps his counsel and orders the regiments readied, quietly."
+    }
+   ],
+   "fortune_used": [
+    {
+     "roll": 50,
+     "for": "test",
+     "outcome": "test"
+    }
+   ]
+  }
+ }
+}

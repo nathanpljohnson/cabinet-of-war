@@ -7,7 +7,8 @@ import { infantryFrames, cavalryFrames, tinyFrames, tinyCavalryFrames, FramePool
 
 /* The table battle in 3D. Everything shown comes from state.battleDemo and the desk's battle engine
    (battle.js / army.js): orders go through armyOrders()/selectUnits()/armyMapClick(), time through runPhase().
-   World axes: x = east (e), z = −north (−n). Relief is illustrative; land cover is the project's OSM grid (TER). */
+   World axes: x = east (e), z = −north (−n). Relief is illustrative; land cover is TER: the project's OSM grid at Mollwitz,
+   or the ground the adjudicator described for another battle (w3d/ground.js), with its relief and named heights. */
 export async function createBattle({ renderer, actors, quality, makeSky, makeLights, toast, onRise, winter }) {
   const N = makeNoise(1741), rnd = rngFrom(41), scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 2, 30000);
@@ -24,11 +25,20 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
   const near = (r, c, t) => { for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) { const row = TER.rows_str[r + dr]; if (row && +row[c + dc] === t) return true; } return false; };
   const outside = (x, z) => Math.hypot(Math.max(0, Math.abs(x) - W / 2), Math.max(0, Math.abs(z) - H / 2));
   const frac = (x, z, t) => { let k = 0; for (const [dx, dz] of [[-12, -12], [12, -12], [-12, 12], [12, 12], [0, 0]]) if (landAt(x + dx, z + dz) === t) k++; return k / 5; };
+  const relief = TER.relief ?? 1, heights = TER.heights || [], WD = TER.wdist;
+  // distance to water (metres), bilinear over the grid's cell centres, warped like the drawn land cover; outside the field, the nearest edge's
+  const waterD = (x, z) => { if (!WD) return 1e9; x += 18 * N(x / 95, z / 95); z += 18 * N(x / 95 + 31, z / 95 - 17); const fc = (x + W / 2) / cell - .5, fr = (H / 2 + z) / cell - .5, c0 = Math.floor(fc), r0 = Math.floor(fr), tc = fc - c0, tr = fr - r0;
+    const g = (r, c) => WD[Math.max(0, Math.min(TER.rows - 1, r)) * TER.cols + Math.max(0, Math.min(TER.cols - 1, c))]; return lerp(lerp(g(r0, c0), g(r0, c0 + 1), tc), lerp(g(r0 + 1, c0), g(r0 + 1, c0 + 1), tc), tr); };
   const height = (x, z) => {
-    let h = 7 + 5 * N.fbm(x / 1100, z / 1100, 3) + 1.6 * N.fbm(x / 300 + 3, z / 300, 3);
+    let h = 7 + (relief - 1) * 2 + relief * (5 * N.fbm(x / 1100, z / 1100, 3) + 1.6 * N.fbm(x / 300 + 3, z / 300, 3));
+    for (const p of heights) h += p.h * Math.exp(-((x - p.e) ** 2 + (z + p.n) ** 2) / (2 * (p.r * .45) ** 2));
     const o = outside(x, z); h += smooth(200, 3500, o) * (35 + 90 * Math.max(0, N.fbm(x / 1500, z / 1500, 3) + .3));
-    h -= frac(x, z, 2) * 9;
-    return h;
+    if (relief === 1 && !heights.length) return h - frac(x, z, 2) * 9; // Mollwitz, as it always was
+    // described ground: water lies in its valley, the banks falling towards it and the bed below the water line
+    // the field never floods by chance: only the water lies below the water line; valleys run on past the edge, dry, into the hills
+    if (o === 0) h = Math.max(h, 3.2);
+    const d = waterD(x, z) + o; h = lerp(h, 3.4, (1 - smooth(20, 320, d)) * (1 - smooth(0, 1500, o)));
+    return o > 0 ? h : lerp(h, 1.2, 1 - smooth(5, 18, d)); // a shallow bed just under the water
   };
   // the battlefield's land cover is painted into a texture (~4.6 m per pixel) so edges are smooth whatever the mesh
   // resolution; vertex colours carry only the countryside outside the battle map
@@ -324,6 +334,7 @@ export async function createBattle({ renderer, actors, quality, makeSky, makeLig
     refresh() { lastCardKey = ''; arrowKey = ''; },
     setReadOnly(b) { readOnly = b; inspected = null; lastCardKey = ''; if (b) selectUnits([]); },
     // ride over the ground the day after: the dead, the guns, the burial parties; the camera low, among them
+    dispose() { labels.remove(); card.remove(); },
     setAftermath(b) { aftermathOn = b; after.group.visible = b; arrowG.visible = !b; labels.hidden = b; afterKey = ''; lastCardKey = ''; if (b) { buildAftermath(); cam.tw = null; cam.tx = afterCentre[0]; cam.tz = afterCentre[1]; cam.dist = 70; cam.pitch = .26; } },
     // arrive from the map: start high over (x,z) and settle down onto the field
     descend(x, z) { cam.tx = Math.max(-W / 2, Math.min(W / 2, x)); cam.tz = Math.max(-H / 2, Math.min(H / 2, z)); cam.dist = 5800; cam.pitch = 1.2; cam.tw = { t: 0, d0: 5800, d1: 1300, p0: 1.2, p1: .66 }; },

@@ -390,3 +390,8 @@ body.w3d-on dialog h2{font:400 26px var(--display)!important}
 .sh-bk .bk-gz{padding-left:20px}.sh-bk .bk-gz li{margin:4px 0}
 .sh-purse{display:flex;align-items:center;gap:8px;font:14px var(--read);color:var(--bone-2);margin:6px 0}
 .cw-record code{font:12px ui-monospace,Menlo,monospace;color:var(--bone-2)}
+/* the drawn ground of a battle on the desk's map: the names of its villages, woods, streams and heights */
+.w3d-gname{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font:italic 13px var(--read);color:#3a3226;text-shadow:0 0 3px #efe6cf,0 0 3px #efe6cf;pointer-events:none}
+.w3d-gname.village{font-style:normal;font-variant:small-caps;letter-spacing:.04em}
+.w3d-gname.stream,.w3d-gname.river{color:#2f5866}
+

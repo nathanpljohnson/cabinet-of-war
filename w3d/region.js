@@ -7,7 +7,7 @@ import { makePerson, makeHorse, makeAnimal } from './actors.js';
 import { infantryFrames, FramePool, rider as riderGeo } from './figures.js';
 import { place as placeGeom } from './lib.js';
 import { personOf } from './people.js';
-import { placeCfg, townHouse, church, landmark, viennaSkyline, marianColumn, stall } from './places.js';
+import { placeCfg, townHouse, church, landmark, viennaSkyline, marianColumn, stall, bastionTrace, polyDist } from './places.js';
 
 /* The explorable ground: headquarters courtyard → road over the river → a small camp.
    Illustrative countryside outside Vienna; not a reconstruction of a particular site. */
@@ -17,19 +17,33 @@ const CY = { x0: -193.5, x1: -159.5, z0: -26.5, z1: 6.5 };
 export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', name: 'Vienna' }, people = [], mode = 'court', cues = {} }) {
   // cues: what the state says the world looks like — season, mourning, pay, roads, refugees, men in camp, standing, dismissal
   const winter = cues.season === 'winter', SNOW = new THREE.Color(0xeef1f4);
+  // on a journey you are at a post-house on the high road, with your household and the coach; no town, no camp, no one you know
+  const road = !!cues.road;
   // what someone walking through would notice (state.world.scene, chosen by the adjudicator from a fixed list)
   // winter quarters and campaigning look the part unless the adjudicator described this place itself
-  const tags = new Set(cues.scene && cues.scene.length ? cues.scene : cues.tempo === 'winter quarters' ? ['idle_soldiers'] : cues.tempo === 'campaigning' ? ['wagons_in'] : []);
-  // each campaign location gets its own country: same plan, different seed, name and stucco
-  const seed = [...place.id].reduce((a, c) => a * 31 + c.charCodeAt(0) | 0, 7), N = makeNoise(place.id === 'vienna' ? 1740 : seed), rnd = rngFrom(place.id === 'vienna' ? 1021 : seed ^ 0x5bd1), group = new THREE.Group();
+  const tags = new Set(road ? [] : cues.scene && cues.scene.length ? cues.scene : cues.tempo === 'winter quarters' ? ['idle_soldiers'] : cues.tempo === 'campaigning' ? ['wagons_in'] : []);
+  // each campaign location gets its own country: same plan, different seed, name and stucco; each road its own
+  const key = road ? 'road:' + place.id + '>' + (cues.roadTo || '') : place.id, home = !road && place.id === 'vienna';
+  const seed = [...key].reduce((a, c) => a * 31 + c.charCodeAt(0) | 0, 7), N = makeNoise(home ? 1740 : seed), rnd = rngFrom(home ? 1021 : seed ^ 0x5bd1), group = new THREE.Group();
   const STUCCO = [0xdcb873, 0xe8d9b8, 0xd9b8a0, 0xe2cf96, 0xd8c8c0][Math.abs(seed) % 5];
   // the town round your lodging (not at Vienna, where headquarters lie outside the walls and the city is on the skyline)
-  const cfg = placeCfg(place.id), town = cfg.town, TOWN = { x0: -232, x1: -88, z0: -72, z1: 50 }, SQ = { x0: -156, x1: -104, z0: -42, z1: 22 };
+  const cfg = road ? { river: 'the river', town: false, lodging: 'The post-house' } : placeCfg(place.id), town = cfg.town, TOWN = { x0: -232, x1: -88, z0: -72, z1: 50 }, SQ = { x0: -156, x1: -104, z0: -42, z1: 22 };
   const far0 = cfg.skyline ? { x: -760, z: -600, r: 300 } : cfg.landmark ? { x: -330, z: -480, r: 110 } : null;
-  const pathCurve = new THREE.CatmullRomCurve3([[-157, -10], [-132, -7], [-104, 6], [-76, 14], [-52, 11], [-31, 6], [-10, 1], [14, -9], [42, -21], [72, -22], [98, -8], [122, 12], [146, 24], [160, 30]].map(([x, z]) => new THREE.Vector3(x, 0, z)), false, 'centripetal');
+  // on the road the high road comes down from the north past the post-house gate before it turns east
+  const lead = road ? [[-128, -206], [-136, -150], [-144, -96], [-150, -52], [-153, -28]] : [];
+  const pathCurve = new THREE.CatmullRomCurve3([...lead, [-157, -10], [-132, -7], [-104, 6], [-76, 14], [-52, 11], [-31, 6], [-10, 1], [14, -9], [42, -21], [72, -22], [98, -8], [122, 12], [146, 24], [160, 30]].map(([x, z]) => new THREE.Vector3(x, 0, z)), false, 'centripetal');
   const riverCurve = new THREE.CatmullRomCurve3([[-110, -900], [-70, -420], [-52, -200], [-22, -110], [-40, -42], [-30, 6], [-16, 58], [-42, 140], [-24, 230], [-60, 460], [-40, 900]].map(([x, z]) => new THREE.Vector3(x, 0, z)), false, 'centripetal');
   const PP = polylineFromCurve(pathCurve, 2), RP = polylineFromCurve(riverCurve, 4);
   const pathD = makeDistField(PP, 16), riverD = makeDistField(RP, 24);
+  // PG: the road from the gate onwards (the courier's way out); PL: the stretch that leads in from the north
+  let g0 = 0; if (lead.length) { let bd = 1e9; PP.forEach(([x, z], i) => { const d = Math.hypot(x + 157, z + 10); if (d < bd) { bd = d; g0 = i; } }); }
+  const PG = PP.slice(g0), PL = PP.slice(0, g0 + 1);
+  const nearestX = X => { let gi = 0, gd = 1e9; PG.forEach(([x], i) => { if (Math.abs(x - X) < gd) { gd = Math.abs(x - X); gi = i; } }); return PG[gi][1]; };
+  // a fortress: a bastioned trace round the town, rampart, ditch, covered way and glacis; the road leaves by a gate in the east front
+  const FORT = cfg.fortress ? { x0: -244, x1: -74, z0: -140, z1: 62 } : null, trace = FORT && bastionTrace(FORT, [[85], [66], [85], [101]]);
+  const gateZ = FORT ? nearestX(FORT.x1) : 0, fd0 = FORT ? polyDist(trace.pts) : null;
+  let fx = NaN, fz = NaN, fv = 100; const fortD = (x, z) => { if (!FORT) return 100; if (x !== fx || z !== fz) { fx = x; fz = z; fv = fd0(x, z); } return fv; };
+  const inGate = (x, z) => FORT && Math.abs(z - gateZ) < 4.2 && x > FORT.x1 - 26 && x < FORT.x1 + 20;
 
   const base = (x, z) => {
     const r = Math.hypot(x, z);
@@ -41,13 +55,20 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   };
   const hqH = base(HQ.x + 20, HQ.z), campH = base(CAMP.x, CAMP.z), farH = far0 ? base(far0.x, far0.z) : 0;
   const rectD = (x, z, x0, x1, z0, z1) => Math.hypot(Math.max(x0 - x, 0, x - x1), Math.max(z0 - z, 0, z - z1));
+  // the works in section, by distance from the face of the wall: rampart 7 m above the town, a dry ditch, covered way, glacis
+  const fortAt = (h, x, z) => {
+    const d = fortD(x, z), L = hqH; if (d > 72) return h; if (inGate(x, z)) return L;
+    if (d < -20) return L; if (d < -12) return lerp(L, L + 7, smooth(-20, -12, d)); if (d < -1.2) return L + 7; if (d < -.2) return lerp(L + 7, L - 3, smooth(-1.2, -.2, d)); // the drop is hidden inside the wall
+    if (d < 14) return L - 3; if (d < 17) return lerp(L - 3, L + .3, smooth(14, 17, d)); if (d < 24) return L + .3; if (d < 27) return lerp(L + .3, L + 2, smooth(24, 27, d)); return lerp(L + 2, h, smooth(27, 72, d));
+  };
   const pre = (x, z) => { // everything except the road
     let h = base(x, z);
+    if (FORT) h = fortAt(h, x, z);
     const [dR] = riverD(x, z, 60);
     h = lerp(h, -1.7, 1 - smooth(4, 24, dR));
     h = lerp(h, hqH, 1 - smooth(0, 16, rectD(x, z, -212, -150, -42, 22)));
-    h = lerp(h, campH, 1 - smooth(CAMP.r - 4, CAMP.r + 16, Math.hypot(x - CAMP.x, z - CAMP.z)));
-    if (town) h = lerp(h, hqH, 1 - smooth(0, 14, rectD(x, z, TOWN.x0, TOWN.x1, TOWN.z0, TOWN.z1)));
+    if (!road) h = lerp(h, campH, 1 - smooth(CAMP.r - 4, CAMP.r + 16, Math.hypot(x - CAMP.x, z - CAMP.z)));
+    if (town && !FORT) h = lerp(h, hqH, 1 - smooth(0, 14, rectD(x, z, TOWN.x0, TOWN.x1, TOWN.z0, TOWN.z1)));
     if (far0) h = lerp(h, farH, 1 - smooth(far0.r, far0.r * 1.5, Math.hypot(x - far0.x, z - far0.z)));
     return h;
   };
@@ -80,7 +101,9 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
     const r = Math.hypot(x, z); if (r > 320) out.lerp(tmp.set(0x55703a), smooth(320, 900, r) * .5);
     if (town && rectD(x, z, TOWN.x0, TOWN.x1, TOWN.z0, TOWN.z1) < .1) out.copy(rectD(x, z, SQ.x0, SQ.x1, SQ.z0, SQ.z1) < .1 ? GRAVEL : DIRT2).lerp(tmp.set(0x9a9284), (N(x / 2.5, z / 2.5) * .5 + .5) * .4);
     if (rectD(x, z, CY.x0, CY.x1, CY.z0, CY.z1) < .1) out.copy(GRAVEL).lerp(tmp.set(0x857860), .55 + (N(x / 3, z / 3) * .5 + .5) * .3);
-    const dc = Math.hypot(x - CAMP.x, z - CAMP.z); if (dc < CAMP.r) out.lerp(tmp.set(0x9d8c5c), (1 - smooth(CAMP.r * .5, CAMP.r, dc)) * (.45 + .3 * N(x / 9, z / 9)));
+    const dc = Math.hypot(x - CAMP.x, z - CAMP.z); if (!road && dc < CAMP.r) out.lerp(tmp.set(0x9d8c5c), (1 - smooth(CAMP.r * .5, CAMP.r, dc)) * (.45 + .3 * N(x / 9, z / 9)));
+    if (FORT) { const d = fortD(x, z); // turf on the rampart and glacis, a muddy ditch floor, the trodden covered way
+      if (d > -20 && d < 72 && !inGate(x, z)) { if (d < -.2 || d > 24) out.copy(G3).lerp(G1, .35 + .25 * N(x / 11, z / 11)); else if (d < 14) out.copy(G3).lerp(MUD, .35 + .2 * N(x / 7, z / 7)); else if (d > 17) out.copy(DIRT2).lerp(G3, .3); } }
     if (winter && h > .5) out.lerp(SNOW, .55 + .35 * smooth(-.3, .4, N(x / 22, z / 22)));
     const pm = 1 - smooth(1.6, 3.4, info.dP); if (pm > 0) out.lerp(tmp.copy(cues.roads === 'heavy' || cues.roads === 'impassable' ? MUD : DIRT).lerp(DIRT2, smooth(.6, 1.4, Math.abs(info.dP - 1.1) < .35 ? 1.4 : 0)), pm);
     if (h < .45) out.lerp(BANK, smooth(.45, .05, h)); if (h < -.25) out.copy(MUD);
@@ -97,10 +120,11 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
 
   /* ---------- vegetation ---------- */
   const inCY = (x, z, m) => rectD(x, z, -214, -148, -44, 24) < m;
-  const blocked = (x, z, path = 7) => { const [dP] = pathD(x, z, 20), [dR] = riverD(x, z, 30); return dP < path || dR < 10.5 || inCY(x, z, 6) || Math.hypot(x - CAMP.x, z - CAMP.z) < CAMP.r + 6 || fieldAt(x, z) !== -1 || (x < -40 && x > -150 && z > 95 && z < 170) || (town && rectD(x, z, TOWN.x0, TOWN.x1, TOWN.z0, TOWN.z1) < 6); };
+  // the glacis is kept clear: a field of fire, no trees or cover within musket shot of the works
+  const blocked = (x, z, path = 7) => { const [dP] = pathD(x, z, 20), [dR] = riverD(x, z, 30); return dP < path || dR < 10.5 || inCY(x, z, 6) || (!road && Math.hypot(x - CAMP.x, z - CAMP.z) < CAMP.r + 6) || fieldAt(x, z) !== -1 || (x < -40 && x > -150 && z > 95 && z < 170) || (town && rectD(x, z, TOWN.x0, TOWN.x1, TOWN.z0, TOWN.z1) < 6) || fortD(x, z) < 72; };
   const trees = { broadleaf: [], fir: [], poplar: [], bush: [] }, rocks = [], pick = a => a[Math.floor(rnd() * a.length)];
   const addFar = (sp, x, z, s) => { const y = hAt(x, z); far[sp].push({ x, y, z, ry: rnd() * 6.28, s, col: sp === 'fir' ? pick(FIRS) : winter ? pick(BARE) : pick(AUTUMN) }); };
-  const addTree = (sp, x, z, s, col) => { const y = hAt(x, z); if (y < .4) return; trees[sp].push({ x, y, z, ry: rnd() * 6.28, s, col: col || (sp === 'fir' ? pick(FIRS) : winter ? pick(BARE) : pick(AUTUMN)) }); };
+  const addTree = (sp, x, z, s, col) => { const y = hAt(x, z); if (y < .4 || fortD(x, z) < 72) return; trees[sp].push({ x, y, z, ry: rnd() * 6.28, s, col: col || (sp === 'fir' ? pick(FIRS) : winter ? pick(BARE) : pick(AUTUMN)) }); };
   const BARE = [0x6e5e4e, 0x7a6a58, 0x625446];
   const dens = quality.trees;
   for (let x = -264; x < 264; x += 6 / dens) for (let z = -204; z < 204; z += 6 / dens) {
@@ -115,7 +139,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   // riverside poplars and willows
   for (let i = 0; i < RP.length; i++) { const [x, z] = RP[i]; if (Math.abs(z) > 220 || rnd() > .5) continue; const s = rnd() > .5 ? 1 : -1, d = 12 + rnd() * 6; const px = x + s * d, pz = z + (rnd() - .5) * 4; if (pathD(px, pz, 20)[0] < 8) continue; addTree(rnd() < .55 ? 'poplar' : 'broadleaf', px, pz, .8 + rnd() * .4, winter ? 0x6e5e4e : rnd() < .6 ? 0xd9b13a : 0x9fae4a); }
   // a lime allée from the gate: baroque avenue
-  for (let i = 2; i < 46; i += 4) { const [x0, z0] = PP[i], [x1, z1] = PP[i + 1], dx = x1 - x0, dz = z1 - z0, L = Math.hypot(dx, dz); for (const s of [-1, 1]) { const tx = x0 - dz / L * 6.2 * s, tz = z0 + dx / L * 6.2 * s; if (!(town && rectD(tx, tz, TOWN.x0, TOWN.x1, TOWN.z0, TOWN.z1) < 4)) addTree('broadleaf', tx, tz, 1.0, winter ? 0x6e5e4e : i % 8 ? 0xd8b03c : 0xc79a34); } }
+  for (let i = 2; i < 46; i += 4) { const [x0, z0] = PG[i], [x1, z1] = PG[i + 1], dx = x1 - x0, dz = z1 - z0, L = Math.hypot(dx, dz); for (const s of [-1, 1]) { const tx = x0 - dz / L * 6.2 * s, tz = z0 + dx / L * 6.2 * s; if (!(town && rectD(tx, tz, TOWN.x0, TOWN.x1, TOWN.z0, TOWN.z1) < 4)) addTree('broadleaf', tx, tz, 1.0, winter ? 0x6e5e4e : i % 8 ? 0xd8b03c : 0xc79a34); } }
   // hedges and bushes along the field margins
   for (let i = 0; i < 260; i++) { const x = -14 + rnd() * 156, z = 44 + rnd() * 180; if (fieldAt(x, z) === -1 && (fieldAt(x + 4, z) === 0 || fieldAt(x - 4, z) === 0 || fieldAt(x, z + 4) === 0 || fieldAt(x, z - 4) === 0) && !blocked(x, z, 4) && rnd() < .7) addTree('bush', x, z, .7 + rnd() * .6, pick([0x7a8a3a, 0xa08a3a, 0x8a5a2a])); }
   const forest = buildForest(trees, { variants: 3, seed: 3 }); group.add(forest);
@@ -154,17 +178,23 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   /* ---------- buildings and props ---------- */
   const solid = [], colliders = [], add = (geo, x, z, ry = 0, y) => { const m = new THREE.Mesh(geo, propsMat); m.position.set(x, y ?? hAt(x, z), z); m.rotation.y = ry; m.castShadow = m.receiveShadow = true; group.add(m); return m; };
   const propsMat = stdMat();
-  const manor = add(P.manor(place.id === 'vienna' ? undefined : STUCCO), HQ.x, HQ.z, 0, hqH); solid.push(manor);
+  // headquarters (or your lodging) round its courtyard; on the road, a post-house round its yard on the same plan
+  const manor = add(road ? P.postHouse() : P.manor(place.id === 'vienna' ? undefined : STUCCO), HQ.x, HQ.z, 0, hqH); solid.push(manor);
   solid.push(add(P.gateWall(33, 7), CY.x1 + .3, -10, 0, hqH));
-  add(P.fountain(), -174, -10, 0, hqH);
+  if (road) { add(P.well(), -174, -10, 0, hqH); colliders.push({ c: [-174, -10, 1.3] }, { b: [-175.4, -172.6, -8.5, -7.7] }); }
+  else { add(P.fountain(), -174, -10, 0, hqH); colliders.push({ c: [-174, -10, 3.7] }); }
   add(P.awning(8, 5), -183, -21, 0, hqH);
   const tableM = add(P.mapTable(), -184, -21, 0, hqH), desk = add(P.writingDesk(), -178.5, -21.5, Math.PI, hqH);
   add(P.chest(), -175.4, -24.6, 0, hqH);
   add(P.hitchPost(), -163, 1.8, 0, hqH);
   dressCourtyard();
-  for (const [x, z] of [[-156, -17.2], [-156, -2.8]]) add(P.pole(.1), x, z);
+  if (road) { // your coach in the yard, fresh horses being put to; the sign of the post at the gate; an old chaise in the coach-house
+    solid.push(add(P.coach(), -169, -16.6, Math.PI / 2, hqH)); colliders.push({ b: [-171.4, -166.6, -17.7, -15.5] });
+    add(P.coach(), -183, -29.5, Math.PI, hqH);
+    add(P.postSign(), -156, -17.4); colliders.push({ c: [-156, -17.4, .3] });
+  } else for (const [x, z] of [[-156, -17.2], [-156, -2.8]]) add(P.pole(.1), x, z);
   colliders.push({ b: [-206.6, -193.4, -36.6, 16.6] }, { b: [-193.6, -159.4, -36.8, -26.4] }, { b: [-193.6, -159.4, 6.4, 16.8] }, { b: [-193.6, -191.4, -16.6, -3.4] },
-    { b: [-159.8, -158.6, -27, -13.4] }, { b: [-159.8, -158.6, -6.6, 7] }, { c: [-174, -10, 3.7] }, { b: [-185.7, -182.3, -22.2, -19.8] }, { b: [-179.6, -177.4, -22.2, -20.6] }, { c: [-175.4, -24.6, .7] });
+    { b: [-159.8, -158.6, -27, -13.4] }, { b: [-159.8, -158.6, -6.6, 7] }, { b: [-185.7, -182.3, -22.2, -19.8] }, { b: [-179.6, -177.4, -22.2, -20.6] }, { c: [-175.4, -24.6, .7] });
   // map texture from the project's own 1740 tiles (zoom 6, central Europe)
   const mapCanvas = document.createElement('canvas'); mapCanvas.width = 1536; mapCanvas.height = 1024; const mctx = mapCanvas.getContext('2d'); mctx.fillStyle = '#e6dabb'; mctx.fillRect(0, 0, 1536, 1024);
   const mapTex = new THREE.CanvasTexture(mapCanvas); mapTex.colorSpace = THREE.SRGBColorSpace; mapTex.anisotropy = 4;
@@ -201,24 +231,29 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
     add(marianColumn(), -130, -26, 0, hqH); colliders.push({ c: [-130, -26, 3] });
     for (const [x, z, r] of [[-145, -33, 0], [-139, -33, 0], [-117, -33, 0], [-146, 15, Math.PI], [-120, 15, Math.PI]]) { add(stall(rnd), x, z, r, hqH); colliders.push({ b: [x - 1.6, x + 1.6, z - .9, z + .9] }); }
     for (const [x, z, r] of [[-112, -20, 1.2], [-150, 4, -.4]]) { add(P.wagon(), x, z, r, hqH); colliders.push({ c: [x, z, 2] }); }
-    let gi = 0, gd = 1e9; PP.forEach(([x], i) => { if (Math.abs(x + 90) < gd) { gd = Math.abs(x + 90); gi = i; } }); const gz = PP[gi][1];
-    const gate = merge([box(6, 12, 3.2, 0xe6dcc6, 0, 0, -5.2), box(6, 12, 3.2, 0xe6dcc6, 0, 0, 5.2), box(6, 5, 13.6, 0xe6dcc6, 0, 7, 0), box(6.4, .4, 14, 0xf1e9d8, 0, 12, 0), placeGeom(P.hipRoof(6, 13.6, 4, 0x8e4a34, .4), 0, 12.2, 0)]);
-    solid.push(add(gate, -90, gz, 0, hqH));
-    for (const [z0, z1] of [[TOWN.z0, gz - 6.8], [gz + 6.8, TOWN.z1]]) { const L = z1 - z0, W = [box(2.4, 6, L, 0xa89c84, 0, 0, 0), box(3, .5, L, 0xc8bea6, 0, 6, 0)]; for (let k = 4; k < L - 2; k += 8) W.push(box(1.2, 5.6, 1.6, 0x9a8e76, -1.6, 0, -L / 2 + k)); for (let k = 1; k < L - 1; k += 2.4) W.push(box(2.6, .9, 1.2, 0xb4aa92, 0, 6.5, -L / 2 + k)); add(merge(W), -90, (z0 + z1) / 2, 0, hqH); colliders.push({ b: [-91.4, -88.6, z0, z1] }); }
-    colliders.push({ b: [-93, -87, gz - 6.8, gz - 3.4] }, { b: [-93, -87, gz + 3.4, gz + 6.8] });
-    spots.market = [-134, -24]; spots.gate = [-94, gz - 6];
+    if (!FORT) {
+      const gz = nearestX(-90);
+      const gate = merge([box(6, 12, 3.2, 0xe6dcc6, 0, 0, -5.2), box(6, 12, 3.2, 0xe6dcc6, 0, 0, 5.2), box(6, 5, 13.6, 0xe6dcc6, 0, 7, 0), box(6.4, .4, 14, 0xf1e9d8, 0, 12, 0), placeGeom(P.hipRoof(6, 13.6, 4, 0x8e4a34, .4), 0, 12.2, 0)]);
+      solid.push(add(gate, -90, gz, 0, hqH));
+      for (const [z0, z1] of [[TOWN.z0, gz - 6.8], [gz + 6.8, TOWN.z1]]) { const L = z1 - z0, W = [box(2.4, 6, L, 0xa89c84, 0, 0, 0), box(3, .5, L, 0xc8bea6, 0, 6, 0)]; for (let k = 4; k < L - 2; k += 8) W.push(box(1.2, 5.6, 1.6, 0x9a8e76, -1.6, 0, -L / 2 + k)); for (let k = 1; k < L - 1; k += 2.4) W.push(box(2.6, .9, 1.2, 0xb4aa92, 0, 6.5, -L / 2 + k)); add(merge(W), -90, (z0 + z1) / 2, 0, hqH); colliders.push({ b: [-91.4, -88.6, z0, z1] }); }
+      colliders.push({ b: [-93, -87, gz - 6.8, gz - 3.4] }, { b: [-93, -87, gz + 3.4, gz + 6.8] });
+      spots.gate = [-94, gz - 6];
+    } else buildWorks();
+    spots.market = [-134, -24];
   }
   if (far0) { const g = cfg.skyline ? viennaSkyline(rnd) : landmark(cfg.landmark); if (g) { const m = add(g, far0.x, far0.z, cfg.skyline ? .5 : .55, farH - .5); m.castShadow = false; } }
 
   // camp
   const camp = new THREE.Group(); group.add(camp);
   const ch = campH, cadd = (geo, x, z, ry = 0) => { const m = new THREE.Mesh(geo, propsMat); m.position.set(x, ch, z); m.rotation.y = ry; m.castShadow = m.receiveShadow = true; camp.add(m); return m; };
+  let fieldTable = null, ROWS = 0;
+  const fires = road ? [] : [[170, 72], [192, 69]];
+  if (!road) {
   const tentG = [P.tent(rngFrom(1)), P.tent(rngFrom(2)), P.tent(rngFrom(6))];
-  const ROWS = cues.men ? Math.max(1, Math.min(6, Math.round(cues.men / 1200))) : cues.tempo === 'winter quarters' ? 2 : cues.tempo === 'campaigning' ? 6 : 4;
+  ROWS = cues.men ? Math.max(1, Math.min(6, Math.round(cues.men / 1200))) : cues.tempo === 'winter quarters' ? 2 : cues.tempo === 'campaigning' ? 6 : 4;
   for (let row = 0; row < ROWS; row++) for (let i = 0; i < 6; i++) { const x = 160 + i * 6.4, z = 36 + row * 8.5; cadd(tentG[(i * 2 + row) % 3], x, z, Math.PI / 2); colliders.push({ b: [x - 1.3, x + 1.3, z - 1.45, z + 1.45] }); if (i % 2 === 0) cadd(P.muskets(), x, z + 3.2); }
   cadd(P.marquee(), 204, 24, -Math.PI / 2); colliders.push({ b: [201.6, 206.4, 20.8, 27.2] });
-  const fieldTable = cadd(P.mapTable(), 199, 24, Math.PI / 2); colliders.push({ b: [197.9, 200.1, 22.4, 25.6] });
-  const fires = [[170, 72], [192, 69]];
+  fieldTable = cadd(P.mapTable(), 199, 24, Math.PI / 2); colliders.push({ b: [197.9, 200.1, 22.4, 25.6] });
   for (const [x, z] of fires) { cadd(P.campfire(), x, z); colliders.push({ c: [x, z, 1.1] }); for (let k = 0; k < 3; k++) { const a = k * 2.1 + .4; cadd(P.barrel(), x + Math.sin(a) * 2.6, z + Math.cos(a) * 2.6); } }
   for (let i = 0; i < 3; i++) { const x = 142 + i * 5, z = 62; cadd(P.cannon(), x, z, Math.PI * .9); colliders.push({ c: [x, z, 1.4] }); }
   for (let i = 0; i < 2; i++) { cadd(P.limber(), 144 + i * 7, 72, Math.PI); colliders.push({ c: [144 + i * 7, 72, 1.2] }); }
@@ -228,6 +263,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   cadd(P.pole(8), 182, 26); cadd(P.pole(6), 204, 29.5);
   dressCamp();
   const flagTex = P.flagTexture(); for (const [x, z, h, w] of [[182, 26, 8, 1.9], [204, 29.5, 6, 1.4]]) { const f = P.flagMesh(w, w * .72, flagTex, uTime); f.position.set(x + .06, ch + h - w * .38, z); camp.add(f); }
+  }
 
   // fire glow and smoke
   const fireLights = [], flames = [];
@@ -251,15 +287,26 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   const horse = (which, x, z, ry, anim, saddle) => { const h = makeHorse(which, { saddle }); h.obj.position.set(x, hAt(x, z), z); h.obj.rotation.y = ry; h.play(anim, 0); h.mixer.update(rnd() * 3); group.add(h.obj); live.push(h); colliders.push({ c: [x, z, 1.4] }); return h; };
   const adviser = person('adviser', -184.6, -23.2, Math.PI * .1, 'Idle_Talking_Loop', hqH); colliders.push({ c: [-184.6, -23.2, .5] });
   person('clerk', -178.5, -20.3, Math.PI, 'Sitting_Idle_Loop', hqH - .02); // at the writing desk
-  for (const [x, z] of [[-156, -15.5], [-156, -4.5]]) { person('infantry', x, z, Math.PI / 2, 'Idle_Loop'); colliders.push({ c: [x, z, .5] }); }
+  if (!road) for (const [x, z] of [[-156, -15.5], [-156, -4.5]]) { person('infantry', x, z, Math.PI / 2, 'Idle_Loop'); colliders.push({ c: [x, z, .5] }); }
   const courier = person('courier', -165, -1, Math.PI * 1.1, 'Idle_Loop', hqH); colliders.push({ c: [-165, -1, .5] });
   const hitched = horse(actors.hb, -163, 3.6, Math.PI / 2, 'Idle_2', true);
+  let officer = null;
+  if (road) { // the post-house at work: fresh horses put to your coach, the ostler, the postmaster at his door, a stable lad, travellers on the high road
+    for (const [z, a] of [[-17.5, 'Idle'], [-15.7, 'Idle_2']]) horse(actors.hb, -163.8, z, Math.PI / 2, a, false);
+    horse(actors.hw, -186, 3.2, -Math.PI / 2, 'Eating', false);
+    person('labourer', -165.6, -19.4, .4, 'Idle_Talking_Loop', hqH); colliders.push({ c: [-165.6, -19.4, .45] });
+    person('burgher', -191.4, -11.9, Math.PI / 2, 'Idle_Loop', hqH); colliders.push({ c: [-191.4, -11.9, .45] }); 
+    person('labourer', -188.4, 3.6, 2.2, 'Fixing_Kneeling', hqH);
+    const lane = PL.map(([x, z], i) => [x + 1.1, z + Math.sin(i * .9) * .4]);
+    for (let i = 0; i < 3; i++) { const p = person(['woman', 'labourer', 'burgher'][i], lane[0][0], lane[0][1], 0, 'Walk_Loop'); p.follow = { pts: i === 1 ? [...lane].reverse() : lane, i: Math.floor(i / 3 * lane.length * .8), v: .9 + rnd() * .3 }; }
+  } else {
   person('infantry', 154, 18, Math.PI * .6, 'Idle_Loop'); person('infantry', 156, 31, Math.PI * .4, 'Idle_Loop');
-  const officer = person('aide', 186, 28, -Math.PI / 2, 'Idle_Talking_Loop', ch); colliders.push({ c: [186, 28, .5] });
+  officer = person('aide', 186, 28, -Math.PI / 2, 'Idle_Talking_Loop', ch); colliders.push({ c: [186, 28, .5] });
   for (const [x, z] of fires) for (let k = 0; k < 3; k++) { const a = k * 2.1 + 1.45, px = x + Math.sin(a) * 2.5, pz = z + Math.cos(a) * 2.5; person(k === 2 ? 'gunner' : 'infantry', px, pz, a + Math.PI, k === 1 ? 'Idle_Torch_Loop' : 'Sitting_Idle_Loop', ch + (k === 1 ? 0 : .38)); }
   person('infantry', 168, 51.5, 0, 'Fixing_Kneeling', ch); person('gunner', 147.5, 64, Math.PI * .8, 'Fixing_Kneeling', ch);
   person('infantry', 175, 33, Math.PI / 2, 'Walk_Formal_Loop', ch).patrol = { a: [158, 33], b: [198, 33], v: 1.2 };
   for (let i = 0; i < 4; i++) horse(i % 2 ? actors.hw : actors.hb, 219, 46 + i * 3.6, -Math.PI / 2, ['Eating', 'Idle', 'Idle_2', 'Idle_Headlow'][i], i < 2);
+  }
   for (let i = 0; i < 7; i++) { const a = makeAnimal(actors.sh, 1.05); const x = 70 + rnd() * 24, z = 44 + rnd() * 16; a.obj.position.set(x, hAt(x, z), z); a.obj.rotation.y = rnd() * 6; a.play(rnd() < .6 ? 'Idle_Eating' : 'Idle', 0); a.mixer.update(rnd() * 4); group.add(a.obj); live.push(a); }
   { const d = makeAnimal(actors.dg, .62); d.obj.position.set(172.5, ch, 69); d.obj.rotation.y = 2; d.play('Idle', 0); group.add(d.obj); live.push(d); }
 
@@ -287,8 +334,8 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   for (const o of cues.overheard || []) { const [a, b] = (o.who || []).map(id => present[id]); if (!a || !b) continue;
     for (const [p, [x, z, r]] of [[a, PAIR[0]], [b, PAIR[1]]]) { p.obj.position.set(x, hqH, z); p.obj.rotation.y = r; p.play('Idle_Talking_Loop', 0); const it = talk.find(i => i.who === p); it.pos.set(x, hqH + 1, z); }
     heard.push({ o, at: [(PAIR[0][0] + PAIR[1][0]) / 2, (PAIR[0][1] + PAIR[1][1]) / 2], done: false }); break; }
-  if (place.id === 'vienna') { const p = person(cues.mourning ? 'mournerHat' : 'courtier', -189.4, -14.8, 1.4, 'Idle_Loop', hqH); colliders.push({ c: [-189.4, -14.8, .5] }); talk.push({ id: 'chamberlain', pos: v3(-189.4, -14.8, hqH), r: 1.8, label: 'Request an audience at the Hofburg', hint: cues.rulerWith || 'The chamberlain carries it to the Archduchess or the Grand Duke', act: cues.dismissed ? 'toast:The chamberlain regrets that Her Majesty is not receiving you.' : 'chamberlain', obj: p.obj }); }
-  { const p = person('clerk', -168.6, 4.4, 2.6, 'Idle_Loop', hqH); colliders.push({ c: [-168.6, 4.4, .5] }); talk.push({ id: 'steward', pos: v3(-168.6, 4.4, hqH), r: 1.8, label: 'Tell your steward where you are going', hint: 'Travel: you leave at once; the journey goes into your orders', act: 'travel', obj: p.obj }); }
+  if (place.id === 'vienna' && !road) { const p = person(cues.mourning ? 'mournerHat' : 'courtier', -189.4, -14.8, 1.4, 'Idle_Loop', hqH); colliders.push({ c: [-189.4, -14.8, .5] }); talk.push({ id: 'chamberlain', pos: v3(-189.4, -14.8, hqH), r: 1.8, label: 'Request an audience at the Hofburg', hint: cues.rulerWith || 'The chamberlain carries it to the Archduchess or the Grand Duke', act: cues.dismissed ? 'toast:The chamberlain regrets that Her Majesty is not receiving you.' : 'chamberlain', obj: p.obj }); }
+  { const p = person('clerk', -168.6, 4.4, 2.6, 'Idle_Loop', hqH); colliders.push({ c: [-168.6, 4.4, .5] }); talk.push(road ? { id: 'steward', pos: v3(-168.6, 4.4, hqH), r: 1.8, label: 'Ask your steward how the journey goes', hint: 'Fresh horses are being put to', act: 'toast:Your steward has the horses changed. You ride on' + (cues.roadTo ? ' to ' + cues.roadTo : '') + ' within the hour. Any change of plan goes into your next dispatch.', obj: p.obj } : { id: 'steward', pos: v3(-168.6, 4.4, hqH), r: 1.8, label: 'Tell your steward where you are going', hint: 'Travel: you leave at once; the journey goes into your orders', act: 'travel', obj: p.obj }); }
   // townsfolk going about the square and the lanes; a few on the road out of Vienna
   const FOLK = ['burgher', 'woman', 'labourer', 'lady', 'woman', 'burgher', 'labourer', 'woman', 'burgher', 'lady'];
   const walks = town ? [[[-150, -36], [-110, -36]], [[-112, 18], [-152, 18]], [[-150, -14], [-112, -2]], [[-140, 10], [-140, -34]], [[-120, -36], [-120, 16]], [[-210, -40], [-165, -40]], [[-165, 29], [-210, 29]], [[-108, -30], [-108, 0]]] : [[[-140, -6], [-60, 12]], [[-20, 0], [-120, -2]]];
@@ -297,9 +344,9 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
 
   // people on the road: refugees heading for the town, deserters slipping out of an unpaid camp (they walk the road, then start again)
   const walkRoad = (kind, pts, v, k) => { const p = person(kind, pts[0][0], pts[0][1], 0, 'Walk_Loop'); p.follow = { pts, i: Math.floor(k * pts.length * .9), v }; const [x, z] = pts[p.follow.i]; p.obj.position.set(x, hAt(x, z), z); return p; };
-  if (cues.refugees) { const back = [...PP].reverse().map(([x, z], i) => [x + Math.sin(i) * 1.1, z + Math.cos(i * 1.3) * 1.1]); for (let i = 0; i < 7; i++) walkRoad(['labourer', 'woman', 'labourer', 'woman', 'burgher', 'woman', 'labourer'][i], back, .8 + rnd() * .3, i / 7); }
-  if (cues.pay === 'unpaid') { const out = [[176, 40], [196, 52], [222, 66], [252, 84]]; for (let i = 0; i < 2; i++) walkRoad('infantry', out, 1.0, i / 2); }
-  const drilling = cues.pay !== 'unpaid' && cues.pay !== 'in arrears' && cues.tempo !== 'winter quarters';
+  if (cues.refugees && !road) { const back = [...PP].reverse().map(([x, z], i) => [x + Math.sin(i) * 1.1, z + Math.cos(i * 1.3) * 1.1]); for (let i = 0; i < 7; i++) walkRoad(['labourer', 'woman', 'labourer', 'woman', 'burgher', 'woman', 'labourer'][i], back, .8 + rnd() * .3, i / 7); }
+  if (cues.pay === 'unpaid' && !road) { const out = [[176, 40], [196, 52], [222, 66], [252, 84]]; for (let i = 0; i < 2; i++) walkRoad('infantry', out, 1.0, i / 2); }
+  const drilling = !road && cues.pay !== 'unpaid' && cues.pay !== 'in arrears' && cues.tempo !== 'winter quarters';
   // the scene tags: what the adjudicator says has changed about this place
   const at = (x, z, kind, ry, anim) => { const p = person(kind, x, z, ry, anim, pubY(x, z)); colliders.push({ c: [x, z, .45] }); return p; };
   if (tags.has('alarm')) { for (const [x, z] of [[-157, -17.5], [-157, -2.5], [-154, -12], [-154, -8]]) at(x, z, 'infantry', Math.PI / 2, 'Idle_Loop'); const g = person('infantry', PUB[0], PUB[1] - 6, 0, 'Walk_Formal_Loop', pubY(PUB[0], PUB[1])); g.patrol = { a: [PUB[0] - 14, PUB[1] - 6], b: [PUB[0] + 14, PUB[1] - 6], v: 1.2, ground: !town }; }
@@ -310,10 +357,10 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   if (tags.has('prisoners')) { const road = [...PP].reverse().map(([x, z], i) => [x + Math.sin(i * .7) * .6, z]); for (let i = 0; i < 10; i++) walkRoad(i % 4 === 0 ? 'infantry' : 'gunner', road, .9, i / 40); }
   // your last dispatch, carried out where you can see it (cues.carried, the first day after a reply): a column marching out,
   // wagons leaving, a messenger riding off. A rider leaving at dawn is your rival's courier.
-  const outRoad = [...PP, [PP[PP.length - 1][0] + 60, PP[PP.length - 1][1] + 30], [PP[PP.length - 1][0] + 200, PP[PP.length - 1][1] + 120]];
+  const outRoad = [...PG, [PP[PP.length - 1][0] + 60, PP[PP.length - 1][1] + 30], [PP[PP.length - 1][0] + 200, PP[PP.length - 1][1] + 120]];
   const fromGate = [[-163, 1], [-156, -8], ...outRoad];
   const movers = [], mover = (obj, pts, v, at, hours) => { obj.position.set(pts[0][0], 0, pts[0][1]); group.add(obj); movers.push({ obj, pts, i: 0, v, at, hours }); obj.visible = false; };
-  const c = cues.carried || {};
+  const c = road ? {} : cues.carried || {};
   if (c.march) for (let i = 0; i < 12; i++) { const p = person('infantry', CAMP.x, CAMP.z, 0, 'Walk_Formal_Loop'); p.road = { pts: [[CAMP.x - 10, CAMP.z - 14], ...outRoad.slice(-12)], i: 0, v: 1.25, delay: Math.floor(i / 3) * 2.2 + (i % 3) * .2, off: (i % 3 - 1) * .9 }; }
   if (tags.has('wagons_in')) { const inRoad = [...outRoad].reverse(); for (let i = 0; i < 3; i++) { const w = new THREE.Mesh(P.wagon(), propsMat); w.castShadow = false; mover(w, inRoad, 1.6, i * 9); } }
   if (c.supply) for (let i = 0; i < 2; i++) { const w = new THREE.Mesh(P.wagon(), propsMat); w.castShadow = false; mover(w, [[140, 44], ...outRoad.slice(-14)], 1.6, i * 7); }
@@ -322,7 +369,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   if (tags.has('celebration')) for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2, x = PUB[0] + 9 + Math.sin(a) * 4.2, z = PUB[1] - 1 + Math.cos(a) * 4.2; at(x, z, ['burgher', 'woman', 'labourer', 'lady', 'infantry'][i % 5], a + Math.PI, i % 2 ? 'Idle_Talking_Loop' : 'Idle_Loop'); }
   if (cues.rivalHere) { const h = rider(); mover(h.obj, fromGate, 8.5, 0, [5.5, 8.5]); }
   // court mourning: black cloth on the gate pillars and over the main door
-  if (cues.mourning) { for (const z of [-14.15, -5.85]) add(box(1.45, 2.4, 1.45, 0x151313), CY.x1 + .3, z, 0, hqH + 1.3); add(box(.25, 4.2, 4.6, 0x151313), -191.2, -10, 0, hqH + 3.2); }
+  if (cues.mourning && !road) { for (const z of [-14.15, -5.85]) add(box(1.45, 2.4, 1.45, 0x151313), CY.x1 + .3, z, 0, hqH + 1.3); add(box(.25, 4.2, 4.6, 0x151313), -191.2, -10, 0, hqH + 3.2); }
   // lanterns at the gate: lit at night
   const lanterns = []; for (const z of [-14.15, -5.85]) { const L = new THREE.PointLight(0xffb060, 0, 22, 1.6); L.position.set(CY.x1 - .6, hqH + 4.2, z); group.add(L); lanterns.push(L); const f = new THREE.Mesh(new THREE.ConeGeometry(.16, .5, 5), flameMat); f.position.set(CY.x1 - .6, hqH + 4.15, z); f.visible = false; group.add(f); lanterns.push(f); }
   const setNight = on => { for (const l of lanterns) { if (l.isLight) l.intensity = on ? 40 : 0; else l.visible = on; } };
@@ -354,22 +401,23 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
     { id: 'council', pos: v3(-186.4, -22.6, hqH), r: 2, label: 'Consult your adviser', hint: 'Council', act: 'council', obj: adviser.obj },
     { id: 'record', pos: v3(-175.4, -24.6, hqH), r: 2.2, label: 'Your archive of letters', hint: 'Every letter that has reached you', act: 'archive' },
     { id: 'reports', pos: v3(-165, -1, hqH), r: 2.8, label: 'Take the courier’s reports', hint: 'Reports received', act: 'reports', obj: courier.obj },
-    { id: 'staff', pos: v3(186, 28, ch), r: 2.8, label: 'Hear the officer of the day', hint: 'What your staff knows', act: 'staff', obj: officer.obj },
-    { id: 'hall', pos: v3(-190.2, -10, hqH), r: 2.4, label: 'Enter the Conference chamber', hint: cues.dismissed ? 'The doors stay closed to you' : 'Your advisers’ counsel', act: cues.dismissed ? 'toast:The Conference meets without you now.' : 'hall' },
+    ...(road ? [] : [{ id: 'hall', pos: v3(-190.2, -10, hqH), r: 2.4, label: 'Enter the Conference chamber', hint: cues.dismissed ? 'The doors stay closed to you' : 'Your advisers’ counsel', act: cues.dismissed ? 'toast:The Conference meets without you now.' : 'hall' }]),
+    ...(road ? [] : [{ id: 'staff', pos: v3(186, 28, ch), r: 2.8, label: 'Hear the officer of the day', hint: 'What your staff knows', act: 'staff', obj: officer.obj },
     { id: 'campmap', pos: v3(197, 24, ch), r: 2.6, label: 'Study the field map', hint: 'Campaign map', act: 'map', obj: fieldTable },
     { id: 'battle', pos: v3(184, 27.5, ch), r: 3, label: 'Ride out to the field (table battle)', hint: 'Battlefield', act: 'battle' },
     { id: 'muster', pos: v3(166, 78, ch), r: 4, label: 'Inspect the companies at drill', hint: 'See for yourself: men present, arms, drill', act: 'inspect:muster' },
-    { id: 'stores', pos: v3(138, 40, ch), r: 3.5, label: 'Look over the wagons and stores', hint: 'See for yourself: bread, forage, powder', act: 'inspect:stores' },
+    { id: 'stores', pos: v3(138, 40, ch), r: 3.5, label: 'Look over the wagons and stores', hint: 'See for yourself: bread, forage, powder', act: 'inspect:stores' }]),
     ...talk,
   ];
   if (spots.market) interact.push({ id: 'market', pos: v3(spots.market[0], spots.market[1], hqH), r: 4.5, label: 'Listen to the talk of the market', hint: 'Prices, rumours, the mood of the town', act: 'inspect:market' });
   if (spots.gate) interact.push({ id: 'walls', pos: v3(spots.gate[0], spots.gate[1], hqH), r: 4, label: 'Walk the walls and the gate', hint: 'See the defences for yourself', act: 'inspect:walls' });
 
-  const zoneName = (x, z) => rectD(x, z, -212, -150, -42, 22) < 2 ? cfg.lodging + ' · ' + place.name : town && rectD(x, z, SQ.x0, SQ.x1, SQ.z0, SQ.z1) < 1 ? 'The market square · ' + place.name : town && rectD(x, z, TOWN.x0, TOWN.x1, TOWN.z0, TOWN.z1) < 1 ? 'The streets of ' + place.name
-    : Math.hypot(x - CAMP.x, z - CAMP.z) < CAMP.r + 8 ? (mode === 'field' ? 'The army’s camp near ' : 'Camp of the garrison of ') + place.name : riverD(x, z, 30)[0] < 22 ? 'Crossing ' + cfg.river : town ? 'The road out of ' + place.name : 'The road to the camp';
+  const fortZone = (x, z) => { const d = fortD(x, z); return inGate(x, z) && d > -20 && d < 17 ? 'The gate of ' + place.name : d > -20 && d < 3 ? 'On the ramparts of ' + place.name : d >= 3 && d < 24 ? 'The ditch and covered way · ' + place.name : d >= 24 && d < 72 ? 'The glacis below ' + place.name : null; };
+  const zoneName = (x, z) => (FORT && fortZone(x, z)) || (rectD(x, z, -212, -150, -42, 22) < 2 ? cfg.lodging + ' · ' + place.name : town && rectD(x, z, SQ.x0, SQ.x1, SQ.z0, SQ.z1) < 1 ? 'The market square · ' + place.name : town && rectD(x, z, TOWN.x0, TOWN.x1, TOWN.z0, TOWN.z1) < 1 ? 'The streets of ' + place.name
+    : Math.hypot(x - CAMP.x, z - CAMP.z) < CAMP.r + 8 ? (mode === 'field' ? 'The army’s camp near ' : 'Camp of the garrison of ') + place.name : riverD(x, z, 30)[0] < 22 ? 'Crossing ' + cfg.river : town ? 'The road out of ' + place.name : road ? 'The high road' : 'The road to the camp');
 
   /* ---------- the courier: rides out with the sealed orders, back with the reply ---------- */
-  const route = [[-163, 1], [-156, -8], ...PP.map(([x, z]) => [x, z])];
+  const route = [[-163, 1], [-156, -8], ...PG.map(([x, z]) => [x, z])];
   { const [ax, az] = PP[PP.length - 2], [bx, bz] = PP[PP.length - 1], L = Math.hypot(bx - ax, bz - az); route.push([bx + (bx - ax) / L * 60, bz + (bz - az) / L * 60 + 30], [bx + (bx - ax) / L * 220, bz + (bz - az) / L * 220 + 140]); }
   const cum = [0]; for (let i = 1; i < route.length; i++) cum.push(cum[i - 1] + Math.hypot(route[i][0] - route[i - 1][0], route[i][1] - route[i - 1][1]));
   const routeLen = cum[cum.length - 1];
@@ -443,6 +491,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
     if (Math.abs(x) > 262 || Math.abs(z) > 202) return true;
     const [dP] = pathD(x, z, 10), y = hAt(x, z);
     if (y < .35 && dP > 2.4) return true;
+    if (FORT && !inGate(x, z)) { const d = fortD(x, z); if (d > -2 && d < 2.2) return true; } // the face of the wall: no stepping off the parapet or climbing the scarp
     for (const c of colliders) {
       if (c.b) { if (x > c.b[0] && x < c.b[1] && z > c.b[2] && z < c.b[3]) return true; }
       else if ((x - c.c[0]) ** 2 + (z - c.c[1]) ** 2 < c.c[2] ** 2) return true;
@@ -452,7 +501,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   // ground under the player: the bridge deck where it spans the water
   const groundAt = (x, z) => { const [dP, t] = pathD(x, z, 10), y = hAt(x, z); return (dP < 2.4 && Math.abs(t - iB) * 2 < 13) ? Math.max(y, DECK + .14) : y; };
 
-  tables.push(addSheet(199, ch + .995, 24, 1.8, 1.2)); // on the commander's field table in the camp
+  if (!road) tables.push(addSheet(199, ch + .995, 24, 1.8, 1.2)); // on the commander's field table in the camp
   // anywhere else: the aide sets up a folding table with the field map
   let portable = null;
   const setUpTable = (x, z, ry) => {
@@ -468,7 +517,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
   // the courtyard dressed: flagstones, tubs of orange trees, barrels, hay and firewood where the household works
   function dressCourtyard() {
     const prnd = rngFrom(77), d = new THREE.Object3D(), c = new THREE.Color();
-    const SL = [0xdcc49c, 0xd3bc92, 0xe2cea8, 0xcdb48c, 0xd8c19a].map(x => new THREE.Color(x)), S = [];
+    const SL = (road ? [0xa89c88, 0x9a8e7a, 0xb2a690, 0x8f8572, 0xa49480] : [0xdcc49c, 0xd3bc92, 0xe2cea8, 0xcdb48c, 0xd8c19a]).map(x => new THREE.Color(x)), S = []; // a post yard is cobbled
     for (let z = CY.z0 + .45; z < CY.z1 - .3; z += .82) { let x = CY.x0 + .1 - prnd() * .6; while (x < CY.x1 - .2) { const x1 = Math.min(CY.x1 - .15, x + .7 + prnd() * .7); if (x1 - x > .25 && x > CY.x0 && Math.hypot((x + x1) / 2 + 174, z + 10) > 3.3) S.push([(x + x1) / 2, z, x1 - x - .07]); x = x1; } }
     const slabs = new THREE.InstancedMesh(tint(new THREE.BoxGeometry(1, 1, 1), 0xffffff), propsMat, S.length);
     S.forEach(([x, z, w], i) => { d.position.set(x, hqH + .03, z); d.rotation.set(0, 0, 0); d.scale.set(w, .06, .75); d.updateMatrix(); slabs.setMatrixAt(i, d.matrix);
@@ -476,7 +525,8 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
     slabs.receiveShadow = true; group.add(slabs);
     const D = [], put = (geo, x, z, ry = 0, y = 0) => D.push(placeGeom(geo, x, hqH + .06 + y, z, ry));
     const tub = () => P.orangeTub(prnd), bale = P.hayBale, sack = () => P.sack(prnd), logs = (n, L) => P.logPile(n, L, prnd);
-    for (const [x, z] of [[-186.5, 5.6], [-178.5, 5.7], [-166, 5.7], [-192.6, -17.6], [-192.6, -2.4]]) { put(tub(), x, z); colliders.push({ c: [x, z, .55] }); }
+    if (road) { for (const [x, z, r, y] of [[-182, 5.6, Math.PI / 2, 0], [-180.8, 5.6, Math.PI / 2 + .1, 0], [-181.4, 5.6, Math.PI / 2, .5], [-175, 5.7, Math.PI / 2 - .1, 0]]) put(bale(), x, z, r, y); colliders.push({ b: [-182.8, -174.3, 5, 6.4] }); }
+    else for (const [x, z] of [[-186.5, 5.6], [-178.5, 5.7], [-166, 5.7], [-192.6, -17.6], [-192.6, -2.4]]) { put(tub(), x, z); colliders.push({ c: [x, z, .55] }); }
     for (const [x, z, y] of [[-192.7, -25.6, 0], [-192.6, -24.8, 0], [-191.9, -25.7, 0], [-192.4, -25.2, .86]]) put(P.barrel(), x, z, prnd() * 3, y);
     put(P.crate(), -191.2, -24.6, .25); put(P.crate(), -191.3, -24.5, .6, .72); put(sack(), -190.6, -25.6, 1); put(sack(), -190.2, -25.3, 2.2);
     put(logs(5, 1.9), -191.4, 5.75); put(logs(4, 1.9), -191.4, 5.75, 0, .66);
@@ -498,6 +548,27 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
       const [x, z] = side === 0 ? [CY.x0 + o, lerp(CY.z0, CY.z1, t)] : side === 1 ? [lerp(CY.x0, CY.x1, t), CY.z1 - o] : side === 2 ? [lerp(CY.x0, CY.x1, t), CY.z0 + o] : [CY.x1 - o, lerp(CY.z0, CY.z1, t)];
       if (side === 3 && z > -13.4 && z < -6.6) continue; weeds.push({ x, y: hqH + .04, z, ry: prnd() * 6.28, s: .35 + prnd() * .4, k: prnd() < .12 ? 4 : Math.floor(prnd() * 3) }); }
       group.add(buildGrass(weeds, 6)); }
+  }
+  // the fortress: a brick scarp along the trace from the ditch floor to a parapet over the rampart walk, dressed angles,
+  // a sentry box and a gun on each salient, and the gate through the east front (illustrative works in the period manner)
+  function buildWorks() {
+    const L = hqH, W = [], pts = trace.pts, n = pts.length, BRICK = 0x9a5444, CORD = 0xd8cdb4, cx = (FORT.x0 + FORT.x1) / 2, cz = (FORT.z0 + FORT.z1) / 2;
+    for (let i = 0; i < n; i++) {
+      const [ax, az] = pts[i], [bx, bz] = pts[(i + 1) % n], dx = bx - ax, dz = bz - az, len = Math.hypot(dx, dz), ux = dx / len, uz = dz / len;
+      let nx = -uz, nz = ux; if (fd0((ax + bx) / 2 + nx * 2, (az + bz) / 2 + nz * 2) < 0) { nx = -nx; nz = -nz; }
+      const spans = [[0, len]];
+      if (Math.abs(ax - FORT.x1) < .01 && Math.abs(bx - FORT.x1) < .01) { const t0 = (gateZ - 8.6 - az) / uz, t1 = (gateZ + 8.6 - az) / uz, lo = Math.min(t0, t1), hi = Math.max(t0, t1); if (hi > 0 && lo < len) { spans.length = 0; if (lo > 0) spans.push([0, lo]); if (hi < len) spans.push([hi, len]); } }
+      for (const [s0, s1] of spans) { const l = s1 - s0 + .6, sm = (s0 + s1) / 2;
+        W.push(placeGeom(merge([box(l, 14.6, 3, BRICK), box(l, .35, 3.3, CORD, 0, 12.8, 0), box(l + .1, .25, 3.1, CORD, 0, 14.6, 0)]), ax + ux * sm + nx * .1, L - 6, az + uz * sm + nz * .1, Math.atan2(-dz, dx))); }
+      W.push(placeGeom(box(3.4, 14.8, 3.4, 0xb8ae98), ax + nx * .1, L - 6, az + nz * .1));
+    }
+    const m = add(merge(W), 0, 0, 0, 0); solid.push(m);
+    for (const [sx, sz] of trace.salients) { const k = Math.hypot(cx - sx, cz - sz), ix = (cx - sx) / k, iz = (cz - sz) / k;
+      add(P.sentryBox(), sx + ix * 3, sz + iz * 3, 0, L + 7);
+      const gx = sx + ix * 8, gz = sz + iz * 8; add(P.cannon(), gx, gz, Math.atan2(-ix, -iz), L + 7); colliders.push({ c: [gx, gz, 1.4] }); }
+    const D = 22; solid.push(add(P.fortGate(D, 7.2), FORT.x1 + 1.6 - D / 2, gateZ, 0, L));
+    colliders.push({ b: [FORT.x1 + 1.6 - D, FORT.x1 + 2, gateZ - 8.6, gateZ - 3.6] }, { b: [FORT.x1 + 1.6 - D, FORT.x1 + 2, gateZ + 3.6, gateZ + 8.6] });
+    spots.gate = [FORT.x1 - 30, gateZ - 6];
   }
   // the road worn by wheels: two ruts with grass between, long grass and flowers at the verges, puddles when it is wet, milestones
   function dressRoad() {
@@ -542,7 +613,7 @@ export function buildRegion({ actors, quality, uTime, place = { id: 'vienna', na
     put(merge([placeGeom(tint(new THREE.CylinderGeometry(.28, .28, .36, 10), 0x2c4a7a), 0, .18, 0), placeGeom(tint(new THREE.CylinderGeometry(.3, .3, .05, 10), 0xa3302a), 0, .02, 0), placeGeom(tint(new THREE.CylinderGeometry(.3, .3, .05, 10), 0xa3302a), 0, .34, 0)]), 200.8, 28.6);
     const m = new THREE.Mesh(merge(D), propsMat); m.castShadow = m.receiveShadow = true; camp.add(m);
   }
-  const out = { setNight, setHour, setArchive, onOverhear: null, group, heightAt: groundAt, courierRide, setLetters, tablePose, tables, setUpTable, packTable, spawnCamp: { x: 193, z: 31, ry: Math.PI * .75 }, fires: fires.map(([x, z]) => [x, z]), camp: CAMP, place, blockedAt, interact, zoneName, update, solid, spawn: { x: -167.5, z: -6.5, ry: -2.41 }, live, counts: { trees: Object.values(trees).reduce((s, a) => s + a.length, 0), farTrees: Object.values(far).reduce((s, a) => s + a.length, 0), rocks: rocks.length, grass: grass.length, people: live.length } };
+  const out = { setNight, setHour, setArchive, onOverhear: null, group, heightAt: groundAt, courierRide, setLetters, tablePose, tables, setUpTable, packTable, spawnCamp: road ? { x: -167.5, z: -6.5, ry: -2.41 } : { x: 193, z: 31, ry: Math.PI * .75 }, fires: fires.map(([x, z]) => [x, z]), camp: CAMP, place, blockedAt, interact, zoneName, update, solid, spawn: { x: -167.5, z: -6.5, ry: -2.41 }, live, counts: { trees: Object.values(trees).reduce((s, a) => s + a.length, 0), farTrees: Object.values(far).reduce((s, a) => s + a.length, 0), rocks: rocks.length, grass: grass.length, people: live.length } };
   return out;
 }
 
