@@ -54,8 +54,8 @@
 - [x] The desk map draws the battle's ground (same warped outlines as the 3D field, field patches, villages) with the named features, under the units; Mollwitz keeps the real map
 
 # Simulated playthrough + debug (Nov 2026)
-- [ ] Driver: Playwright page held open (scratchpad), helpers to read letters, give orders, seal, paste, walk days
-- [ ] Play turns 0 → 12+ on a fresh profile (sound off, autosave off); a fresh adjudicator agent answers each packet cold
-- [ ] Log every finding (game, packet, checker, history) as it happens
+- [x] Driver: Playwright page held open (scratchpad), helpers to read letters, give orders, seal, paste, walk days
+- [ ] Play turns 0 → 12+ (at turn 8, 1 Dec 1740) on a fresh profile (sound off, autosave off); a fresh adjudicator agent answers each packet cold
+- [x] Log every finding (game, packet, checker, history) as it happens
 - [ ] Rank findings; fix the bugs in code; tests for each fix; re-run the affected turn
 - [ ] Write the report (tasks/playtest-2026-11-20.md)
