@@ -245,7 +245,7 @@ export function liveState(state) {
 export function replyFormat(state) {
   const n = state.turn + 1;
   return `## Reply format
-Return ONE JSON object, in a ```json block. The page reads only that object; a line or two of notes after it is ignored:
+Return ONE JSON object (a fenced json block is fine). The page reads only that object; a line or two of notes after it is ignored:
 {"kind": "turn", "schemaVersion": 3, "campaignId": "${state.campaignId}", "turn": ${n}, "parentTurn": ${state.turn}, "seal": "${sealOf(state)}", "changes": { … }}
 
 "changes" holds only what changed this turn, in the same shape as the current state below. The page merges it:
