@@ -44,11 +44,24 @@ const sentOrders = () => [...((state.exchange || {}).orders || []).map(o => o.re
 const choicesNow = () => store(CHOICE_KEY, []).filter(c => c.turn === state.turn);
 // Include the archive when migrating an older save; durable orders then live in the campaign state.
 const waiting = () => pendingOrders(state, store(SENT_KEY, []).filter(s => s.turn < state.turn), Object.values(store(P + 'w3d-archive', {})));
+// what the player decided, with ids a letter can cite in "follows": courses taken in council, answers given at once, promises made in person
+export function earlierDecisions() {
+  const out = [], add = (id, date, label) => out.push({ id, date, label, text: label.replace(/^./, c => c.toUpperCase()) + ' (' + date + ')' });
+  for (const e of store(BOOK_KEY, []).filter(e => e.turn < state.turn).slice(-8)) {
+    if (e.course) add('C' + e.turn, e.date, 'the course you adopted in council: ' + e.course);
+    (e.choices || []).forEach((c, i) => add('U' + e.turn + '-' + (i + 1), e.date, 'your answer at once on ' + c)); }
+  const o = state.decision && typeof draft !== 'undefined' && (state.decision.options || []).find(x => x.id === draft.option);
+  if (o) add('C' + state.turn, state.date, 'the course you adopted in council: ' + o.title);
+  choicesNow().forEach((c, i) => add('U' + state.turn + '-' + (i + 1), state.date, 'your answer at once on ' + c.title + ': ' + c.label));
+  const cm = exchangeRecord(state).commitments; // the meeting in hand included, in the order the record keeps them
+  cm.forEach((c, i) => { if (i >= cm.length - 8) add('M' + (i + 1), c.date, 'what was undertaken in person: ' + c.text); });
+  return out;
+}
 export const fortune = () => rollFortune(state.campaignId, state.turn, 8, (state.record || {}).salt || '');
 async function packet(orders) {
   const w = draft.w3d || {};
   const packetState = { ...state, exchange: exchangeRecord(state, store(SENT_KEY, []), Object.values(store(P + 'w3d-archive', {}))) };
-  return buildPacket({ state: packetState, contract, orders, almanac, fortune: fortune(), wake: w.wake, trust: state.trust, choices: choicesNow(), waiting: waiting(), endRequested: !!w.end, rulesInProject: store(RULES_KEY, false), purse: (w.items || []).filter(i => i.purse).map(i => i.text) });
+  return buildPacket({ state: packetState, contract, orders, almanac, fortune: fortune(), wake: w.wake, trust: state.trust, choices: choicesNow(), waiting: waiting(), endRequested: !!w.end, rulesInProject: store(RULES_KEY, false), earlier: earlierDecisions(), purse: (w.items || []).filter(i => i.purse).map(i => i.text) });
 }
 
 /* ---------- reading the reply ---------- */
@@ -63,7 +76,7 @@ function installReview() {
     if (reply.schemaVersion === 2 && reply.kind !== 'turn') { // a whole state (older replies, imported state files)
       if (state.record.ironman) return show({ title: 'The record is sealed', errors: ['A whole saved state cannot be loaded into a sealed campaign. Paste Claude’s reply to the latest packet instead.'] });
       $('confirm').querySelector('h2').textContent = 'Accept this update?'; $('accept').hidden = false; pending = { payload: reply }; legacy(text); return; }
-    const r = checkReply(state, reply, { orderRefs: sentOrders(), fortune: fortune(), seal: sealOf(state), volumeDue: volumeDue(state) });
+    const r = checkReply(state, reply, { orderRefs: sentOrders(), followIds: earlierDecisions().map(d => d.id), fortune: fortune(), seal: sealOf(state), volumeDue: volumeDue(state) });
     if (r.errors.length) return show({ title: 'This reply cannot be accepted', errors: r.errors, request: correctionRequest(r.errors, state.turn + 1) });
     const { next, notes } = mergeTurn(state, reply, { sent: store(SENT_KEY, []), reports: Object.values(store(P + 'w3d-archive', {})) });
     try { validateState(next); } catch (e) { return show({ title: 'This reply cannot be accepted', errors: [e.message], request: correctionRequest([e.message], state.turn + 1) }); }

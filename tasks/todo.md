@@ -165,3 +165,19 @@ Decisions (Nathan, 4 Nov): library + live fallback; replay accounts; atlas march
 - [x] The map's wind and bells, and the table battle's drums, play with the game's sound on the map and the field, at its Volume
 - [x] UI-IDEAS.md marks match the game
 - [x] Trade routes from sources: Danube, Bohemian Elbe, Salzkammergut salt to Budweis, the Trieste road over the Semmering, Vienna–Prague post road, Vienna–Breslau by Brünn and Olmütz, the High Road Breslau–Leipzig, the Golden Road Prague–Nuremberg, the Hungarian ox drive; each names its source and what is not sourced; drawn from the page, so old saves get them. Dropped: the Salzach route (Salzburg's, not the Crown's) and Moravia–Cracow (no source found)
+
+# Staff who explain (six ideas; the Codex pass on Nathan's Mac was never pushed, rebuilt here from bc05912)
+- [x] 1 Secretary's letter: reply `staffBriefing` {dated, changed, stakes, attention, letters, places, guidance}; arrives on its day, pinned first; links to letters already come and to places on the map. Later letters are dropped from its links (fix). Without it (turn > 0) the briefing itself is the secretary's note on the wake day.
+- [x] 2 Known / suspected / disputed / what it means / how such things go: `guidance` on any letter and on each counsel option; shown as the secretary's note on the paper
+- [x] 3 Letters to the map: places and movements a letter names become links; the map draws the letter's road (written where and when, reached you where and when, km and days from you) and the formation's last reported line; nothing reported after the day shown
+- [x] 4 Counsel you can question: Why? / What would it require? / What could go wrong? / What if we wait? inline from the option; an unanswered question becomes an order to that adviser; `decision.debate` lines shown as a short exchange in council
+- [x] 5 Consequences: `follows` on a letter cites the player's earlier council courses, urgent answers and promises (ids listed in the packet); the letter says what it follows from
+- [x] 6 While the couriers ride: review the intelligence, hear the household, inspect the quarters, set preparations in hand — each an ordinary dispatch entry with hours passing, never a discovery granted by clicking
+- [x] Phone: the letter list folds into "Choose a letter"
+- [x] Contract + reply format + mock + tests; browser check (fresh profile, muted, autosave off); push to main; verify Pages
+
+## Review (21 Nov 2026)
+- Tests 60 → 64 (secretary's letter merges and clears; never points ahead; notes, follows and debate made safe; packet lists earlier decisions). All pass.
+- Browser (fresh profile on port 8811, sound off, autosave off, opening skipped): counsel questions answer inline, an unanswered one adds an order to the adviser; the living mock's secretary letter is absent on 21 Oct and present on 26 Oct, links its two letters; the Glogau note opens; "Follow it on the map" draws the letter's road with dates; a second reply's secretary letter dated 27 Oct lost its link to a letter arriving 30 Oct (fix shown in review), `follows: ["C0","C7"]` kept C0 only and the letter says what it bears on; the movement link is absent on 27 Oct and present on 30 Oct with its last reported date and distance; waiting entries land in the dispatch as [T1-n] orders; phone list folds. No console errors (two Leaflet default-icon 404s found and fixed).
+- Not verified: lightCheck (no lighting change); the map transition is slow in this container (1.5 fps; a plain act('map') takes ~43 s) — environmental, not this change.
+- Rules version changes (contract and reply format grew): a Claude Project holding the rules needs the new file once.

@@ -439,3 +439,50 @@ body:not(.w3d-sick) .w3d-bedside{display:none}
 @media (max-width:640px){.w3d-bedside{top:auto;bottom:150px;max-height:30vh}}
 /* a refused reply has no Accept: the button styles would otherwise override [hidden] */
 #confirm [hidden]{display:none!important}
+
+/* staff who explain: the secretary's letter, the note on a letter, counsel you can question, letters to the map, the days of waiting */
+.sh-letter-index{display:flex;flex-direction:column;flex:1;min-height:0}
+.sh-letter-index>summary{display:none}
+.sh-letter-index>.sh-l-list{flex:1}
+.sh-briefing h3{margin-bottom:8px}
+.sh-bf-h{margin:18px 0 4px;font:400 15px var(--display);font-variant-caps:all-small-caps;letter-spacing:.08em;color:var(--paper-mute)}
+.sh-briefing .sh-lt-body{margin-bottom:6px}
+.sh-bf-letters{margin:18px 0 0;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.sh-bf-letters>i,.sh-onmap>i,.sh-qs>i,.sh-debate>i{display:block;font:400 14px var(--display);font-variant-caps:all-small-caps;letter-spacing:.08em;font-style:normal;color:var(--paper-mute);margin-bottom:4px}
+#w3d-shell .sh-bf-letters button{background:none;border:0;padding:2px 0;color:var(--paper-ink);font:italic 16px/1.45 var(--read);text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(138,47,38,.45);text-underline-offset:3px}
+#w3d-shell .sh-lk{display:inline;background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline dotted;text-decoration-color:rgba(138,47,38,.6);text-underline-offset:3px}
+#w3d-shell .sh-lk:hover,#w3d-shell .sh-lk:focus-visible{color:#8a2f26;text-decoration-style:solid}
+.sh-onmap{margin:16px 0 0;padding-top:10px;border-top:1px solid var(--paper-line);display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px}
+.sh-onmap>i{flex-basis:100%;margin:0}
+#w3d-shell .sh-onmap .sh-lk{font:15px var(--read)}
+.sh-onmap small{color:var(--paper-mute)}
+.sh-explain{margin:16px 0 0;padding:8px 14px;border-left:2px solid rgba(70,60,45,.35);background:rgba(70,60,45,.05)}
+.sh-explain summary{cursor:pointer;font:italic 15px var(--read);color:#554b3c;min-height:28px;line-height:28px}
+.sh-explain p{font:16px/1.55 var(--read);color:var(--paper-ink);margin:6px 0}
+.sh-explain p i,.sh-q-a b{font-family:var(--display);font-style:normal;font-weight:400;color:var(--paper-mute)}
+.sh-lt-follows small{color:var(--paper-mute);font-style:normal}
+.sh-qs{margin:18px 0 6px}
+.sh-q-row{display:flex;flex-wrap:wrap;gap:6px}
+#w3d-shell .sh-q{background:none;border:1px solid rgba(70,60,45,.35);color:var(--paper-ink);border-radius:16px;padding:5px 12px;font:15px var(--read);cursor:pointer;min-height:34px}
+#w3d-shell .sh-q:hover{background:rgba(70,60,45,.07)}
+#w3d-shell .sh-q.on{background:rgba(138,47,38,.1);border-color:rgba(138,47,38,.55)}
+.sh-q-a{margin:10px 0 0;font:16px/1.55 var(--read);color:var(--paper-ink)}
+.sh-q-none{font-style:italic;color:#554b3c}
+#w3d-shell .sh-q-ask{background:none;border:0;border-bottom:1px solid rgba(138,47,38,.55);padding:0;color:#8a2f26;font:italic 15px var(--read);cursor:pointer}
+.sh-debate{margin:18px 0 0;padding:10px 14px;background:rgba(70,60,45,.05);border-radius:2px}
+.sh-debate p{font:16px/1.55 var(--read);color:var(--paper-ink);margin:4px 0}
+.sh-wait{margin:14px 0 0;display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.sh-wait>i{flex-basis:100%;font:italic 14px var(--read);color:var(--bone-3)}
+#w3d-shell .sh-wait button{font:14px var(--read);font-variant-caps:normal;letter-spacing:0;padding:6px 12px}
+#w3d-shell .sh-wait button.on{border-color:var(--bone-2);color:var(--bone)}
+.sh-matters .sh-wait{justify-content:flex-start;flex-basis:100%}
+.w3d-lroute{background:rgba(22,24,27,.88);color:#ece6da;border:1px solid rgba(236,230,218,.25);font:13px "Iowan Old Style",Palatino,Georgia,serif;box-shadow:none}
+@media(max-width:640px){
+  .sh-letter-index>summary{display:block;cursor:pointer;padding:12px 18px;min-height:44px;color:var(--bone);font:15px/1.4 var(--read);border-bottom:1px solid var(--edge)}
+  .sh-letter-index>summary::after{content:' ▾'}
+  .sh-letter-index[open]>summary::after{content:' ▴'}
+  .sh-letter-index .sh-l-list{max-height:28dvh;overflow:auto}
+  .sh-letter:has(.sh-briefing)>.sh-lt-acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .sh-letter:has(.sh-briefing)>.sh-lt-acts>button{margin:0;padding:8px;font-size:14px;min-height:40px}
+}
+.w3d-lroute small{font-size:12px;color:#b9b1a3}

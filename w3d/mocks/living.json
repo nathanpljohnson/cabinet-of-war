@@ -143,7 +143,12 @@
     "category": "The frontier",
     "title": "Quiet at Glogau",
     "text": "All quiet at Glogau. The roads are deep in mud.",
-    "claim": "invention"
+    "claim": "invention",
+    "guidance": {
+     "known": "A hussar patrol saw no Prussian troops near the town.",
+     "suspected": "Mud will slow any march from Brandenburg as much as ours.",
+     "explain": "A patrol reports what it rode past; it does not see beyond the next wood."
+    }
    }
   ],
   "battleDemo": {
@@ -217,6 +222,24 @@
   ],
   "household": {
    "purse": "The Carinthian rents are late, and the banker asks politely when his note will be met."
+  },
+  "staffBriefing": {
+   "dated": "1740-10-26",
+   "changed": "The day book has turned up a Linz remittance entered twice, and Wallis writes that all is quiet at Glogau, though the roads are deep in mud.",
+   "stakes": "If the chests hold less than the Hofkammer reckons, your figures before the Conference will be wrong, and Harrach will be glad to say so.",
+   "attention": "Whether to have the day book checked against the Linz receipts, and what Wallis is to do before the roads close.",
+   "letters": [
+    "t1-1",
+    "t1-3"
+   ],
+   "places": [
+    "linz",
+    "glogau"
+   ],
+   "guidance": {
+    "known": "One entry appears twice in the day book.",
+    "suspected": "A clerk's slip, not a theft; nothing yet shows which."
+   }
   }
  }
 }

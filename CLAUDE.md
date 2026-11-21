@@ -10,6 +10,7 @@ Solo historical strategy game (Habsburg monarchy, October 1740) in a 3D browser 
 | Page glue: review dialog, saves, campaign file, book log, urgent choices, trust, enemy temper | `w3d/campaign.js` |
 | Continuity checks (dead men writing, canon, standing) | `w3d/continuity.js` |
 | Letters, dispatch, notebook, book of the campaign; a meeting in person (`state.scene`) arrives in the post on its day | `w3d/shell.js` |
+| Your staff explain: the secretary's letter (`state.staffBriefing`), the note on a letter or counsel (`guidance`), questions to counsel, what a letter `follows` from (ids from `earlierDecisions()` in `campaign.js`), places and movements in a letter as map links (`letter-map:` in `main.js`), what to do while the couriers ride | `w3d/shell.js`; checks in `w3d/turn.js`; rules in the contract's "Your staff explain" |
 | 3D place: people, sights (world.sights), whereabouts groups, winter quarters / campaigning, the post-house on the road, fortress works | `w3d/region.js` |
 | Per-place look (river, church, landmark, `fortress`), bastion trace, where you are on a day of the turn, the days he keeps to his bed (`abedOn`) and who is at his bedside (`bedsideOn`) | `w3d/places.js` |
 | The Conference chamber, and the bedchamber where he lives the days he is abed (`createSickroom`; visitors are those whereabouts put with him, plus his household) | `w3d/interior.js` |

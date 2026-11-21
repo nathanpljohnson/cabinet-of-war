@@ -161,4 +161,20 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
     dedup: exchangeRecord({ ...next, scene }).commitments.length,
     forged: final.exchange.commitments.length, dedup: exchangeRecord({ ...next, scene }).commitments.length, recovery: badTurn.errors.some(e => e.includes('Copy a fresh dispatch')) };
 }
+// your staff explain: the secretary's letter points only to letters already come; notes, follows and debate are made safe
+{ const lv = reply(opening, JSON.parse(read('w3d/mocks/living.json')).changes), lc = checkReply(opening, lv, {}), { next: n1 } = mergeTurn(opening, lv);
+  const r2 = reply(n1, { date: '1740-10-27', title: 't', briefing: 'b', reports: [], hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } });
+  const bad = reply(opening, { date: '1740-10-25', title: 't', briefing: 'b', hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] },
+    reports: [{ id: 'a', title: 'Early', text: 'At Breslau.', dated: '1740-10-22', arrives: '1740-10-22', source: 's', follows: ['C0', 'C9'], guidance: { known: 'k', secret: 'x' } },
+      { id: 'b', title: 'Late', text: 'Later news.', dated: '1740-10-25', arrives: '1740-10-25', source: 's', guidance: 'not an object' }],
+    staffBriefing: { dated: '1740-10-23', changed: 'Breslau writes.', letters: ['a', 'b', 'nope'], places: ['breslau', 'atlantis'], guidance: { suspected: 's' } },
+    decision: { id: 'd', title: 'd', options: [{ id: 'o', by: 'x', title: 'O', ifWait: 3, guidance: { known: 'k' } }], debate: [{ who: 'a', text: 'yes' }, { text: 'no who' }] } });
+  const bc = checkReply(opening, bad, { followIds: ['C0', 'U0-1'] });
+  const dropped = reply(opening, { date: '1740-10-25', title: 't', briefing: 'b', reports: [], staffBriefing: { letters: [] }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } }), dc = checkReply(opening, dropped, {});
+  const pk = buildPacket({ state: opening, contract, orders: '', almanac, fortune: [], earlier: [{ id: 'C0', text: 'The course you adopted in council: X (1740-10-21)' }] });
+  out.staff = { living: { fixes: lc.fixes, warns: lc.warns, briefing: n1.staffBriefing, guidance: n1.reports.find(r => r.id === 't1-3').guidance }, cleared: mergeTurn(n1, r2).next.staffBriefing,
+    live: 'staffBriefing' in liveState(n1), briefing: bad.changes.staffBriefing, reports: bad.changes.reports, decision: bad.changes.decision, fixes: bc.fixes, errors: bc.errors,
+    dropped: { has: 'staffBriefing' in dropped.changes, fixes: dc.fixes }, packet: pk.includes('## The player’s earlier decisions') && pk.includes('- [C0] The course you adopted'), noEarlier: !buildPacket({ state: opening, contract, orders: '', almanac, fortune: [] }).includes('## The player’s earlier decisions'),
+    format: replyFormat(opening).includes('staffBriefing') && replyFormat(null).includes('"follows"'), contract: contract.includes('## Your staff explain') };
+}
 console.log(JSON.stringify(out));

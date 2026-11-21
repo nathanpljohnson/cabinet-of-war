@@ -15,7 +15,7 @@ export const BY_ID = ['cast', 'locations', 'forces', 'fortresses', 'movements', 
 export const APPEND = ['ledger', 'hidden.canon', 'hidden.dispatches', 'hidden.volumes'];
 const appendPath = p => APPEND.includes(p) || p.startsWith('hidden.memory.');
 // per-turn things: when a reply leaves them out, they are cleared rather than carried into the next turn
-const PER_TURN_LISTS = ['reports', 'overheard', 'whereabouts', 'gazette'], PER_TURN_HIDDEN = ['decisions', 'fortune_used'], PER_TURN_NULL = ['decision', 'scene'];
+const PER_TURN_LISTS = ['reports', 'overheard', 'whereabouts', 'gazette'], PER_TURN_HIDDEN = ['decisions', 'fortune_used'], PER_TURN_NULL = ['decision', 'scene', 'staffBriefing'];
 export const WEATHER = ['clear', 'haze', 'overcast', 'mist', 'frost', 'rain', 'thaw', 'snow', 'storm', 'thunder'];
 export const SIGHTS = ['alarm', 'idle_soldiers', 'bread_queue', 'empty_market', 'recruiting', 'wagons_in', 'wounded', 'prisoners', 'celebration', 'smoke'];
 export const THREAD_STATUS = ['dormant', 'building', 'triggered', 'resolved', 'abandoned'];
@@ -26,6 +26,11 @@ export const UNIT_TYPES = ['inf', 'cav', 'art'];
 // battle grounds: the library ids and the kinds the page lays out (w3d/groundspec.js)
 export { GROUNDS, GROUND_KINDS };
 // a battle account, phase by phase (battleDemo.phases): how each formation stood, and the arrows of the moves
+// your staff explain: the secretary's letter, and the note on any letter or counsel — known, suspected, disputed, what it means, how such things go
+export const BRIEF_KEYS = ['changed', 'stakes', 'attention'];
+export const GUIDANCE_KEYS = ['known', 'suspected', 'disputed', 'stakes', 'explain'];
+// the questions you can put to counsel, and the field of the option that answers each
+export const QUESTIONS = [['why', 'Why?', 'reasoning'], ['needs', 'What would it require?', 'needs'], ['risk', 'What could go wrong?', 'risks'], ['wait', 'What if we wait?', 'ifWait']];
 export const PHASE_FORMS = ['line', 'column', 'firing', 'routing', 'camp'];
 export const ARROW_KINDS = ['move', 'charge', 'retreat', 'fire'];
 // a fingerprint for the sealed record (not cryptographic: it shows tampering and stale replies, it does not stop a determined editor)
@@ -154,6 +159,18 @@ export function checkReply(prev, reply, ctx = {}) {
     if (r.urgent) checkUrgent(r, prev.date, date, refs, castIds, warns, fixes);
   });
   if (errors.length) return { errors, warns, fixes };
+  const follows = ctx.followIds ? new Set(ctx.followIds) : null;
+  for (const r of ch.reports) {
+    if ('guidance' in r) { r.guidance = cleanGuidance(r.guidance, '“' + r.title + '”', fixes); if (!r.guidance) delete r.guidance; }
+    if ('follows' in r) { const fl = Array.isArray(r.follows) ? r.follows.filter(x => typeof x === 'string') : [], bad = follows ? fl.filter(x => !follows.has(x)) : [];
+      if (bad.length || !Array.isArray(r.follows)) fixes.push('“' + r.title + '” follows from decisions the player never took (' + (bad.join(', ') || 'not a list') + '); those links were dropped.');
+      r.follows = fl.filter(x => !bad.includes(x)); if (!r.follows.length) delete r.follows; }
+  }
+  if (ch.staffBriefing != null) checkBriefing(ch, prev, locIds, fixes);
+  if (isObj(ch.decision) && Array.isArray(ch.decision.options)) { const d = ch.decision;
+    for (const o of d.options) if (isObj(o)) { if (o.ifWait != null && typeof o.ifWait !== 'string') delete o.ifWait; if ('guidance' in o) { o.guidance = cleanGuidance(o.guidance, 'the counsel “' + (o.title || o.id) + '”', fixes); if (!o.guidance) delete o.guidance; } }
+    if (d.debate != null) { const ok = (Array.isArray(d.debate) ? d.debate : []).filter(l => isObj(l) && typeof l.who === 'string' && typeof l.text === 'string' && l.text.trim());
+      if (!Array.isArray(d.debate) || ok.length < d.debate.length) fixes.push('Lines of the council’s debate without "who" and "text" were left out.'); d.debate = ok; if (!ok.length) delete d.debate; } }
   for (const c of Array.isArray(ch.cast) ? ch.cast : []) if (c && c.id && !(prev.cast || []).some(x => x.id === c.id)) {
     if (!c.name) warns.push('A new person (' + c.id + ') has no name.');
     if (c.place && !locIds.has(c.place)) warns.push(c.name + ' is placed at "' + c.place + '", which is not a location on the map.');
@@ -258,6 +275,27 @@ function checkBattle(old, bd, warns, fixes) {
     if (full) { if (typeof u.facing !== 'number') u.facing = u.side === 'A' ? 0 : 180; if (!u.name) u.name = u.id; }
     return true; });
 }
+function cleanGuidance(g, where, fixes) {
+  if (!isObj(g)) { fixes.push('The note on ' + where + ' (guidance) was not an object and was left out.'); return null; }
+  const out = {}; for (const k of GUIDANCE_KEYS) if (typeof g[k] === 'string' && g[k].trim()) out[k] = g[k].trim();
+  const extra = Object.keys(g).filter(k => !GUIDANCE_KEYS.includes(k)); if (extra.length) fixes.push('The note on ' + where + ' had fields the page does not show (' + extra.join(', ') + '); they were left out.');
+  return Object.keys(out).length ? out : null;
+}
+// the secretary's letter arrives on its day; it may point only to letters that have reached the player by then, and to places on the map
+function checkBriefing(ch, prev, locIds, fixes) {
+  const b = ch.staffBriefing;
+  if (!isObj(b) || !BRIEF_KEYS.some(k => typeof b[k] === 'string' && b[k].trim())) { fixes.push('The secretary’s letter (staffBriefing) needs "changed", "stakes" or "attention"; it was left out.'); delete ch.staffBriefing; return; }
+  for (const k of BRIEF_KEYS) if (b[k] != null && typeof b[k] !== 'string') delete b[k];
+  if (typeof b.dated !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(b.dated)) b.dated = ch.date;
+  else if (b.dated < prev.date || b.dated > ch.date) { const d = b.dated < prev.date ? prev.date : ch.date; fixes.push('The secretary’s letter was dated ' + b.dated + ', outside this turn; it is put on ' + d + '.'); b.dated = d; }
+  const came = new Map(ch.reports.filter(isObj).map(r => [r.id, r.arrives || r.dated]));
+  if (b.letters != null) { const ls = Array.isArray(b.letters) ? b.letters : [], bad = ls.filter(id => !(came.has(id) && came.get(id) <= b.dated));
+    if (bad.length) fixes.push('The secretary’s letter of ' + b.dated + ' pointed to letters that have not reached the player by then (' + bad.join(', ') + '); those links were dropped.');
+    b.letters = ls.filter(id => !bad.includes(id)); }
+  if (b.places != null) { const ps = Array.isArray(b.places) ? b.places : [], bad = ps.filter(id => !locIds.has(id));
+    if (bad.length) fixes.push('The secretary’s letter named places not on the map (' + bad.join(', ') + '); they were left out.'); b.places = ps.filter(id => locIds.has(id)); }
+  if ('guidance' in b) { b.guidance = cleanGuidance(b.guidance, 'the secretary’s letter', fixes); if (!b.guidance) delete b.guidance; }
+}
 function checkLetter(r, from, to, refs, castIds, warns, fixes) {
   if (!r.arrives) { r.arrives = r.dated > from ? r.dated : from; }
   if (r.arrives < r.dated) { fixes.push('“' + r.title + '” arrived before it was written; it now arrives on ' + r.dated + '.'); r.arrives = r.dated; }
@@ -302,7 +340,7 @@ export function liveState(state) {
   const s = clone(state); for (const k of STATIC_KEYS) delete s[k];
   if (s.hidden) { delete s.hidden.world; delete s.hidden.threads; } // threads go as the index above the state
   delete s.exchange; // carried explicitly in the continuity section, without duplicating it
-  delete s.record; delete s.span; // the seal goes above the state; the span is the page's
+  delete s.record; delete s.span; delete s.staffBriefing; // the seal goes above the state; the span is the page's; the secretary's letter says what the briefing says
   // the letters he is answering go whole: they are what his orders respond to, and a fresh chat cannot remember them.
   // (Gists of 260 and 420 characters cost the adjudicator promises, figures and the wording of resolutions; whole letters add ~2–3k.)
   s.reports = (s.reports || []).map(r => ({ id: r.id, from_id: r.from_id, dated: r.dated, title: r.title, ...(r.re ? { re: r.re } : {}), text: r.text }));
@@ -341,10 +379,11 @@ Return ONE JSON object (a fenced json block is fine). The page reads only that o
 - These lists merge by id — give only new or changed items, each with its id and only the fields that changed; {"id": "…", "_remove": true} removes one: ${BY_ID.join(', ')}.
 - These lists only grow — give only the new entries: ${APPEND.join(', ')}, and each list in hidden.memory.
 - Every other list you give replaces the old one whole (reports, knowledge, remarks, hidden.standingOrders, refugees, decision.options …).
-- Cleared unless you give them again: reports, gazette, overheard, whereabouts, decision, scene, world.weather, world.sights, hidden.decisions, hidden.fortune_used.
+- Cleared unless you give them again: reports, gazette, overheard, whereabouts, decision, scene, staffBriefing, world.weather, world.sights, hidden.decisions, hidden.fortune_used.
 - Never change: ${PLAYER_KEYS.join(', ')}.
 - Player-facing text holds only what the character could know. Keep ids stable.
 - Optional, give only when they apply: gazette (the Diarium issues of this turn), movements (forces on the move as the player has heard of them, drawn on their map: {"id","label","side":"habsburg"|"prussia"|"bavaria"|"saxony"|"france","status":"confirmed"|"reported"|"rumour","reported":"YYYY-MM-DD","source","claim","pts":[[lat,lon],[lat,lon],…]} from where they were to where they are said to go; change one by id as news comes), weather (only the days it changes; each day keeps the last weather given), overheard, whereabouts, decision (only a real fork), scene (when the player meets someone in person — an audience, a Council they sit in, a visitor at their bed — the meeting that mattered most this turn: {"id","title","date":"YYYY-MM-DD" (the day of the meeting),"setting","participants":[{"id","name"}],"lines":[{"who","text"}]; the player’s part goes as narration (who "Narration") or in the words of their orders (who "player"),"commitments":["…"],"status":"closed"}).
+- Your staff explain (see the contract, "Your staff explain"): staffBriefing {"dated" (the day it reaches the player; default the last day of the turn),"changed","stakes","attention","letters":[ids of this turn's letters that have reached the player by then],"places":[location ids],"guidance"}; any letter, staffBriefing and each decision option may carry "guidance" {${GUIDANCE_KEYS.map(k => '"' + k + '"').join(',')}} (each a sentence or two, only what the writer knows); a letter that reports what came of the player's earlier decision carries "follows": [ids from "The player’s earlier decisions"]; decision options may add "ifWait" (what happens if nothing is decided) beside reasoning, needs and risks, and decision.debate [{"who","text"}] gives two to four lines where advisers truly disagree.
 - Illness: player.health says how the player is at the end of the turn. player.abed {"from","to"} gives the days the player keeps to their bed (leave out "to" if they are still abed); without it, "ill" or "gravely ill" keeps them abed the whole turn. While abed, those whereabouts put with them that day come to their bedside, with their household; anyone else is reached by a note. They cannot inspect, ride out or attend the Conference.
 - A journey: give player.locationId where the player ends the turn, and player.route [{"date","place"}] (place a location id or "road") if they stop anywhere or arrive on a day other than the distance implies. Without a route they are on the road from the first day of the turn and arrives after the usual days for the distance.
 - A battle account (a report with "battle": true) needs battleDemo for that battle. The same battle (same id): move or remove its units by id. A new battle takes a new id and replaces the whole field: give id, title, place, center [lat, lon], date, ground and every unit of both sides ({"id","side":"A" the player’s | "B" the enemy,"type":${Object.keys(TROOPS).map(k => '"' + k + '"').join('|')},"name","e","n","facing"}, metres east and north of center, within ±${FIELD.w / 2} and ±${FIELD.h / 2}; facing in degrees, 0 = north). For a battle outside this campaign, write an ordinary letter instead.
@@ -355,8 +394,9 @@ Skeleton (fill it from the story; leave out what did not change):
 {"kind":"turn","schemaVersion":3,"campaignId":"${cid}","turn":${n},"parentTurn":${t0},"seal":"${seal}","changes":{
  "date":"YYYY-MM-DD","title":"…","briefing":"…",
  "player":{"locationId":"…","mode":"court","health":"well"},
- "reports":[{"id":"t${n}-1","from_id":"…","place":"…","dated":"…","arrives":"…","via":"courier","source":"…","category":"…","title":"…","text":"…","claim":"invention","re":["T${t0}-1"]}],
- "decision":{"id":"…","title":"…","options":[{"id":"…","by":"…","title":"…","objective":"…","reasoning":"…","risks":"…"}]},
+ "reports":[{"id":"t${n}-1","from_id":"…","place":"…","dated":"…","arrives":"…","via":"courier","source":"…","category":"…","title":"…","text":"…","claim":"invention","re":["T${t0}-1"],"guidance":{"known":"…","suspected":"…","stakes":"…"}}],
+ "staffBriefing":{"dated":"YYYY-MM-DD","changed":"…","stakes":"…","attention":"…","letters":["t${n}-1"],"places":["…"]},
+ "decision":{"id":"…","title":"…","options":[{"id":"…","by":"…","title":"…","objective":"…","reasoning":"…","needs":"…","risks":"…","ifWait":"…","guidance":{"known":"…","suspected":"…"}}],"debate":[{"who":"…","text":"…"}]},
  "world":{"tempo":"winter quarters","tempoAt":{"glogau":"campaigning"},"weather":{"YYYY-MM-DD":"overcast"},"sights":{"vienna":["recruiting"]}},
  "gazette":[{"date":"YYYY-MM-DD","items":[{"head":"…","text":"…"}]}],
  "household":{"purse":"what the player’s steward would say of their money, in a sentence"},
@@ -385,7 +425,7 @@ export function rulesText({ contract, almanac }) {
   return '# CABINET OF WAR — the rules (version ' + v + ')\n\nThe standing rules of the campaign: how to adjudicate, how the world reaches the player, the reply format, and the almanac\'s systems and stakes. Each turn\'s packet carries the rest (the state, the player’s orders, the fortune, the threads and almanac entries in play) and names the rules version it expects.\n\n'
     + contract.trim() + '\n\n' + replyFormat(null) + '\n\n## Almanac: systems and stakes\n' + systemsText(almanac) + '\n';
 }
-export function buildPacket({ state, contract, orders, almanac, fortune, wake, trust, choices, endRequested, purse, waiting, rulesInProject }) {
+export function buildPacket({ state, contract, orders, almanac, fortune, wake, trust, choices, endRequested, purse, waiting, rulesInProject, earlier }) {
   const continuity = exchangeRecord(state), outstanding = pendingOrders({ ...state, exchange: continuity }, [{ turn: state.turn, orders: waiting || [] }]);
   const th = (state.hidden || {}).threads || [], date = state.date, act = activePlots(almanac || {}, th, date), byId = new Map(th.map(t => [t.id, t]));
   const shown = th.filter(t => !['resolved', 'abandoned'].includes(t.status) && (liveThread(t) || dueThread(t, date))), rest = th.length - shown.length;
@@ -403,6 +443,7 @@ export function buildPacket({ state, contract, orders, almanac, fortune, wake, t
     + '\n\n## The player’s judgement of sources\nTrusts: ' + (trusts.join('; ') || '(none marked)') + '\nDoubts: ' + (doubts.join('; ') || '(none marked)')
     + (outstanding.length ? '\n\n## Earlier orders with no answer yet\nThese remain pending regardless of age. A letter that answers one carries its reference in "re". An acknowledgement is not proof of execution: record any continuing obligation in hidden.standingOrders and hidden.chronicle.\n' + outstanding.map(o => '- [' + o.ref + '] ' + (o.line || o.text || '')).join('\n') : '')
     + (continuity.lastScene || continuity.commitments.length ? '\n\n## Meetings and commitments carried forward\nThe latest meeting is context, not a new event. Earlier promises remain part of the record; assess fulfilment or breach from events, never assume they expired.\n' + JSON.stringify({ lastScene: continuity.lastScene, commitments: continuity.commitments }) : '')
+    + ((earlier || []).length ? '\n\n## The player’s earlier decisions\nA letter that reports what came of one of these cites its id in "follows" (orders go in "re" as before). Cite only what the writer could know came of it.\n' + earlier.map(d => '- [' + d.id + '] ' + d.text).join('\n') : '')
     + '\n\n## Urgent letters the player answered this turn\n' + ((choices || []).map(c => '- On “' + c.title + '” (' + c.id + '): the player chose “' + c.label + '”' + (c.byDefault ? ' (the day passed without their answer; the default applied)' : '') + '.').join('\n') || '(none)')
     + '\n\n## The player’s own purse\n' + (purse && purse.length ? 'Orders the player pays for themselves: ' + purse.join(' | ') : '(nothing from the player’s own purse this turn)')
     + (volumeDue(state) ? '\n\n## A volume closes\nThis reply makes turn ' + (state.turn + 1) + '. Add one entry to hidden.volumes: {"n": ' + ((state.turn + 1) / 10) + ', "turns": "' + (state.turn - 8) + '–' + (state.turn + 1) + '", "title", "text"} — these ten turns, this reply\'s events included, in at most 200 words. Then write hidden.chronicle afresh as the opening of the next volume: how things stand now, who wants what, what is unresolved.' : '')

@@ -5,7 +5,7 @@ import { setWindTime, setWindStrength, disposeTree, makeNoise, merge } from './l
 import { seasonOf, sunVector, moonVector, moonPhase, lookOf } from './season.js';
 import { createShell, locName, fmtDate } from './shell.js';
 import { createSound } from './sound.js';
-import { travel, loc, roadKm, travelDays, letterDays, placeOn, groupsOn, abedOn, bedsideOn } from './places.js';
+import { travel, loc, roadKm, travelDays, letterDays, placeOn, playerOn, groupsOn, abedOn, bedsideOn } from './places.js';
 import { personOf } from './people.js';
 import { initCampaign } from './campaign.js';
 import { createPost } from './post.js';
@@ -284,7 +284,7 @@ function stepInteract() {
 const body = document.body, sleep = ms => new Promise(r => setTimeout(r, ms));
 // the map's own sounds (wind and bells on the map, drums in a table battle) play with the game's sound, at its volume
 function deskSound() { const on = !!gfx.sound && (mode === 'map' || mode === 'field'); deskVolume(gfx.volume ?? 1); window.sound(on); } // window.sound: the desk's own, which this module's `sound` hides
-function setView(v) { mode = v; dyn.grace = 1.5; if (v === 'map') drawSightings(); deskSound(); body.classList.remove('w3d-room', 'w3d-map', 'w3d-field', 'w3d-hall', 'w3d-sick'); body.classList.add('w3d-' + v); if (v !== 'room') { nearest = null; $3('w3d-prompt').hidden = true; } refreshHud(); if (v !== 'map') canvas.focus(); }
+function setView(v) { mode = v; if (v !== 'map' && v !== 'trans') letterLayer.clearLayers(); dyn.grace = 1.5; if (v === 'map') drawSightings(); deskSound(); body.classList.remove('w3d-room', 'w3d-map', 'w3d-field', 'w3d-hall', 'w3d-sick'); body.classList.add('w3d-' + v); if (v !== 'room') { nearest = null; $3('w3d-prompt').hidden = true; } refreshHud(); if (v !== 'map') canvas.focus(); }
 async function fadeCanvas(on, ms = 420) { root.style.transition = 'opacity ' + ms + 'ms ease'; root.style.opacity = on ? '1' : '0'; await sleep(ms + 20); }
 
 // the map table: its sheet shows zoom-6 tiles x32–37, y20–23; lean over it, then cross-fade to the same view on the live map
@@ -452,6 +452,7 @@ function act(a) {
   if (a === 'heir') return beginAsHeir();
   if (a.startsWith('post:')) { const n = +a.slice(5); redrawMapPost(); newDay().then(() => world.region.setLetters(shell.unread().length)); if (n) sound.cue('letters'); pendingArrival = n > 0; shell.refresh(); world.region.setLetters(shell.unread().length); refreshHud(); if (n) toast(fmtDate(shell.today) + ' — the day passes.'); return; }
   if (a.startsWith('sighting:')) return showSighting(a.slice(9));
+  if (a.startsWith('letter-map:')) { const [id, target] = a.slice(11).split('|'); return showLetterMap(id, target); }
   if (a === 'hall') return mode === 'sick' ? toast('The council must come to you, or wait.') : enterHall();
   if (a === 'orders') return shell.toggleSheet();
   if (a === 'notebook') return shell.showNotebook();
@@ -507,6 +508,34 @@ function drawSightings() {
     const who = (state.cast.find(c => c.id === r.from_id) || {}).name || 'a letter';
     L.circleMarker([g.lat, g.lon], { radius: 8, color: '#8a2f26', weight: 2, fillColor: '#b8453a', fillOpacity: .45 }).bindTooltip(g.what + ' — so ' + who + ' reports' + (r.source ? ' (from ' + r.source + ')' : ''), { direction: 'top' }).addTo(sightLayer).w3d = r.id; }
   const b = travel.bound(), h = b && loc(b); if (h) L.circleMarker([h.lat, h.lon], { radius: 10, color: '#ece6da', weight: 2, fillColor: '#16181b', fillOpacity: .8 }).bindTooltip(travel.onRoad() ? 'On the road to here' : 'Bound for here', { permanent: true, direction: 'right' }).addTo(sightLayer);
+}
+// a letter on the map: the road it came by (written where and when, reached you where and when), the place or force it names,
+// and how far that lies from you. Only what has come by the day shown: a movement reported later is not drawn.
+const letterLayer = L.layerGroup().addTo(desk.map);
+const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+async function showLetterMap(id, target) {
+  const r = shell.letters().find(x => x.id === id); if (!r) return;
+  if (mode !== 'map') await goView('map'); await sleep(250); letterLayer.clearLayers();
+  const day = r.arrives || r.dated, at = playerOn(day), A = r.place && loc(r.place), B = loc(at === 'road' ? state.player.locationId : at), pts = [];
+  const here = loc(travel.here()), far = p => here && p && here !== p ? ' · ' + roadKm(here, p) + ' km from you; a letter takes about ' + letterDays(roadKm(here, p)) + ' d' : '';
+  if (A && B && A !== B) {
+    const gone = Math.max(0, Math.round((new Date(day) - new Date(r.dated)) / 864e5));
+    L.polyline([[A.lat, A.lon], [B.lat, B.lon]], { color: '#1a120b', weight: 7, opacity: .45, interactive: false }).addTo(letterLayer);
+    L.polyline([[A.lat, A.lon], [B.lat, B.lon]], { color: '#e8d6b0', weight: 3, dashArray: '2 8', lineCap: 'round', interactive: false }).addTo(letterLayer);
+    L.marker([(A.lat + B.lat) / 2, (A.lon + B.lon) / 2], { icon: L.divIcon({ className: '', html: '', iconSize: [0, 0] }), interactive: false, keyboard: false }).bindTooltip(esc('Written at ' + A.name + ', ' + fmtDate(r.dated) + ' → reached you at ' + B.name + ', ' + fmtDate(day) + (gone ? ' · ' + gone + ' d on the road' : ' · the same day')), { permanent: true, direction: 'center', className: 'w3d-lroute' }).addTo(letterLayer);
+    pts.push([A.lat, A.lon], [B.lat, B.lon]);
+  }
+  const [kind, tid] = (target || '').split(':');
+  if (kind === 'move') {
+    const m = (state.movements || []).find(x => x.id === tid && (!x.reported || x.reported <= shell.today));
+    if (m && Array.isArray(m.pts)) { const end = m.pts[m.pts.length - 1], age = m.reported ? Math.round((new Date(shell.today) - new Date(m.reported)) / 864e5) : null;
+      L.polyline(m.pts, { color: '#ece6da', weight: 9, opacity: .35, interactive: false }).addTo(letterLayer);
+      L.circleMarker(end, { radius: 9, color: '#ece6da', weight: 2, fillColor: '#8a2f26', fillOpacity: .6 }).bindTooltip(esc(m.label) + '<br><small>' + esc(({ confirmed: 'Confirmed · ', rumour: 'A rumour · ' }[m.status] || '') + (m.reported ? 'Last reported ' + fmtDate(m.reported) + (age ? ', ' + age + ' d ago' : ', today') : '') + (m.source ? ' · ' + m.source : '')) + '</small>' + (far({ lat: end[0], lon: end[1] }) ? '<br><small>' + esc(far({ lat: end[0], lon: end[1] }).slice(3)) + '</small>' : ''), { permanent: true, direction: 'right', offset: [10, 0], className: 'w3d-lroute' }).addTo(letterLayer);
+      pts.push(...m.pts); shell.hideCard(); }
+  }
+  const P = kind === 'place' ? loc(tid) : !kind ? A : null;
+  if (P) { L.circleMarker([P.lat, P.lon], { radius: 11, color: '#ece6da', weight: 2, fill: false }).bindTooltip(esc(P.name + far(P)), { permanent: true, direction: 'right' }).addTo(letterLayer); pts.push([P.lat, P.lon]); if (typeof selectPlace === 'function') selectPlace(P.id); }
+  if (pts.length > 1) desk.map.fitBounds(pts, { padding: [80, 80], maxZoom: 8 }); else if (pts.length) desk.map.setView(pts[0], 7);
 }
 async function showSighting(id) {
   const r = state.reports.find(x => x.id === id); if (!r || !r.sighting) return;

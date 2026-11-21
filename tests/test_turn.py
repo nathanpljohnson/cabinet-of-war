@@ -398,3 +398,39 @@ def test_reply_cannot_erase_promises_and_repeated_capture_is_idempotent(run):
 
 def test_stale_reply_explains_recovery(run):
     assert run["exchange"]["recovery"]
+
+
+def test_secretary_letter_and_notes_merge_and_clear(run):
+    x = run["staff"]
+    assert x["living"]["fixes"] == [] and x["living"]["warns"] == []
+    b = x["living"]["briefing"]
+    assert b["dated"] == "1740-10-26" and b["letters"] == ["t1-1", "t1-3"] and b["places"] == ["linz", "glogau"]
+    assert x["living"]["guidance"]["explain"].startswith("A patrol")
+    assert x["cleared"] is None  # per turn: gone unless the next reply gives it again
+    assert x["live"] is False  # last turn's note does not go back in the packet
+
+
+def test_secretary_letter_never_points_ahead(run):
+    x = run["staff"]
+    assert x["errors"] == []
+    assert x["briefing"]["letters"] == ["a"]  # "b" arrives after the letter's day; "nope" is not a letter
+    assert x["briefing"]["places"] == ["breslau"]
+    assert any("not reached the player by then" in f for f in x["fixes"])
+    assert x["dropped"]["has"] is False and any("staffBriefing" in f for f in x["dropped"]["fixes"])
+
+
+def test_notes_follows_and_debate_are_made_safe(run):
+    x = run["staff"]
+    a, b = x["reports"]
+    assert a["follows"] == ["C0"] and a["guidance"] == {"known": "k"}
+    assert "guidance" not in b
+    o = x["decision"]["options"][0]
+    assert "ifWait" not in o and o["guidance"] == {"known": "k"}
+    assert x["decision"]["debate"] == [{"who": "a", "text": "yes"}]
+    assert any("never took (C9)" in f for f in x["fixes"])
+
+
+def test_packet_lists_earlier_decisions_and_rules_name_the_fields(run):
+    x = run["staff"]
+    assert x["packet"] and x["noEarlier"]
+    assert x["format"] and x["contract"]
