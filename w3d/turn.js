@@ -10,9 +10,9 @@ export const STATIC_KEYS = ['labels', 'routes', 'routesNote', 'sources', 'source
 // the player’s own: a reply cannot change them
 export const PLAYER_KEYS = ['trust', 'legacy', 'campaignId', 'record', 'span', 'exchange'];
 // lists merged by id: give only new or changed items (with only the changed fields); {"id": x, "_remove": true} removes one
-export const BY_ID = ['cast', 'locations', 'forces', 'fortresses', 'movements', 'hidden.threads', 'battleDemo.units', 'battleDemo.options'];
+export const BY_ID = ['cast', 'locations', 'forces', 'fortresses', 'movements', 'undertakings', 'calendar', 'audiences', 'hidden.threads', 'battleDemo.units', 'battleDemo.options'];
 // lists that only grow: give only the new entries
-export const APPEND = ['ledger', 'hidden.canon', 'hidden.dispatches', 'hidden.volumes'];
+export const APPEND = ['ledger', 'hearsay', 'hidden.canon', 'hidden.dispatches', 'hidden.volumes'];
 const appendPath = p => APPEND.includes(p) || p.startsWith('hidden.memory.');
 // per-turn things: when a reply leaves them out, they are cleared rather than carried into the next turn
 const PER_TURN_LISTS = ['reports', 'overheard', 'whereabouts', 'gazette'], PER_TURN_HIDDEN = ['decisions', 'fortune_used'], PER_TURN_NULL = ['decision', 'scene', 'staffBriefing'];
@@ -29,6 +29,12 @@ export { GROUNDS, GROUND_KINDS };
 // your staff explain: the secretary's letter, and the note on any letter or counsel — known, suspected, disputed, what it means, how such things go
 export const BRIEF_KEYS = ['changed', 'stakes', 'attention'];
 export const GUIDANCE_KEYS = ['known', 'suspected', 'disputed', 'stakes', 'explain'];
+// your desk: undertakings in hand, the calendar on your wall, the audiences ahead
+export const UNDERTAKING_STATUS = ['in hand', 'stalled', 'done', 'abandoned'];
+export const CERTAINTY = ['fixed', 'expected', 'rumoured'];
+export const AUDIENCE_STATUS = ['expected', 'postponed', 'held', 'cancelled'];
+export const MANNERS = ['candid', 'guarded', 'warm', 'firm', 'deferential'];
+const ISO = d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d), ISO_OR_MONTH = d => typeof d === 'string' && /^\d{4}-\d{2}(-\d{2})?$/.test(d);
 // the questions you can put to counsel, and the field of the option that answers each
 export const QUESTIONS = [['why', 'Why?', 'reasoning'], ['needs', 'What would it require?', 'needs'], ['risk', 'What could go wrong?', 'risks'], ['wait', 'What if we wait?', 'ifWait']];
 export const PHASE_FORMS = ['line', 'column', 'firing', 'routing', 'camp'];
@@ -84,7 +90,7 @@ export function applyBranch(state, changes) {
 }
 // Unanswered orders have no expiry. Only an explicit report reference or a player-settled dispatch closes one.
 export function pendingOrders(state, sent = [], reports = []) {
-  const done = new Set([...((state.exchange || {}).answered || []), ...[...reports, ...(state.reports || [])].flatMap(r => r.re || [])]);
+  const done = new Set([...((state.exchange || {}).answered || []), ...[...reports, ...(state.reports || [])].flatMap(r => r.re || []), ...((state.scene || {}).re || [])]);
   const settled = new Set(sent.filter(s => s.settled).flatMap(s => (s.orders || []).map(o => o.ref)));
   const orders = new Map();
   for (const o of [...((state.exchange || {}).orders || []), ...sent.filter(s => s.turn <= state.turn && !s.settled).flatMap(s => s.orders || [])]) {
@@ -101,7 +107,7 @@ export function exchangeRecord(state, sent = [], reports = []) {
     if (text) { const entry = { sceneId: scene.id || '', date: scene.date || state.date, text };
       commitments.set(JSON.stringify([entry.sceneId, entry.date, text]), entry); }
   }
-  return { answered: [...new Set([...(old.answered || []), ...[...reports, ...(state.reports || [])].flatMap(r => r.re || []), ...sent.filter(s => s.settled).flatMap(s => (s.orders || []).map(o => o.ref).filter(Boolean))])], orders: pendingOrders(state, sent, reports), commitments: [...commitments.values()], lastScene: scene ? clone(scene) : old.lastScene || null };
+  return { answered: [...new Set([...(old.answered || []), ...[...reports, ...(state.reports || [])].flatMap(r => r.re || []), ...((scene || {}).re || []), ...sent.filter(s => s.settled).flatMap(s => (s.orders || []).map(o => o.ref).filter(Boolean))])], orders: pendingOrders(state, sent, reports), commitments: [...commitments.values()], lastScene: scene ? clone(scene) : old.lastScene || null };
 }
 
 export function mergeTurn(prev, reply, ctx = {}) {
@@ -115,6 +121,9 @@ export function mergeTurn(prev, reply, ctx = {}) {
   for (const k of PER_TURN_HIDDEN) if (!(isObj(ch.hidden) && k in ch.hidden)) next.hidden[k] = [];
   if (next.world) for (const k of ['weather', 'sights', 'scene']) if (!(isObj(ch.world) && k in ch.world)) delete next.world[k]; // world.scene: the old name of sights
   if (next.battleDemo) delete next.battleDemo._sim;
+  // an undertaking keeps the stages it went through: the page records the old stage whenever a reply moves it on
+  for (const u of Array.isArray(next.undertakings) ? next.undertakings : []) { const old = (prev.undertakings || []).find(x => x && x.id === u.id);
+    if (old && old.stage && old.stage !== u.stage) u.history = [...(old.history || []), { date: old.updated || old.started || prev.date, stage: old.stage }].slice(-8); }
   next.span = { from: prev.date, at: (prev.player || {}).locationId || null };
   next.turn = reply.turn; next.parentTurn = reply.parentTurn; next.schemaVersion = prev.schemaVersion || 2;
   next.exchange = exchangeRecord({ ...next, exchange: exchangeRecord(prev, ctx.sent, ctx.reports) }, ctx.sent, [...(ctx.reports || []), ...(prev.reports || [])]);
@@ -167,6 +176,7 @@ export function checkReply(prev, reply, ctx = {}) {
       r.follows = fl.filter(x => !bad.includes(x)); if (!r.follows.length) delete r.follows; }
   }
   if (ch.staffBriefing != null) checkBriefing(ch, prev, locIds, fixes);
+  checkDesk(ch, prev, castIds, fixes, warns);
   if (isObj(ch.decision) && Array.isArray(ch.decision.options)) { const d = ch.decision;
     for (const o of d.options) if (isObj(o)) { if (o.ifWait != null && typeof o.ifWait !== 'string') delete o.ifWait; if ('guidance' in o) { o.guidance = cleanGuidance(o.guidance, 'the counsel “' + (o.title || o.id) + '”', fixes); if (!o.guidance) delete o.guidance; } }
     if (d.debate != null) { const ok = (Array.isArray(d.debate) ? d.debate : []).filter(l => isObj(l) && typeof l.who === 'string' && typeof l.text === 'string' && l.text.trim());
@@ -189,6 +199,8 @@ export function checkReply(prev, reply, ctx = {}) {
     if (sc.date == null) sc.date = ch.date || prev.date;
     else if (!/^\d{4}-\d{2}-\d{2}$/.test(sc.date)) { fixes.push('The scene\'s date "' + sc.date + '" was not a date; it is put on the last day of the turn.'); sc.date = ch.date || prev.date; }
     else if (sc.date < prev.date || (ch.date && sc.date > ch.date)) { const d = sc.date < prev.date ? prev.date : ch.date; fixes.push('The scene was dated ' + sc.date + ', outside this turn; it is put on ' + d + '.'); sc.date = d; }
+    if (sc.re != null) { const re = Array.isArray(sc.re) ? sc.re.filter(x => typeof x === 'string') : [], bad = refs.size ? re.filter(x => !refs.has(x)) : [];
+      if (bad.length || !Array.isArray(sc.re)) fixes.push('The scene answered orders the player never gave (' + (bad.join(', ') || 'not a list') + '); those links were dropped.'); sc.re = re.filter(x => !bad.includes(x)); }
     if (!sc.lines.length) warns.push('The scene "' + (sc.title || sc.id || '') + '" has no lines.'); }
   const h = isObj(ch.hidden) ? ch.hidden : {};
   if (ctx.fortune && ctx.fortune.length && !(Array.isArray(h.fortune_used) && h.fortune_used.length)) warns.push('The reply does not say how this turn’s fortune was used (hidden.fortune_used).');
@@ -275,6 +287,35 @@ function checkBattle(old, bd, warns, fixes) {
     if (full) { if (typeof u.facing !== 'number') u.facing = u.side === 'A' ? 0 : 180; if (!u.name) u.name = u.id; }
     return true; });
 }
+// a date within this turn: what reaches the player cannot be known before the turn begins or after it ends
+const inTurn = (d, prev, ch) => !ISO(d) ? ch.date : d < prev.date ? prev.date : d > ch.date ? ch.date : d;
+function checkDesk(ch, prev, castIds, fixes, warns) {
+  const list = (k, keep) => { if (ch[k] == null) return; if (!Array.isArray(ch[k])) { fixes.push(k + ' must be a list; it was left out.'); delete ch[k]; return; } ch[k] = ch[k].filter(keep); };
+  const known = k => new Set((prev[k] || []).map(x => x && x.id));
+  const uOld = known('undertakings'), cOld = known('calendar'), aOld = known('audiences');
+  list('undertakings', u => { if (!isObj(u) || typeof u.id !== 'string') { fixes.push('An undertaking without an id was left out.'); return false; } if (u._remove) return true;
+    if (!uOld.has(u.id) && !(u.title && u.stage)) { fixes.push('The new undertaking ' + u.id + ' needs a title and a stage; it was left out.'); return false; }
+    if (u.status != null && !UNDERTAKING_STATUS.includes(u.status)) { fixes.push('Undertaking ' + u.id + ': status "' + u.status + '" read as "in hand".'); u.status = 'in hand'; }
+    if (!uOld.has(u.id)) { u.status = u.status || 'in hand'; u.started = ISO(u.started) ? inTurn(u.started, prev, ch) : prev.date; } // begun when the orders were sealed
+    if ('stage' in u || !uOld.has(u.id)) u.updated = inTurn(u.updated, prev, ch);
+    if (u.due != null && !ISO_OR_MONTH(u.due)) { fixes.push('Undertaking ' + u.id + ': due "' + u.due + '" is not a date and was left out.'); delete u.due; }
+    delete u.history; return true; });
+  list('hearsay', h => { if (!isObj(h) || typeof h.said !== 'string' || !h.said.trim()) { fixes.push('Something said of the player without "said" was left out.'); return false; }
+    if (!h.source) warns.push('What is said of the player (“' + h.said.slice(0, 40) + '…”) does not say who told them (source).');
+    if (h.teller && !castIds.has(h.teller)) { fixes.push('“' + h.said.slice(0, 40) + '…” was told by "' + h.teller + '", who is not among the people of the campaign; the teller was left out.'); delete h.teller; }
+    h.date = inTurn(h.date, prev, ch); return true; });
+  list('calendar', c => { if (!isObj(c) || typeof c.id !== 'string') { fixes.push('A calendar entry without an id was left out.'); return false; } if (c._remove) return true;
+    if (!cOld.has(c.id) && !(ISO_OR_MONTH(c.date) && c.what)) { fixes.push('The calendar entry ' + c.id + ' needs a date (YYYY-MM-DD or YYYY-MM) and "what"; it was left out.'); return false; }
+    if (c.date != null && !ISO_OR_MONTH(c.date)) { fixes.push('Calendar entry ' + c.id + ': "' + c.date + '" is not a date; the change was left out.'); delete c.date; }
+    if (c.certainty != null && !CERTAINTY.includes(c.certainty)) { fixes.push('Calendar entry ' + c.id + ': certainty "' + c.certainty + '" read as "expected".'); c.certainty = 'expected'; }
+    if (!cOld.has(c.id)) { c.certainty = c.certainty || 'expected'; c.noted = inTurn(c.noted, prev, ch); } return true; });
+  list('audiences', a => { if (!isObj(a) || typeof a.id !== 'string') { fixes.push('An audience without an id was left out.'); return false; } if (a._remove) return true;
+    if (!aOld.has(a.id) && !(Array.isArray(a.with) && a.with.length && ISO(a.date))) { fixes.push('The audience ' + a.id + ' needs "with" (cast ids) and a date; it was left out.'); return false; }
+    if (a.date != null && !ISO(a.date)) { fixes.push('Audience ' + a.id + ': "' + a.date + '" is not a date; the change was left out.'); delete a.date; }
+    if (a.status != null && !AUDIENCE_STATUS.includes(a.status)) { fixes.push('Audience ' + a.id + ': status "' + a.status + '" read as "expected".'); a.status = 'expected'; }
+    if (Array.isArray(a.with)) { const bad = a.with.filter(id => !castIds.has(id)); if (bad.length) warns.push('Audience ' + a.id + ' is with people not in the campaign (' + bad.join(', ') + ').'); }
+    if (!aOld.has(a.id)) { a.status = a.status || 'expected'; a.noted = inTurn(a.noted, prev, ch); } return true; });
+}
 function cleanGuidance(g, where, fixes) {
   if (!isObj(g)) { fixes.push('The note on ' + where + ' (guidance) was not an object and was left out.'); return null; }
   const out = {}; for (const k of GUIDANCE_KEYS) if (typeof g[k] === 'string' && g[k].trim()) out[k] = g[k].trim();
@@ -335,7 +376,7 @@ export function activePlots(almanac, threads, date) {
 const compactPlot = (p, live) => { const o = {}; for (const k of live ? ['id', 'title', 'window', 'actors', 'preconditions', 'historical', 'levers', 'signals', 'failure_modes'] : ['id', 'title', 'window', 'preconditions', 'signals']) if (p[k] != null) o[k] = p[k]; return o; };
 // the packet names the weekday: the adjudicator places Masses, Council days and the Diarium by it (Gregorian, as the Habsburg lands used)
 export const longDate = d => new Date(d + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
-export const KEEP = { ledgerTurns: 3, canon: 40, canonChars: 5000, dispatches: 12, memory: 3 }; // canon is capped by size too: its entries lengthen as the story thickens
+export const KEEP = { ledgerTurns: 3, canon: 40, canonChars: 5000, dispatches: 12, memory: 3, hearsay: 10 }; // canon is capped by size too: its entries lengthen as the story thickens
 export function liveState(state) {
   const s = clone(state); for (const k of STATIC_KEYS) delete s[k];
   if (s.hidden) { delete s.hidden.world; delete s.hidden.threads; } // threads go as the index above the state
@@ -352,6 +393,8 @@ export function liveState(state) {
   if (Array.isArray(s.ledger)) { const all = s.ledger.length; s.ledger = s.ledger.filter(e => !(e && e.turn) || e.turn > t - KEEP.ledgerTurns); if (s.ledger.length < all) s.ledgerNote = 'Recent entries only' + older(s.ledger.length, all) + '.'; }
   if (Array.isArray(h.canon)) { let n = 0, size = 0; for (let i = h.canon.length - 1; i >= 0 && n < KEEP.canon; i--) { size += String(h.canon[i]).length; if (size > KEEP.canonChars && n) break; n++; }
     if (n < h.canon.length) { h.canonNote = 'The latest ' + n + ' settled facts' + older(n, h.canon.length) + '; the page checks every reply against all of them.'; h.canon = h.canon.slice(-n); } }
+  if (Array.isArray(s.hearsay) && s.hearsay.length > KEEP.hearsay) s.hearsay = s.hearsay.slice(-KEEP.hearsay);
+  if (Array.isArray(s.undertakings)) s.undertakings = s.undertakings.map(u => { const { history, ...rest } = u; return rest; }); // the page keeps the stages they went through
   if (Array.isArray(h.dispatches) && h.dispatches.length > KEEP.dispatches) h.dispatches = h.dispatches.slice(-KEEP.dispatches);
   if (isObj(h.memory)) for (const k of Object.keys(h.memory)) if (Array.isArray(h.memory[k])) h.memory[k] = h.memory[k].slice(-KEEP.memory);
   const bd = s.battleDemo; // the table battle's ground, compactly: change units by id ({"id", "e", "n", "facing"}) when a battle moves them
@@ -384,6 +427,7 @@ Return ONE JSON object (a fenced json block is fine). The page reads only that o
 - Player-facing text holds only what the character could know. Keep ids stable.
 - Optional, give only when they apply: gazette (the Diarium issues of this turn), movements (forces on the move as the player has heard of them, drawn on their map: {"id","label","side":"habsburg"|"prussia"|"bavaria"|"saxony"|"france","status":"confirmed"|"reported"|"rumour","reported":"YYYY-MM-DD","source","claim","pts":[[lat,lon],[lat,lon],…]} from where they were to where they are said to go; change one by id as news comes), weather (only the days it changes; each day keeps the last weather given), overheard, whereabouts, decision (only a real fork), scene (when the player meets someone in person — an audience, a Council they sit in, a visitor at their bed — the meeting that mattered most this turn: {"id","title","date":"YYYY-MM-DD" (the day of the meeting),"setting","participants":[{"id","name"}],"lines":[{"who","text"}]; the player’s part goes as narration (who "Narration") or in the words of their orders (who "player"),"commitments":["…"],"status":"closed"}).
 - Your staff explain (see the contract, "Your staff explain"): staffBriefing {"dated" (the day it reaches the player; default the last day of the turn),"changed","stakes","attention","letters":[ids of this turn's letters that have reached the player by then],"places":[location ids],"guidance"}; any letter, staffBriefing and each decision option may carry "guidance" {${GUIDANCE_KEYS.map(k => '"' + k + '"').join(',')}} (each a sentence or two, only what the writer knows); a letter that reports what came of the player's earlier decision carries "follows": [ids from "The player’s earlier decisions"]; decision options may add "ifWait" (what happens if nothing is decided) beside reasoning, needs and risks, and decision.debate [{"who","text"}] gives two to four lines where advisers truly disagree.
+- Your desk (see the contract, "Your desk"): undertakings [{"id","title","stage" (where it stands now, in a sentence),"waiting" (what it waits on),"obstacle" (who or what is in the way),"status":${UNDERTAKING_STATUS.map(k => '"' + k + '"').join('|')},"updated" (the day this news reaches the player),"due","re":[order refs]}] (by id); hearsay [{"said","source" (who told the player),"teller" (cast id, if one),"date","place"}] (only grows); calendar [{"id","date" (YYYY-MM-DD or YYYY-MM),"what","certainty":${CERTAINTY.map(k => '"' + k + '"').join('|')},"source","noted" (the day the player learns it)}] (by id); audiences [{"id","with":[cast ids],"date","place","title","purpose","status":${AUDIENCE_STATUS.map(k => '"' + k + '"').join('|')}}] (by id). A scene that is a prepared audience carries "re" with the reference of the player's preparation.
 - Illness: player.health says how the player is at the end of the turn. player.abed {"from","to"} gives the days the player keeps to their bed (leave out "to" if they are still abed); without it, "ill" or "gravely ill" keeps them abed the whole turn. While abed, those whereabouts put with them that day come to their bedside, with their household; anyone else is reached by a note. They cannot inspect, ride out or attend the Conference.
 - A journey: give player.locationId where the player ends the turn, and player.route [{"date","place"}] (place a location id or "road") if they stop anywhere or arrive on a day other than the distance implies. Without a route they are on the road from the first day of the turn and arrives after the usual days for the distance.
 - A battle account (a report with "battle": true) needs battleDemo for that battle. The same battle (same id): move or remove its units by id. A new battle takes a new id and replaces the whole field: give id, title, place, center [lat, lon], date, ground and every unit of both sides ({"id","side":"A" the player’s | "B" the enemy,"type":${Object.keys(TROOPS).map(k => '"' + k + '"').join('|')},"name","e","n","facing"}, metres east and north of center, within ±${FIELD.w / 2} and ±${FIELD.h / 2}; facing in degrees, 0 = north). For a battle outside this campaign, write an ordinary letter instead.
@@ -395,6 +439,10 @@ Skeleton (fill it from the story; leave out what did not change):
  "date":"YYYY-MM-DD","title":"…","briefing":"…",
  "player":{"locationId":"…","mode":"court","health":"well"},
  "reports":[{"id":"t${n}-1","from_id":"…","place":"…","dated":"…","arrives":"…","via":"courier","source":"…","category":"…","title":"…","text":"…","claim":"invention","re":["T${t0}-1"],"guidance":{"known":"…","suspected":"…","stakes":"…"}}],
+ "undertakings":[{"id":"…","title":"…","stage":"…","waiting":"…","obstacle":"…","status":"in hand","updated":"YYYY-MM-DD","re":["T${t0}-1"]}],
+ "hearsay":[{"said":"…","source":"…","teller":"…","date":"YYYY-MM-DD","place":"…"}],
+ "calendar":[{"id":"…","date":"YYYY-MM-DD","what":"…","certainty":"expected","source":"…","noted":"YYYY-MM-DD"}],
+ "audiences":[{"id":"…","with":["…"],"date":"YYYY-MM-DD","place":"…","title":"…","purpose":"…","status":"expected"}],
  "staffBriefing":{"dated":"YYYY-MM-DD","changed":"…","stakes":"…","attention":"…","letters":["t${n}-1"],"places":["…"]},
  "decision":{"id":"…","title":"…","options":[{"id":"…","by":"…","title":"…","objective":"…","reasoning":"…","needs":"…","risks":"…","ifWait":"…","guidance":{"known":"…","suspected":"…"}}],"debate":[{"who":"…","text":"…"}]},
  "world":{"tempo":"winter quarters","tempoAt":{"glogau":"campaigning"},"weather":{"YYYY-MM-DD":"overcast"},"sights":{"vienna":["recruiting"]}},

@@ -1,5 +1,5 @@
 {
- "note": "Test reply for the living world: weather by day, sights, whereabouts, an invented person, an urgent letter with two branches, an enemy commander and thread updates. Illustrative. Also: the Diarium, winter quarters and the steward on money.",
+ "note": "Test reply for the living world: weather by day, sights, whereabouts, an invented person, an urgent letter with two branches, an enemy commander and thread updates. Illustrative. Also: the Diarium, winter quarters and the steward on money. Also: an undertaking, hearsay, the calendar and an audience ahead.",
  "changes": {
   "date": "1740-10-26",
   "title": "A crowded week",
@@ -240,6 +240,59 @@
     "known": "One entry appears twice in the day book.",
     "suspected": "A clerk's slip, not a theft; nothing yet shows which."
    }
-  }
+  },
+  "undertakings": [
+   {
+    "id": "u-daybook",
+    "title": "The Linz remittance in the day book",
+    "stage": "Your clerk has the day book; the Linz receipts are sent for.",
+    "waiting": "The receipts from Linz, by the ordinary post.",
+    "obstacle": "The Hofkammer’s clerks, who do not like their books read.",
+    "status": "in hand",
+    "updated": "1740-10-22",
+    "re": [
+     "T0-1"
+    ]
+   }
+  ],
+  "hearsay": [
+   {
+    "said": "At the Hofkammer they say you count the chests like a tax farmer.",
+    "source": "Johann Kessler",
+    "teller": "kessler",
+    "date": "1740-10-24",
+    "place": "vienna"
+   }
+  ],
+  "calendar": [
+   {
+    "id": "cal-martinmas",
+    "date": "1740-11-11",
+    "what": "Martinmas: the rents fall due",
+    "certainty": "fixed",
+    "source": "your steward"
+   },
+   {
+    "id": "cal-roads",
+    "date": "1740-11",
+    "what": "The Silesian roads close with the frosts",
+    "certainty": "expected",
+    "source": "Wallis"
+   }
+  ],
+  "audiences": [
+   {
+    "id": "aud-starhemberg",
+    "with": [
+     "starhemberg"
+    ],
+    "date": "1740-10-28",
+    "place": "vienna",
+    "title": "On the state of the chests",
+    "purpose": "Count Starhemberg will see you about the chests.",
+    "status": "expected",
+    "noted": "1740-10-24"
+   }
+  ]
  }
 }

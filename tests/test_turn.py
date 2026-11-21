@@ -434,3 +434,45 @@ def test_packet_lists_earlier_decisions_and_rules_name_the_fields(run):
     x = run["staff"]
     assert x["packet"] and x["noEarlier"]
     assert x["format"] and x["contract"]
+
+
+def test_desk_from_the_living_mock(run):
+    x = run["desk"]["living"]
+    assert x["fixes"] == [] and x["warns"] == []
+    assert x["u"][0]["status"] == "in hand" and x["u"][0]["started"] == "1740-10-21"
+    assert x["hearsay"][0]["teller"] == "kessler"
+    assert [c["id"] for c in x["calendar"]] == ["cal-martinmas", "cal-roads"] and x["calendar"][0]["noted"] == "1740-10-26"
+    assert x["audiences"][0]["noted"] == "1740-10-24" and x["audiences"][0]["status"] == "expected"
+
+
+def test_undertakings_keep_their_stages(run):
+    x = run["desk"]
+    assert x["errors"] == []
+    assert x["u"]["stage"].startswith("The receipts") and x["u"]["updated"] == "1740-10-29"
+    assert x["u"]["history"] == [{"date": "1740-10-22", "stage": "Your clerk has the day book; the Linz receipts are sent for."}]  # the reply's own "history" is ignored
+    assert x["u"]["waiting"].startswith("The receipts from Linz")  # unchanged fields stay
+    assert "u-bad" not in x["undertakings"]
+    assert x["st"]["status"] == "in hand" and "due" not in x["st"]
+
+
+def test_hearsay_calendar_and_audiences_are_checked(run):
+    x = run["desk"]
+    assert [h["said"] for h in x["hearsay"]] == ["At the Hofkammer they say you count the chests like a tax farmer.", "He is honest, which will not last.", "x"]
+    assert x["hearsay"][1]["date"] == "1740-10-30"  # clamped into the turn
+    assert "teller" not in x["hearsay"][2]
+    assert [c["id"] for c in x["calendar"]] == ["cal-martinmas", "cal-r"] and x["calendar"][1]["certainty"] == "expected"
+    a = {a["id"]: a for a in x["audiences"]}
+    assert a["aud-starhemberg"]["status"] == "held" and a["aud-x"]["status"] == "expected" and "aud-bad" not in a
+    assert any("ghost" in w for w in x["warns"])
+
+
+def test_a_scene_answers_the_preparation(run):
+    x = run["desk"]
+    assert x["sceneRe"] == ["T1-1"]
+    assert x["pendingBefore"] == ["T1-1"] and x["pending"] == []
+
+
+def test_packet_keeps_recent_hearsay_without_stage_history(run):
+    x = run["desk"]
+    assert x["live"] == {"hearsay": 10, "history": False}
+    assert x["format"] and x["contract"]

@@ -177,4 +177,20 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
     dropped: { has: 'staffBriefing' in dropped.changes, fixes: dc.fixes }, packet: pk.includes('## The player’s earlier decisions') && pk.includes('- [C0] The course you adopted'), noEarlier: !buildPacket({ state: opening, contract, orders: '', almanac, fortune: [] }).includes('## The player’s earlier decisions'),
     format: replyFormat(opening).includes('staffBriefing') && replyFormat(null).includes('"follows"'), contract: contract.includes('## Your staff explain') };
 }
+// your desk: undertakings keep their stages, hearsay only grows, the calendar and audiences are checked; a scene can answer a preparation
+{ const lv = reply(opening, JSON.parse(read('w3d/mocks/living.json')).changes), lc = checkReply(opening, lv, {}), { next: n1 } = mergeTurn(opening, lv);
+  const r2 = reply(n1, { date: '1740-10-30', title: 't', briefing: 'b', reports: [], hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] },
+    undertakings: [{ id: 'u-daybook', stage: 'The receipts show the entry twice; a clerk is questioned.', updated: '1740-10-29', history: [{ stage: 'forged' }] }, { id: 'u-bad' }, { id: 'u-st', title: 'T', stage: 'S', status: 'paused', due: 'soon' }],
+    hearsay: [{ said: 'He is honest, which will not last.', source: 'a footman', date: '1741-01-01' }, { said: '' }, { said: 'x', teller: 'nobody' }],
+    calendar: [{ id: 'cal-bad' }, { id: 'cal-r', date: '1740-12-25', what: 'Christmas', certainty: 'sure' }, { id: 'cal-roads', _remove: true }],
+    audiences: [{ id: 'aud-starhemberg', status: 'held' }, { id: 'aud-x', with: ['ghost'], date: '1740-11-02', status: 'soon' }, { id: 'aud-bad', with: [] }],
+    scene: { id: 'sc', title: 'With Starhemberg', date: '1740-10-28', lines: [{ who: 'starhemberg', text: 'Well?' }], re: ['T1-1', 'T9-9'] } });
+  const c2 = checkReply(n1, r2, { orderRefs: ['T1-1'] }), { next: n2 } = mergeTurn(n1, r2), u = n2.undertakings.find(x => x.id === 'u-daybook');
+  const brief = { turn: 1, orders: [{ ref: 'T1-1', line: 'For my audience with Count Starhemberg — I will press: the chests.' }] };
+  out.desk = { living: { fixes: lc.fixes, warns: lc.warns, u: n1.undertakings, hearsay: n1.hearsay, calendar: n1.calendar, audiences: n1.audiences },
+    errors: c2.errors, fixes: c2.fixes, warns: c2.warns, u, undertakings: n2.undertakings.map(x => x.id), st: n2.undertakings.find(x => x.id === 'u-st'), hearsay: n2.hearsay, calendar: n2.calendar, audiences: n2.audiences, sceneRe: n2.scene.re,
+    pending: pendingOrders(n2, [brief]).map(o => o.ref), pendingBefore: pendingOrders(n1, [brief]).map(o => o.ref),
+    live: (() => { const big = { ...n2, hearsay: Array.from({ length: 15 }, (_, i) => ({ said: 's' + i })) }, ls = liveState(big); return { hearsay: ls.hearsay.length, history: ls.undertakings.some(x => 'history' in x) }; })(),
+    format: replyFormat(null).includes('"undertakings"') && replyFormat(null).includes('"hearsay"'), contract: contract.includes('## Your desk') };
+}
 console.log(JSON.stringify(out));

@@ -5,7 +5,7 @@
    desk's own orders text (draft.case.text), so the packet for the adjudicator is unchanged in form. */
 import { travel, loc, roadKm, letterDays, travelDays, placeOn, playerOn, routeDays, abedOn, abedDays, bedsideOn } from './places.js';
 import { choose, choiceFor, trustOf, setTrust, book, earlierDecisions } from './campaign.js';
-import { sceneLines, pendingOrders, QUESTIONS } from './turn.js';
+import { sceneLines, pendingOrders, QUESTIONS, MANNERS } from './turn.js';
 import { personOf } from './people.js';
 const $ = id => document.getElementById(id);
 const ARCHIVE_KEY = 'cabinet-of-war:w3d-archive', CIPHER_KEY = 'cabinet-of-war:w3d-cipher', HEARD_KEY = 'cabinet-of-war:w3d-overheard', FAIR_KEY = 'cabinet-of-war:w3d-fair';
@@ -136,7 +136,7 @@ export function createShell({ act, onSeal, clock }) {
   const ref = i => 'T' + state.turn + '-' + (i + 1), ownRef = () => 'T' + state.turn + '-0'; // T<n>-0 is the order in his own words
   const W = () => draft.w3d || (draft.w3d = { own: ensureCase().text || '', items: [] }); // per turn: the desk replaces draft on a new turn
   function itemLine(it) {
-    if (it.kind === 'journey' || it.kind === 'inspect') return it.text;
+    if (it.kind === 'journey' || it.kind === 'inspect' || it.kind === 'brief') return it.text;
     const r = it.ref && state.reports.find(x => x.id === it.ref), re = r ? 'On ' + fromName(r) + '’s letter of ' + fmtDate(r.dated) + ' (“' + r.title + '”) — ' : '';
     const own = it.purse ? 'At my own expense — ' : '';
     if (it.to === 'staff') return re + own + 'To my staff: ' + it.text;
@@ -166,7 +166,7 @@ export function createShell({ act, onSeal, clock }) {
     const ol = $('sh-items'); ol.replaceChildren();
     for (const it of w.items) {
       const li = el('li'), head = el('div', 'sh-it-h'), c = cast(it.to);
-      head.textContent = (it.purse ? 'At your own expense · ' : '') + (it.kind === 'journey' ? 'Journey' : it.kind === 'inspect' ? 'In person' : it.to === 'staff' ? 'To my staff' : 'To ' + (c ? c.name : it.to) + (it.inPerson ? ' · in person' : ' · by letter, ~' + it.days + ' d'));
+      head.textContent = (it.purse ? 'At your own expense · ' : '') + (it.kind === 'journey' ? 'Journey' : it.kind === 'brief' ? 'Prepared for an audience' : it.kind === 'inspect' ? 'In person' : it.to === 'staff' ? 'To my staff' : 'To ' + (c ? c.name : it.to) + (it.inPerson ? ' · in person' : ' · by letter, ~' + it.days + ' d'));
       const r = it.ref && S.reports.find(x => x.id === it.ref); if (r) head.append(el('span', 'sh-it-re', ' · on their letter “' + r.title + '”'));
       const x = el('button', 'sh-it-x', 'strike'); x.title = 'Strike this from the dispatch'; x.onclick = () => { if (it.id === 'journey') act('go:cancel'); else dropItem(it.id); };
       li.append(head, el('p', null, it.kind === 'order' ? it.text : itemLine(it)), x); ol.append(li);
@@ -254,6 +254,7 @@ export function createShell({ act, onSeal, clock }) {
     const out = new Map(), orders = sentOrders().filter(o => o.ref && o.turn < state.turn), tagged = new Set(seenLetters().flatMap(r => r.re || []));
     const add = (ref, r, sure) => { if (!out.has(ref)) out.set(ref, []); if (!out.get(ref).some(x => x.r === r)) out.get(ref).push({ r, sure }); };
     for (const r of seenLetters()) for (const id of r.re || []) add(id, r, true);
+    for (const r of seen().filter(x => x.kind === 'scene')) for (const id of r.scene.re || []) add(id, r, true);
     for (const o of orders) { if (tagged.has(o.ref)) continue; const ow = words(o.text || o.line);
       for (const r of seenLetters()) { if ((r.re || []).length) continue; const body = r.title + ' ' + r.text;
         if (body.includes(o.ref)) { add(o.ref, r, true); continue; }
@@ -262,6 +263,9 @@ export function createShell({ act, onSeal, clock }) {
     return out;
   }
   const answersTo = refId => links().get(refId) || [];
+  // answered before this turn: the record keeps it, though the letter or meeting that answered it is now in the archive
+  const answeredBefore = () => { const now = new Set([...(state.reports || []).flatMap(r => r.re || []), ...((state.scene || {}).re || [])]); return new Set(((state.exchange || {}).answered || []).filter(x => !now.has(x))); };
+  const isAnswered = refId => !!refId && (answersTo(refId).length > 0 || answeredBefore().has(refId));
   const answeredBy = r => [...links()].filter(([, a]) => a.some(x => x.r === r)).map(([id, a]) => ({ id, sure: a.find(x => x.r === r).sure }));
   let openLetter = null, listMode = 'now';
   // on a phone the list of letters folds away while you read; on a wide screen it always stands open
@@ -470,9 +474,10 @@ export function createShell({ act, onSeal, clock }) {
     for (const r of seenLetters()) if (!a[r.id]) out.push({ k: 'letter', r });
     if (state.decision && !draft.option && !letters().some(x => x.kind === 'advice' && a[x.id])) out.push({ k: 'council' });
     if (nextDay()) out.push({ k: 'post' });
-    for (const s of store(SENT_KEY, [])) { if (s.settled) continue; const os = s.orders.map(o => typeof o === 'string' ? { ref: null, line: o } : o); if (os.length && os.every(o => o.ref && answersTo(o.ref).length)) continue; out.push({ k: 'sent', s, os }); }
+    for (const s of store(SENT_KEY, [])) { if (s.settled) continue; const os = s.orders.map(o => typeof o === 'string' ? { ref: null, line: o } : o); if (os.length && os.every(o => isAnswered(o.ref))) continue; out.push({ k: 'sent', s, os }); }
     if (travel.get()) out.push({ k: 'journey' });
     for (const p of state.pending || []) out.push({ k: 'pending', p });
+    for (const u of undertakings()) if (u.shown.status === 'stalled' && u.shown.date >= (turnFrom() || state.date)) out.push({ k: 'stalled', u });
     return out;
   }
   function showNotebook(open) {
@@ -484,21 +489,23 @@ export function createShell({ act, onSeal, clock }) {
       const li = el('li');
       if (x.k === 'letter') { li.innerHTML = '<b>Letter from ' + esc(fromName(x.r)) + '</b> · ' + esc(locName(x.r.place)) + ', ' + short(x.r.dated) + ' — “' + esc(x.r.title) + '”'; const b = el('button', null, 'Read'); b.onclick = () => showLetters(x.r.id); li.append(b); }
       if (x.k === 'sent') {
-        const done = x.os.filter(o => o.ref && answersTo(o.ref).length).length;
+        const done = x.os.filter(o => isAnswered(o.ref)).length;
         li.innerHTML = '<b>Your dispatch of ' + short(x.s.date) + '</b> from ' + esc(x.s.at) + (state.turn > x.s.turn ? ' — ' + done + ' of ' + x.os.length + ' orders answered' : ' — on the road');
         const sub = el('div', 'sh-orders');
-        for (const o of x.os) { const ans = o.ref ? answersTo(o.ref) : [], row = el('div', ans.length ? 'sh-o-ok' : 'sh-o-wait'); row.append(el('span', 'sh-o-ref', o.ref ? o.ref.split('-').pop() : '·'), el('span', 'sh-o-t', o.line.length > 110 ? o.line.slice(0, 110) + '…' : o.line));
+        for (const o of x.os) { const ans = o.ref ? answersTo(o.ref) : [], row = el('div', isAnswered(o.ref) ? 'sh-o-ok' : 'sh-o-wait'); row.append(el('span', 'sh-o-ref', o.ref ? o.ref.split('-').pop() : '·'), el('span', 'sh-o-t', o.line.length > 110 ? o.line.slice(0, 110) + '…' : o.line));
           for (const { r, sure } of ans) { const lb = el('button', 'sh-o-lnk' + (sure ? '' : ' sh-o-maybe'), (sure ? 'Answered by ' : 'Probably answered by ') + fromName(r) + ' →'); lb.onclick = () => showLetters(r.id); row.append(lb); }
-          if (!ans.length) row.append(el('span', 'sh-o-st', state.turn > x.s.turn ? 'no answer yet' : /, given in person at |^In my own words: /.test(o.line) ? 'given' : 'on the road')); sub.append(row); }
+          if (!ans.length) row.append(el('span', 'sh-o-st', isAnswered(o.ref) ? 'answered' : state.turn > x.s.turn ? 'no answer yet' : /, given in person at |^In my own words: /.test(o.line) ? 'given' : 'on the road')); sub.append(row); }
         if (!x.os.length) sub.append(el('div', 'sh-o-wait', x.s.own || 'standing orders'));
         li.append(sub); const b = el('button', null, 'Settled'); b.onclick = () => { const all = store(SENT_KEY, []); const t = all.find(s => s.turn === x.s.turn); if (t) t.settled = true; keep(SENT_KEY, all); showNotebook(); refresh(); }; li.append(b); }
       if (x.k === 'council') { li.innerHTML = '<b>Your advisers await your decision</b> · ' + esc(state.decision.title); const b = el('button', null, 'Read their counsel'); b.onclick = () => showPanel('council'); li.append(b); }
       if (x.k === 'post') { li.innerHTML = '<b>' + (onTheRoad().length ? 'More letters are on the road' : 'The days pass until you are woken') + '</b>'; const b = el('button', null, 'Let the day pass'); b.onclick = () => { const n = passDay(); act('post:' + n); showNotebook(); }; li.append(b, waitingRow()); }
       if (x.k === 'journey') li.innerHTML = '<b>Your journey</b> to ' + esc(locName(travel.get().to)) + ' — you set out when the dispatch is sealed';
+      if (x.k === 'stalled') { li.innerHTML = '<b>Stalled:</b> ' + esc(x.u.title) + ' — ' + esc(x.u.shown.stage); const b = el('button', null, 'Give orders on it'); b.onclick = () => orderOn(x.u); li.append(b); }
       if (x.k === 'pending') li.textContent = typeof x.p === 'string' ? x.p : (x.p.title || x.p.text || JSON.stringify(x.p));
       ul.append(li);
     }
     if (!m.length) ul.append(el('li', 'sh-empty', 'Nothing outstanding.'));
+    deskSections(sec);
     if (state.mandate) { const sc = sec(state.player.dismissed ? 'Your commission — withdrawn' : 'Your commission'); sc.append(el('p', 'sh-nb-quote', state.mandate.text)); const b = el('button', 'sh-nb-link', 'Read the letter'); b.onclick = () => showLetters('mandate'); sc.append(b); }
     if (state.epilogue) { const e = state.epilogue, se = sec(e.title || 'The verdict of history'); se.append(el('p', 'sh-nb-quote', e.text || '')); if (e.verdict) se.append(el('p', 'sh-nb-remark', e.verdict)); const b = el('button', 'sh-nb-link', 'Read the book of the campaign, with what was hidden'); b.onclick = () => showBook(); se.append(b); }
     if ((state.remarks || []).length) { const sr = sec('Your secretary’s remarks'); for (const t of state.remarks) sr.append(el('p', 'sh-nb-remark', t)); }
@@ -528,6 +535,80 @@ export function createShell({ act, onSeal, clock }) {
     for (const [k, title] of [['staff', 'What your staff know'], ['army', 'The army and its courses'], ['scene', 'Conversations on record'], ['record', 'The record · save and load']]) {
       const n = paneNodes[k][0]; if (!n || (k === 'scene' && !state.scene)) continue; const d = el('details', 'sh-nb-more'); d.append(el('summary', null, title), n); n.hidden = false; d.open = open === k; nb.append(d); if (open === k) setTimeout(() => d.scrollIntoView({ block: 'start' }), 30); }
     $('sh-notebook').hidden = false; syncVeil();
+  }
+
+  /* ---------- your desk: the calendar on the wall, the undertakings in hand, what is said of you, audiences to prepare ---------- */
+  // an undertaking as you know it today: news of a new stage reaches you on its day, and until then the last one stands
+  function undertakings() {
+    const d = today(), out = [];
+    for (const u of state.undertakings || []) { if (!u || !u.id) continue;
+      const hist = (u.history || []).filter(h => !h.date || h.date <= d), now = !u.updated || u.updated <= d;
+      const shown = now ? { stage: u.stage, status: u.status || 'in hand', date: u.updated || u.started } : hist.length ? { stage: hist[hist.length - 1].stage, status: 'in hand', date: hist[hist.length - 1].date } : null;
+      if (shown) out.push({ ...u, shown, past: now ? hist : hist.slice(0, -1) }); }
+    return out;
+  }
+  const orderOn = u => { toggleSheet(true); const t = $('sh-give-t'); t.value = 'On “' + u.title + '”: '; t.focus(); };
+  const longDay = d => /^\d{4}-\d{2}$/.test(d || '') ? new Date(d + '-15T12:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : short(d);
+  const names = ids => (ids || []).map(id => (cast(id) || {}).name || id).join(' and ');
+  function calendarEntries() {
+    const d = today(), out = [];
+    for (const c of state.calendar || []) if (c && c.date && (!c.noted || c.noted <= d)) out.push({ date: c.date, what: c.what, how: c.certainty || 'expected', source: c.source });
+    for (const a of state.audiences || []) if (a && a.date && (!a.noted || a.noted <= d) && ['expected', 'postponed'].includes(a.status || 'expected')) out.push({ date: a.date, what: (a.title || 'An audience') + ' — with ' + names(a.with) + (a.place ? ', ' + locName(a.place) : ''), how: a.status === 'postponed' ? 'postponed' : 'appointed', aud: a });
+    for (const u of undertakings()) if (u.due && ['in hand', 'stalled'].includes(u.shown.status)) out.push({ date: u.due, what: u.title + ' — due', how: 'expected' });
+    // your staff's reckoning: an order by letter, answered by return, comes back in about twice its days on the road
+    for (const o of sentOrders()) { const m = /about (\d+) days? on the road/.exec(o.line || ''); if (!m || !o.ref || isAnswered(o.ref) || !o.to || !cast(o.to)) continue;
+      const back = new Date(o.date + 'T12:00:00Z'); back.setUTCDate(back.getUTCDate() + 2 * +m[1]); out.push({ date: back.toISOString().slice(0, 10), what: 'An answer from ' + cast(o.to).name + ' could come', how: 'reckoned', source: 'your order of ' + short(o.date) }); }
+    const week = new Date(d + 'T12:00:00Z'); week.setUTCDate(week.getUTCDate() - 7); const old = week.toISOString().slice(0, 10);
+    return out.filter(e => (e.date.length === 7 ? e.date + '-28' : e.date) >= old).sort((a, b) => a.date.localeCompare(b.date));
+  }
+  const HOW = { appointed: 'appointed', fixed: 'fixed', expected: 'expected', rumoured: 'rumoured', reckoned: 'your staff’s reckoning', postponed: 'postponed' };
+  function deskSections(sec) {
+    const d = today();
+    { const sc = sec('The calendar on your wall', 'What you know is coming, and how sure it is.'), ul = el('ul', 'sh-cal'); sc.append(ul);
+      for (const e of calendarEntries()) { const past = (e.date.length === 7 ? e.date + '-28' : e.date) < d, li = el('li', past ? 'past' : e.date === d ? 'today' : null);
+        li.innerHTML = '<span class="sh-cal-d">' + esc(longDay(e.date)) + '</span><span class="sh-cal-w">' + esc(e.what) + '<small>' + esc(HOW[e.how] || e.how) + (e.source ? ' · ' + esc(e.source) : '') + '</small></span>';
+        if (e.aud && !past) { const prep = W().items.find(x => x.id === 'brief:' + e.aud.id), b = el('button', null, prep ? 'Revise your preparation' : 'Prepare for it'); b.onclick = () => showBrief(e.aud); li.append(b); }
+        ul.append(li); }
+      if (!ul.children.length) ul.append(el('li', 'sh-empty', 'Nothing marked yet.'));
+      const ask = el('button', 'sh-nb-link', 'Ask for an audience, and prepare for it'); ask.onclick = () => showBrief(null); sc.append(ask); }
+    { const us = undertakings(); if (us.length) { const sc = sec('Undertakings', 'What you have set in train, as the last news left it.');
+      for (const u of us.sort((a, b) => ['stalled', 'in hand', 'done', 'abandoned'].indexOf(a.shown.status) - ['stalled', 'in hand', 'done', 'abandoned'].indexOf(b.shown.status))) {
+        const box = el('div', 'sh-dossier st-' + u.shown.status.replace(' ', '-')), began = (u.re || []).map(r => sentOrders().find(o => o.ref === r)).filter(Boolean)[0];
+        box.innerHTML = '<div class="sh-dos-h"><b>' + esc(u.title) + '</b><small>' + esc(u.shown.status) + (u.started ? ' · begun ' + esc(short(u.started)) : '') + (u.shown.date ? ' · last news ' + esc(short(u.shown.date)) : '') + '</small></div>'
+          + '<p class="sh-dos-stage">' + esc(u.shown.stage) + '</p>'
+          + (u.waiting && u.shown.stage === u.stage ? '<p class="sh-dos-f"><i>Waiting on</i> ' + esc(u.waiting) + '</p>' : '') + (u.obstacle && u.shown.stage === u.stage ? '<p class="sh-dos-f"><i>In the way</i> ' + esc(u.obstacle) + '</p>' : '')
+          + (began ? '<p class="sh-dos-f"><i>Begun by</i> your order of ' + esc(short(began.date)) + ': “' + esc((began.text || began.line).slice(0, 110)) + ((began.text || began.line).length > 110 ? '…' : '') + '”</p>' : '')
+          + (u.past.length ? '<details><summary>Earlier stages (' + u.past.length + ')</summary><ol>' + u.past.map(h => '<li><small>' + esc(short(h.date)) + '</small> ' + esc(h.stage) + '</li>').join('') + '</ol></details>' : '');
+        if (['in hand', 'stalled'].includes(u.shown.status)) { const b = el('button', null, 'Give orders on it'); b.onclick = () => orderOn(u); box.append(b); }
+        sc.append(box); } } }
+    { const hs = (state.hearsay || []).filter(h => h && (!h.date || h.date <= d)); if (hs.length) {
+      const sc = sec('What is said of you', 'As it reached you. Whoever told you may be mistaken, or may want something of you.'), ordered = hs.slice().reverse();
+      const row = h => { const p = el('div', 'sh-hs'), who = h.teller && cast(h.teller) ? cast(h.teller).name : null, src = h.source || who || 'unknown';
+        p.innerHTML = '<p>“' + esc(h.said) + '”</p><small>' + esc('from ' + src) + (h.date ? ' · ' + esc(short(h.date)) : '') + (h.place ? ' · ' + esc(locName(h.place)) : '') + (trustOf(src) ? ' · <i>you ' + trustOf(src) + ' this source</i>' : '') + '</small>';
+        const t = el('span', 'sh-hs-t'); for (const [k, lab] of [['trust', 'trust'], ['doubt', 'doubt']]) { const b = el('button', trustOf(src) === k ? 'on' : null, lab); b.onclick = () => { setTrust(src, trustOf(src) === k ? null : k); showNotebook(); }; t.append(b); } p.append(t); return p; };
+      for (const h of ordered.slice(0, 6)) sc.append(row(h));
+      if (ordered.length > 6) { const more = el('details', 'sh-hs-more'); more.append(el('summary', null, 'Older talk (' + (ordered.length - 6) + ')')); for (const h of ordered.slice(6)) more.append(row(h)); sc.append(more); } } }
+  }
+  // before an audience: what you will press, what you may give, what you will not say, and how you will carry yourself.
+  // It goes in the dispatch under a reference; the meeting, if it comes, is written from it — and the others answer as they will.
+  function showBrief(a) {
+    const id = a ? 'brief:' + a.id : null, old = id ? W().items.find(x => x.id === id) : null;
+    const b = card(a ? 'Before the audience · ' + longDay(a.date) + (a.place ? ' · ' + locName(a.place) : '') : 'Ask for an audience', a ? (a.title || 'An audience') + ' — ' + names(a.with) : 'With whom, and to what end', a && a.purpose ? a.purpose : 'Set down how you mean to conduct it. It goes with the dispatch; what comes of it is theirs to answer.');
+    const f = el('form', 'sh-compose sh-brief'); let who = null;
+    if (!a) { who = el('select'); for (const c of (state.cast || []).filter(c => !c.dead && c.id !== 'own-forces' && c.id !== 'steward' && c.id !== 'secretary')) who.append(new Option(c.name + (ruler(c) ? ' — through the chamberlain' : ' — ' + locName(whereNow(c))), c.id)); f.append(who); }
+    const field = (k, lab, ph) => { const l = el('label', null, lab), t = el('textarea'); t.rows = 2; t.placeholder = ph; t.value = (old && old[k]) || ''; t.dataset.k = k; l.append(t); f.append(l); return t; };
+    const press = field('press', 'What I will press', 'What you want from them, and the argument you will make…');
+    const give = field('concede', 'What I may concede', 'What you can give, if pressed…');
+    const keepq = field('withhold', 'What I will not say', 'What they must not learn from you…');
+    const ml = el('label', null, 'My manner'), mm = el('select'); for (const m of MANNERS) mm.append(new Option(m, m)); mm.value = (old && old.manner) || 'candid'; ml.append(mm); f.append(ml);
+    const go = el('button', 'sh-primary', old ? 'Revise it in the dispatch' : 'Put it in the day’s dispatch'); f.append(go);
+    if (old) { const x = el('button', null, 'Strike it'); x.type = 'button'; x.onclick = () => { dropItem(id); $('sh-talk').hidden = true; syncVeil(); act('toast:Struck from the dispatch.'); showNotebook(); }; f.append(x); }
+    b.append(f); setTimeout(() => press.focus(), 30);
+    f.onsubmit = e => { e.preventDefault(); if (!press.value.trim()) return press.focus();
+      const c = a ? null : cast(who.value), whom = a ? names(a.with) : c.name, parts = [['I will press', press.value], ['I may concede', give.value], ['I will not say', keepq.value]].filter(([, v]) => v.trim()).map(([k, v]) => k + ': ' + v.trim().replace(/[.\s]+$/, '') + '.');
+      const head = a ? 'For my audience with ' + whom + (a.title ? ', “' + a.title + '”' : '') + ', expected ' + fmtDate(a.date) + (a.place ? ' at ' + locName(a.place) : '') : (ruler(c) ? 'Through the chamberlain, I ask for an audience with ' + whom + ' at the first chance' : 'I ask ' + whom + ' for an audience at the first chance') + '. For it';
+      setItem({ id: id || 'brief:ask-' + c.id, kind: 'brief', aud: a ? a.id : null, to: a ? null : c.id, press: press.value.trim(), concede: give.value.trim(), withhold: keepq.value.trim(), manner: mm.value, text: head + ' — ' + parts.join(' ') + ' My manner: ' + mm.value + '.' });
+      $('sh-talk').hidden = true; syncVeil(); act('toast:Your preparation goes with the dispatch.'); showNotebook(); };
   }
 
   /* ---------- the book of the campaign: the turns you lived; when it is over, what was hidden as well ---------- */
@@ -685,7 +766,7 @@ export function createShell({ act, onSeal, clock }) {
     $('sh-matters').textContent = matters().length || '';
   }
   return {
-    showPanel, closePanel, toggleSheet, refresh, showBook, unread, passDay, letters, seen, get today() { return shownDate(); }, markRead, appendOrder, removeOrder, setItem, dropItem, showTravel, showTalk, showInspect, showWaiting, showLetters, showNotebook, showSingle, presentHere, overhear, archive, archivedCount: () => archived().length,
+    showPanel, closePanel, toggleSheet, refresh, showBook, unread, passDay, letters, seen, get today() { return shownDate(); }, markRead, appendOrder, removeOrder, setItem, dropItem, showTravel, showTalk, showInspect, showWaiting, showBrief, showLetters, showNotebook, showSingle, presentHere, overhear, archive, archivedCount: () => archived().length,
     get talkOpen() { return !$('sh-talk').hidden; },
     get papersOpen() { return anyOpen(); },
     get sheetOpen() { return !$('sh-sheet').hidden; },
