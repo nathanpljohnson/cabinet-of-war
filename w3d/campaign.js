@@ -1,6 +1,6 @@
 /* The campaign's keeper: builds the packet for Claude, reads its reply, keeps the saves safe and the book of the campaign.
    The rules live in turn.js (pure) and contract.md (what Claude is told); this file joins them to the desk's page. */
-import { buildPacket, rulesText, rulesVersion, rulesFileName, parseReply, checkReply, mergeTurn, applyBranch, rollFortune, seedThreads, correctionRequest, resendRequest, TEMPERS, fingerprint, sealOf, nextLink, volumeDue, sceneLines } from './turn.js';
+import { buildPacket, rulesText, rulesVersion, rulesFileName, parseReply, checkReply, mergeTurn, applyBranch, rollFortune, seedThreads, correctionRequest, resendRequest, TEMPERS, fingerprint, sealOf, nextLink, volumeDue, sceneLines, pendingOrders, exchangeRecord } from './turn.js';
 import { checkContinuity } from './continuity.js';
 
 const P = 'cabinet-of-war:', HIGH_KEY = P + 'w3d-highwater', BOOK_KEY = P + 'w3d-book', CHOICE_KEY = P + 'w3d-choices', SENT_KEY = P + 'w3d-sent', AUTO_KEY = P + 'w3d-autosave', RULES_KEY = P + 'w3d-rules-in-project';
@@ -27,35 +27,45 @@ function migrate() {
   if (!state.record) { state.record = { chain: [], ironman: false }; ch = true; }
   // each campaign its own dice: the same turn still rolls the same, so sealing again changes nothing
   if (!state.record.salt) { state.record.salt = Math.floor(Math.random() * 2 ** 32).toString(16).padStart(8, '0'); ch = true; }
+  if (!state.exchange) {
+    // Recover promises from the existing book as well as the current meeting.
+    let exchange = {};
+    for (const entry of store(BOOK_KEY, [])) if (entry.audience) exchange = exchangeRecord({ exchange, date: entry.date, scene: { ...entry.audience, id: 'book-' + entry.turn } });
+    state.exchange = exchange;
+  }
+  const exchange = exchangeRecord(state, store(SENT_KEY, []), Object.values(store(P + 'w3d-archive', {})));
+  if (JSON.stringify(exchange) !== JSON.stringify(state.exchange)) { state.exchange = exchange; ch = true; }
   markHigh();
   if (ch) persistState();
 }
 
 /* ---------- the packet ---------- */
-const sentOrders = () => store(SENT_KEY, []).flatMap(s => (s.orders || []).filter(o => o && o.ref).map(o => o.ref));
+const sentOrders = () => [...((state.exchange || {}).orders || []).map(o => o.ref), ...store(SENT_KEY, []).flatMap(s => (s.orders || []).filter(o => o && o.ref).map(o => o.ref))];
 const choicesNow = () => store(CHOICE_KEY, []).filter(c => c.turn === state.turn);
-// orders of the last three turns that no letter has answered: the adjudicator needs their references to answer them later
-const waiting = () => { const arch = Object.values(store(P + 'w3d-archive', {})), done = new Set([...arch, ...(state.reports || [])].flatMap(r => r.re || []));
-  return store(SENT_KEY, []).filter(s => s.turn < state.turn && s.turn >= state.turn - 3).flatMap(s => (s.orders || []).filter(o => o && o.ref && !done.has(o.ref) && !/^Journey: /.test(o.line || ''))); };
+// Include the archive when migrating an older save; durable orders then live in the campaign state.
+const waiting = () => pendingOrders(state, store(SENT_KEY, []).filter(s => s.turn < state.turn), Object.values(store(P + 'w3d-archive', {})));
 export const fortune = () => rollFortune(state.campaignId, state.turn, 8, (state.record || {}).salt || '');
 async function packet(orders) {
   const w = draft.w3d || {};
-  return buildPacket({ state, contract, orders, almanac, fortune: fortune(), wake: w.wake, trust: state.trust, choices: choicesNow(), waiting: waiting(), endRequested: !!w.end, rulesInProject: store(RULES_KEY, false), purse: (w.items || []).filter(i => i.purse).map(i => i.text) });
+  const packetState = { ...state, exchange: exchangeRecord(state, store(SENT_KEY, []), Object.values(store(P + 'w3d-archive', {}))) };
+  return buildPacket({ state: packetState, contract, orders, almanac, fortune: fortune(), wake: w.wake, trust: state.trust, choices: choicesNow(), waiting: waiting(), endRequested: !!w.end, rulesInProject: store(RULES_KEY, false), purse: (w.items || []).filter(i => i.purse).map(i => i.text) });
 }
 
 /* ---------- reading the reply ---------- */
 function installReview() {
   const legacy = window.reviewWorld;
   window.reviewWorld = text => {
+    candidate = null; pending = null; // a rejected reply must never leave an earlier candidate available
+    const field = $('world-in'); if (field) { field.value = text; draft.incomingReply = text; saveDraft(); }
     const p = parseReply(text);
-    if (p.error) return show({ title: p.truncated ? 'The reply was cut off' : 'The reply could not be read', errors: [p.error], request: p.truncated ? resendRequest(state.turn + 1) : null, requestLabel: 'Copy a request to send it again' });
+    if (p.error) return show({ title: p.truncated ? 'The reply was cut off' : 'The reply could not be read', errors: [p.error], request: p.truncated ? resendRequest(state.turn + 1) : correctionRequest([p.error], state.turn + 1), requestLabel: 'Copy a request to send it again' });
     const reply = p.value;
     if (reply.schemaVersion === 2 && reply.kind !== 'turn') { // a whole state (older replies, imported state files)
       if (state.record.ironman) return show({ title: 'The record is sealed', errors: ['A whole saved state cannot be loaded into a sealed campaign. Paste Claude’s reply to the latest packet instead.'] });
       $('confirm').querySelector('h2').textContent = 'Accept this update?'; $('accept').hidden = false; pending = { payload: reply }; legacy(text); return; }
     const r = checkReply(state, reply, { orderRefs: sentOrders(), fortune: fortune(), seal: sealOf(state), volumeDue: volumeDue(state) });
     if (r.errors.length) return show({ title: 'This reply cannot be accepted', errors: r.errors, request: correctionRequest(r.errors, state.turn + 1) });
-    const { next, notes } = mergeTurn(state, reply);
+    const { next, notes } = mergeTurn(state, reply, { sent: store(SENT_KEY, []), reports: Object.values(store(P + 'w3d-archive', {})) });
     try { validateState(next); } catch (e) { return show({ title: 'This reply cannot be accepted', errors: [e.message], request: correctionRequest([e.message], state.turn + 1) }); }
     const cont = checkContinuity(state, next), hard = cont.filter(i => i.level === 'error');
     if (fought() && next.battleDemo && !next.battleDemo.aftermath) next.battleDemo.aftermath = aftermathOfTable();
@@ -65,12 +75,16 @@ function installReview() {
 }
 // one dialog for every outcome: what the turn is, what was corrected, what may be wrong, and a way to ask Claude again
 function show({ title, summary, errors = [], warns = [], fixes = [], request, requestLabel, accept }) {
-  const d = $('confirm'), b = $('confirm-body'); d.querySelector('h2').textContent = title; $('accept').hidden = !accept;
+  const d = $('confirm'), b = $('confirm-body'); d.querySelector('h2').id = 'cw-review-title'; d.setAttribute('aria-labelledby', 'cw-review-title'); d.querySelector('h2').textContent = title; $('accept').hidden = !accept;
+  b.setAttribute('aria-live', 'polite');
   b.innerHTML = (summary ? '<p class="cw-sum">Turn ' + summary.turn + ' · ' + esc(summary.date) + ' — “' + esc(summary.title) + '”<br><small>' + summary.reports.length + ' letter' + (summary.reports.length === 1 ? '' : 's') + ' on the way. Your current state is kept as a snapshot first.</small></p>' : '')
     + list('cw-err', errors.length && accept ? 'It contradicts what is settled' : null, errors)
     + list('cw-warn', 'Worth a look', warns)
-    + list('cw-fix', 'Corrected on arrival', fixes);
+    + list('cw-fix', 'Corrected on arrival', fixes)
+    + (!accept ? '<p class="hint">Your campaign, orders and pasted reply are unchanged. Correct this reply in the same chat, or close this review and seal a fresh dispatch if the campaign, turn or seal is wrong.</p>' : '');
   if (request) { const c = document.createElement('button'); c.className = 'btn'; c.textContent = requestLabel || 'Copy a correction request for Claude'; c.onclick = () => navigator.clipboard.writeText(request).then(() => toast('Copied — paste it into the same chat, then paste the new reply here.'), () => toast('Could not copy.')); b.append(c); }
+  if (request) { const details = document.createElement('details'), summary = document.createElement('summary'), text = document.createElement('textarea');
+    summary.textContent = 'Select and copy the correction request'; text.value = request; text.readOnly = true; text.rows = 5; text.setAttribute('aria-label', 'Correction request'); details.append(summary, text); b.append(details); }
   if (!d.open) d.showModal();
 }
 const list = (cls, head, items) => items.length ? '<div class="cw-list ' + cls + '">' + (head ? '<b>' + head + '</b>' : '') + items.map(t => '<p>' + esc(t) + '</p>').join('') + '</div>' : '';
@@ -88,8 +102,9 @@ function installAccept() {
     }
     pending = null;
     orig.call(btn, e);
-    if (state !== prev) { markHigh(); onChange(); if (store(AUTO_KEY, true)) setTimeout(() => saveCampaignFile(true), 600); }
+    if (state !== prev) { if ($('world-in')) $('world-in').value = ''; markHigh(); onChange(); if (store(AUTO_KEY, true)) setTimeout(() => saveCampaignFile(true), 600); }
   };
+  $('confirm').addEventListener('cancel', () => { candidate = null; pending = null; });
   $('cancel') && $('cancel').addEventListener('click', () => { candidate = null; });
 }
 const fought = () => typeof BS !== 'undefined' && (BS.log.length || draft.battleResult);

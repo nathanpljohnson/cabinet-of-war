@@ -5,7 +5,7 @@
    desk's own orders text (draft.case.text), so the packet for the adjudicator is unchanged in form. */
 import { travel, loc, roadKm, letterDays, travelDays, placeOn, playerOn, routeDays, abedOn, abedDays, bedsideOn } from './places.js';
 import { choose, choiceFor, trustOf, setTrust, book } from './campaign.js';
-import { sceneLines } from './turn.js';
+import { sceneLines, pendingOrders } from './turn.js';
 import { personOf } from './people.js';
 const $ = id => document.getElementById(id);
 const ARCHIVE_KEY = 'cabinet-of-war:w3d-archive', CIPHER_KEY = 'cabinet-of-war:w3d-cipher', HEARD_KEY = 'cabinet-of-war:w3d-overheard', FAIR_KEY = 'cabinet-of-war:w3d-fair';
@@ -378,7 +378,7 @@ export function createShell({ act, onSeal, clock }) {
   }
 
   /* ---------- notebook: matters in hand, the situation, what you know ---------- */
-  function recordSent() { const w = W(), sent = store(SENT_KEY, []).filter(s => s.turn !== state.turn); sent.push({ turn: state.turn, date: state.date, at: locName(travel.here()), orders: [...(w.own.trim() ? [{ ref: ownRef(), line: 'In my own words: ' + w.own.trim(), to: null, text: w.own.trim() }] : []), ...w.items.map((it, i) => ({ ref: ref(i), line: itemLine(it), to: it.to || null, text: it.text }))], own: w.own.trim().slice(0, 160) }); keep(SENT_KEY, sent.slice(-8)); }
+  function recordSent() { const w = W(), sent = store(SENT_KEY, []).filter(s => s.turn !== state.turn); sent.push({ turn: state.turn, date: state.date, at: locName(travel.here()), orders: [...(w.own.trim() ? [{ ref: ownRef(), line: 'In my own words: ' + w.own.trim(), to: null, text: w.own.trim() }] : []), ...w.items.map((it, i) => ({ ref: ref(i), line: itemLine(it), to: it.to || null, text: it.text }))], own: w.own.trim().slice(0, 160) }); keep(SENT_KEY, sent.filter(s => s.turn >= state.turn - 7 || (!s.settled && pendingOrders(state, [s], Object.values(archive())).some(o => (s.orders || []).some(x => x.ref === o.ref))))); }
   function matters() {
     const a = acted(), out = [];
     for (const r of seenLetters()) if (!a[r.id]) out.push({ k: 'letter', r });

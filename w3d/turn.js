@@ -8,7 +8,7 @@ export const REPLY_SCHEMA = 3;
 // reference the adjudicator does not need to see or return every turn (kept in the page and the campaign file)
 export const STATIC_KEYS = ['labels', 'routes', 'routesNote', 'sources', 'sourcesAppendix', 'regionLabels', 'movementsNote', 'annotations', 'openingVersion'];
 // the player’s own: a reply cannot change them
-export const PLAYER_KEYS = ['trust', 'legacy', 'campaignId', 'record', 'span'];
+export const PLAYER_KEYS = ['trust', 'legacy', 'campaignId', 'record', 'span', 'exchange'];
 // lists merged by id: give only new or changed items (with only the changed fields); {"id": x, "_remove": true} removes one
 export const BY_ID = ['cast', 'locations', 'forces', 'fortresses', 'movements', 'hidden.threads', 'battleDemo.units', 'battleDemo.options'];
 // lists that only grow: give only the new entries
@@ -77,7 +77,29 @@ export function applyBranch(state, changes) {
   if (changes && isObj(changes.hidden)) { ch.hidden = {}; for (const k of ['standing', 'memory']) if (k in changes.hidden) ch.hidden[k] = changes.hidden[k]; }
   mergeInto(state, ch, '', notes); return notes;
 }
-export function mergeTurn(prev, reply) {
+// Unanswered orders have no expiry. Only an explicit report reference or a player-settled dispatch closes one.
+export function pendingOrders(state, sent = [], reports = []) {
+  const done = new Set([...((state.exchange || {}).answered || []), ...[...reports, ...(state.reports || [])].flatMap(r => r.re || [])]);
+  const settled = new Set(sent.filter(s => s.settled).flatMap(s => (s.orders || []).map(o => o.ref)));
+  const orders = new Map();
+  for (const o of [...((state.exchange || {}).orders || []), ...sent.filter(s => s.turn <= state.turn && !s.settled).flatMap(s => s.orders || [])]) {
+    if (o && o.ref && !done.has(o.ref) && !settled.has(o.ref) && !/^Journey: /.test(o.line || '')) orders.set(o.ref, clone(o));
+  }
+  return [...orders.values()];
+}
+// The page owns this record, so a reply cannot erase earlier promises or the latest meeting.
+export function exchangeRecord(state, sent = [], reports = []) {
+  const old = state.exchange || {}, commitments = new Map((old.commitments || []).map(c => [JSON.stringify([c.sceneId, c.date, c.text]), c]));
+  const scene = state.scene;
+  if (scene) for (const c of scene.commitments || []) {
+    const text = typeof c === 'string' ? c : c && c.text;
+    if (text) { const entry = { sceneId: scene.id || '', date: scene.date || state.date, text };
+      commitments.set(JSON.stringify([entry.sceneId, entry.date, text]), entry); }
+  }
+  return { answered: [...new Set([...(old.answered || []), ...[...reports, ...(state.reports || [])].flatMap(r => r.re || []), ...sent.filter(s => s.settled).flatMap(s => (s.orders || []).map(o => o.ref).filter(Boolean))])], orders: pendingOrders(state, sent, reports), commitments: [...commitments.values()], lastScene: scene ? clone(scene) : old.lastScene || null };
+}
+
+export function mergeTurn(prev, reply, ctx = {}) {
   const next = clone(prev), notes = [], ch = isObj(reply.changes) ? reply.changes : {};
   // a battle with a new id is a new field: nothing of the old one (units, courses, aftermath, ground) carries over
   if (isObj(ch.battleDemo) && ch.battleDemo.id && next.battleDemo && ch.battleDemo.id !== next.battleDemo.id) next.battleDemo = {};
@@ -90,6 +112,7 @@ export function mergeTurn(prev, reply) {
   if (next.battleDemo) delete next.battleDemo._sim;
   next.span = { from: prev.date, at: (prev.player || {}).locationId || null };
   next.turn = reply.turn; next.parentTurn = reply.parentTurn; next.schemaVersion = prev.schemaVersion || 2;
+  next.exchange = exchangeRecord({ ...next, exchange: exchangeRecord(prev, ctx.sent, ctx.reports) }, ctx.sent, [...(ctx.reports || []), ...(prev.reports || [])]);
   return { next, notes };
 }
 
@@ -114,8 +137,8 @@ export function checkReply(prev, reply, ctx = {}) {
   const errors = [], warns = [], fixes = [];
   if (!isObj(reply)) return { errors: ['The reply is not an object.'], warns, fixes };
   if (reply.kind !== 'turn' || reply.schemaVersion !== REPLY_SCHEMA) errors.push('Expected a turn reply (kind "turn", schemaVersion 3).');
-  if (reply.campaignId !== prev.campaignId) errors.push('This reply belongs to a different campaign.');
-  if (reply.turn !== prev.turn + 1 || reply.parentTurn !== prev.turn) errors.push('This reply is for turn ' + reply.turn + ' following ' + reply.parentTurn + '; expected turn ' + (prev.turn + 1) + ' following ' + prev.turn + '.');
+  if (reply.campaignId !== prev.campaignId) errors.push((reply.campaignId ? 'This reply belongs to campaign “' + reply.campaignId + '”; this desk is playing “' + prev.campaignId + '”.' : 'The reply does not identify its campaign.') + ' Copy a fresh dispatch from this game and ask for a new reply.');
+  if (reply.turn !== prev.turn + 1 || reply.parentTurn !== prev.turn) errors.push('This reply is for turn ' + (reply.turn ?? '(missing)') + ' following ' + (reply.parentTurn ?? '(missing)') + '; expected turn ' + (prev.turn + 1) + ' following ' + prev.turn + '. Copy a fresh dispatch and ask for a new reply; do not change the turn numbers in the old reply.');
   const ch = reply.changes;
   if (!isObj(ch)) { errors.push('The reply has no "changes".'); return { errors, warns, fixes }; }
   for (const k of ['date', 'title', 'briefing']) if (typeof ch[k] !== 'string' || !ch[k]) errors.push('The reply is missing "' + k + '".');
@@ -180,7 +203,7 @@ export function checkReply(prev, reply, ctx = {}) {
   const en = ch.battleDemo && ch.battleDemo.enemy; if (en && en.temper && !TEMPERS.includes(en.temper)) { fixes.push('Unknown enemy temper "' + en.temper + '" read as steady.'); en.temper = 'steady'; }
   for (const k of PLAYER_KEYS) if (k in ch && k !== 'campaignId') fixes.push('A change to ' + k + ' was ignored: it is yours to set.');
   if (ch.ended && !ch.epilogue) warns.push('The campaign ends but the reply has no epilogue.');
-  if (ctx.seal) { if (reply.seal && reply.seal !== ctx.seal) errors.push('This reply was written for a different packet (its seal ' + reply.seal + ' is not this turn’s ' + ctx.seal + '). Paste the reply to the latest packet.'); else if (!reply.seal) warns.push('The reply does not carry this turn’s seal.'); }
+  if (ctx.seal) { if (reply.seal && reply.seal !== ctx.seal) errors.push('This reply was written for a different packet (its seal ' + reply.seal + ' is not this turn’s ' + ctx.seal + '). Copy a fresh dispatch and ask for a new reply; do not change the seal in the old reply.'); else if (!reply.seal) warns.push('The reply does not carry this turn’s seal.'); }
   if (ctx.volumeDue && !(Array.isArray(h.volumes) && h.volumes.length)) warns.push('A volume of the chronicle was due this turn (hidden.volumes).');
   if (w && w.tempo && !TEMPO.includes(w.tempo)) { fixes.push('Unknown tempo "' + w.tempo + '" was left out.'); delete w.tempo; }
   // a place's own tempo: a location, or a fortress by its place (f-glogau → glogau)
@@ -278,6 +301,7 @@ export const KEEP = { ledgerTurns: 3, canon: 40, canonChars: 5000, dispatches: 1
 export function liveState(state) {
   const s = clone(state); for (const k of STATIC_KEYS) delete s[k];
   if (s.hidden) { delete s.hidden.world; delete s.hidden.threads; } // threads go as the index above the state
+  delete s.exchange; // carried explicitly in the continuity section, without duplicating it
   delete s.record; delete s.span; // the seal goes above the state; the span is the page's
   // the letters he is answering go whole: they are what his orders respond to, and a fresh chat cannot remember them.
   // (Gists of 260 and 420 characters cost the adjudicator promises, figures and the wording of resolutions; whole letters add ~2–3k.)
@@ -362,6 +386,7 @@ export function rulesText({ contract, almanac }) {
     + contract.trim() + '\n\n' + replyFormat(null) + '\n\n## Almanac: systems and stakes\n' + systemsText(almanac) + '\n';
 }
 export function buildPacket({ state, contract, orders, almanac, fortune, wake, trust, choices, endRequested, purse, waiting, rulesInProject }) {
+  const continuity = exchangeRecord(state), outstanding = pendingOrders({ ...state, exchange: continuity }, [{ turn: state.turn, orders: waiting || [] }]);
   const th = (state.hidden || {}).threads || [], date = state.date, act = activePlots(almanac || {}, th, date), byId = new Map(th.map(t => [t.id, t]));
   const shown = th.filter(t => !['resolved', 'abandoned'].includes(t.status) && (liveThread(t) || dueThread(t, date))), rest = th.length - shown.length;
   const index = shown.map(t => '- ' + t.id + ' · ' + (t.title || '') + ' · ' + (t.status || 'dormant') + (t.next_check ? ' · check ' + t.next_check : '') + (t.note ? ' · ' + t.note : '')).join('\n')
@@ -376,7 +401,8 @@ export function buildPacket({ state, contract, orders, almanac, fortune, wake, t
     + (endRequested ? '\n\n## The player ends their service\nThe player asks to end their service here. End the campaign this turn: set "ended" and write the epilogue.' : '')
     + '\n\n' + orders.trim()
     + '\n\n## The player’s judgement of sources\nTrusts: ' + (trusts.join('; ') || '(none marked)') + '\nDoubts: ' + (doubts.join('; ') || '(none marked)')
-    + ((waiting || []).length ? '\n\n## Earlier orders with no answer yet\nA letter that answers one of these carries its reference in "re" like this turn\'s.\n' + waiting.map(o => '- [' + o.ref + '] ' + (o.line.length > 200 ? o.line.slice(0, 200) + ' …' : o.line)).join('\n') : '')
+    + (outstanding.length ? '\n\n## Earlier orders with no answer yet\nThese remain pending regardless of age. A letter that answers one carries its reference in "re". An acknowledgement is not proof of execution: record any continuing obligation in hidden.standingOrders and hidden.chronicle.\n' + outstanding.map(o => '- [' + o.ref + '] ' + (o.line || o.text || '')).join('\n') : '')
+    + (continuity.lastScene || continuity.commitments.length ? '\n\n## Meetings and commitments carried forward\nThe latest meeting is context, not a new event. Earlier promises remain part of the record; assess fulfilment or breach from events, never assume they expired.\n' + JSON.stringify({ lastScene: continuity.lastScene, commitments: continuity.commitments }) : '')
     + '\n\n## Urgent letters the player answered this turn\n' + ((choices || []).map(c => '- On “' + c.title + '” (' + c.id + '): the player chose “' + c.label + '”' + (c.byDefault ? ' (the day passed without their answer; the default applied)' : '') + '.').join('\n') || '(none)')
     + '\n\n## The player’s own purse\n' + (purse && purse.length ? 'Orders the player pays for themselves: ' + purse.join(' | ') : '(nothing from the player’s own purse this turn)')
     + (volumeDue(state) ? '\n\n## A volume closes\nThis reply makes turn ' + (state.turn + 1) + '. Add one entry to hidden.volumes: {"n": ' + ((state.turn + 1) / 10) + ', "turns": "' + (state.turn - 8) + '–' + (state.turn + 1) + '", "title", "text"} — these ten turns, this reply\'s events included, in at most 200 words. Then write hidden.chronicle afresh as the opening of the next volume: how things stand now, who wants what, what is unresolved.' : '')

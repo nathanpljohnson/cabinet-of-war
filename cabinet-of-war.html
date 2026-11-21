@@ -1971,7 +1971,7 @@ function initCase(){
   const ta=el('textarea',null,'paper',{id:'orders-text',rows:'14','aria-label':'Orders of the day',placeholder:'Give your orders as you would to your staff. They write and send whatever is needed; you will hear the results in reports.'});
   ta.value=ensureCase().text;ta.oninput=()=>{ensureCase().text=ta.value;saveDraft();renderCase()};
   const b=el('button','Copy orders for Claude','btn seal');b.onclick=resolve;b.style.margin='12px 0 8px';
-  const rep=el('details');rep.append(el('summary','Reply received — paste it here'));const wi=el('textarea',null,null,{id:'world-in',placeholder:'Paste Claude’s reply…',rows:'4'});rep.append(wi);const ib=el('button','Review update','btn');ib.onclick=()=>reviewWorld(wi.value);rep.append(ib);
+  const rep=el('details');rep.append(el('summary','Reply received — paste it here'));const wi=el('textarea',null,null,{id:'world-in',placeholder:'Paste Claude’s reply…',rows:'4','aria-label':'Reply from the adjudicator'});wi.value=draft.incomingReply||'';wi.oninput=()=>{draft.incomingReply=wi.value;saveDraft()};rep.append(wi);const ib=el('button','Review update','btn');ib.onclick=()=>reviewWorld(wi.value);rep.append(ib);
   root.append(ta,b,rep);renderCase();
 }
 

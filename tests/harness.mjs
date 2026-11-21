@@ -1,6 +1,6 @@
 // Runs the reply pipeline (w3d/turn.js, w3d/continuity.js) on the opening state and the mock replies; prints JSON for pytest.
 import { readFileSync } from 'node:fs';
-import { replyFormat, rulesText, rulesVersion, tableOf, TABLES, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS, sceneLines } from '../w3d/turn.js';
+import { replyFormat, rulesText, rulesVersion, tableOf, TABLES, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS, sceneLines, pendingOrders, exchangeRecord } from '../w3d/turn.js';
 import { checkContinuity } from '../w3d/continuity.js';
 import { stampFeatures, FIELD } from '../w3d/groundspec.js';
 import { wheel, separation, findRoute, rasterize, normalizeUnit, TROOPS, bearing, crestBetween, slopePace } from '../w3d/march.js';
@@ -142,4 +142,23 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
 // world.scene is the old name of world.sights: read as sights with a fix, and an old save's tags are cleared at the next turn
 { const r = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], world: { scene: { vienna: ['alarm', 'dragons'] } }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } }), c = checkReply(opening, r, {});
   out.sights = { world: r.changes.world, fixes: c.fixes.filter(f => /scene|sights/.test(f)).length, fmt: replyFormat(opening).includes('"sights":{"vienna"') && !replyFormat(opening).includes('"scene":{"vienna"') }; }
+// Campaign continuity survives long delays, compact packets and save-file round trips.
+{
+  const scene = { id: 'promise', date: '1740-10-21', title: 'A promise', status: 'closed', participants: [{ id: 'a', name: 'Adviser' }], lines: [{ who: 'a', text: 'The men will need reinforcements.' }], commitments: ['Send two regiments.', { text: 'Report by Friday.' }] };
+  const start = { ...s0, scene }, long = 'To Wallis: ' + 'Keep this exact qualification. '.repeat(20), sent = [{ turn: 0, orders: [{ ref: 'T0-1', line: long }, { ref: 'T0-2', line: 'Hold the bridge.' }] }];
+  let next = mergeTurn(start, { turn: 1, parentTurn: 0, changes: { date: '1740-10-22' } }, { sent }).next;
+  for (let i = 2; i <= 12; i++) next = mergeTurn(next, { turn: i, parentTurn: i - 1, changes: { date: '1740-11-02' } }).next;
+  next = JSON.parse(JSON.stringify(next)); // the state inside a campaign file, without browser storage
+  const pk = buildPacket({ state: next, contract: '', orders: '', almanac: {}, fortune: [] });
+  const answered = mergeTurn(next, { turn: 13, parentTurn: 12, changes: { reports: [{ id: 'answer', re: ['T0-1'] }] } }, { sent }).next;
+  const later = mergeTurn(answered, { turn: 14, parentTurn: 13, changes: {} }, { sent }).next;
+  const final = mergeTurn(later, { turn: 15, parentTurn: 14, changes: { exchange: { orders: [], commitments: [] } } }).next;
+  const settled = pendingOrders(next, [{ ...sent[0], settled: true }]);
+  const badTurn = checkReply(opening, { ...reply(opening, {}), turn: 99 }, {});
+  out.exchange = { refs: next.exchange.orders.map(o => o.ref), commitments: next.exchange.commitments.map(c => c.text), scene: next.exchange.lastScene, currentScene: next.scene,
+    packet: pk.includes(long) && pk.includes('Send two regiments.') && pk.includes('The men will need reinforcements.'),
+    answered: later.exchange.orders.map(o => o.ref), forged: final.exchange.commitments.length, settled: settled.length,
+    dedup: exchangeRecord({ ...next, scene }).commitments.length,
+    forged: final.exchange.commitments.length, dedup: exchangeRecord({ ...next, scene }).commitments.length, recovery: badTurn.errors.some(e => e.includes('Copy a fresh dispatch')) };
+}
 console.log(JSON.stringify(out));

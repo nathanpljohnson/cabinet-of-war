@@ -374,7 +374,7 @@ body.w3d-account #armybar{display:none!important}
 body.w3d-on dialog{background:rgba(22,24,27,.97);color:var(--bone);border:1px solid var(--edge-2);border-radius:14px;font-family:var(--read);max-width:620px}
 body.w3d-on dialog h2{font:400 26px var(--display)!important}
 .cw-sum small{color:var(--bone-3)}
-.cw-list{margin:12px 0;padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.04);max-height:28vh;overflow:auto}
+.cw-list{overflow-wrap:anywhere;margin:12px 0;padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.04);max-height:28vh;overflow:auto}
 .cw-list b{display:block;font:14px var(--display);font-variant-caps:all-small-caps;letter-spacing:.08em;margin-bottom:4px}
 .cw-list p{margin:4px 0;font-size:15px;line-height:1.45}
 .cw-err{border-left:3px solid var(--wax)}.cw-err b{color:var(--wax-hi)}

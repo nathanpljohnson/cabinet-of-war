@@ -376,3 +376,25 @@ def test_scene_is_dated_within_the_turn(run):
 def test_sights_renamed_from_world_scene(run):
     s = run["sights"]
     assert s["world"] == {"sights": {"vienna": ["alarm"]}} and s["fixes"] == 2 and s["fmt"]
+
+
+def test_exchange_survives_delays_and_campaign_file_round_trip(run):
+    x = run["exchange"]
+    assert x["refs"] == ["T0-1", "T0-2"]
+    assert x["commitments"] == ["Send two regiments.", "Report by Friday."]
+    assert x["scene"]["id"] == "promise" and x["currentScene"] is None
+    assert x["packet"]  # exact wording, including long qualifications, is sent
+
+
+def test_answered_orders_do_not_reappear_and_settled_orders_close(run):
+    assert run["exchange"]["answered"] == ["T0-2"]
+    assert run["exchange"]["settled"] == 0
+
+
+def test_reply_cannot_erase_promises_and_repeated_capture_is_idempotent(run):
+    assert run["exchange"]["forged"] == 2
+    assert run["exchange"]["dedup"] == 2
+
+
+def test_stale_reply_explains_recovery(run):
+    assert run["exchange"]["recovery"]
