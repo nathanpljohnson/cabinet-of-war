@@ -199,3 +199,10 @@ Decisions (Nathan, 4 Nov): library + live fallback; replay accounts; atlas march
 - [x] Storage key clash found in the browser check: the 3D courier ride already used `w3d-courier`; the setting is `w3d-courier-route`
 - [x] Tests 69 → 74 (day-book and handled, instructions stay the player's, courier packet, packet read back, the tool on a good and a stale reply); packet 58.5 KB (reply-format lines now point to the contract)
 - [x] Browser: instructions saved and in the errand; turn file "pushed" → applied within one poll; handled letter and day-book; stale dispatch refused; no console errors
+
+# The courier from any folder, and a leaner exchange
+- [x] Errand works from any session: a sparse clone of nine files (1.8 s, 2.3 MB here), or a pull if already in a clone; asks for repository access if pushing needs it
+- [x] The agent saves only the check block (`checkSkeleton`, 3.6 KB) instead of re-typing the ~24 KB packet; tested to give the same verdict as the whole state (errors, warnings, fixes, continuity)
+- [x] Rules without the battle sections when no battle is near (30.3 KB vs 36.7 KB); the errand asks for `--battle` when one is; same version line
+- [x] Errand tells the agent to read nothing else in the repository and not to echo the rules or the reply
+- [x] Tests 74 → 77; browser: sealing builds the errand (31.6 KB paste), no errors

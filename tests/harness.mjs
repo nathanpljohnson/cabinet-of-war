@@ -1,6 +1,6 @@
 // Runs the reply pipeline (w3d/turn.js, w3d/continuity.js) on the opening state and the mock replies; prints JSON for pytest.
 import { readFileSync } from 'node:fs';
-import { prevFromPacket, replyFormat, rulesText, rulesVersion, tableOf, TABLES, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS, sceneLines, pendingOrders, exchangeRecord } from '../w3d/turn.js';
+import { checkSkeleton, courierErrand, isBattleNear, prevFromPacket, replyFormat, rulesText, rulesVersion, tableOf, TABLES, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS, sceneLines, pendingOrders, exchangeRecord } from '../w3d/turn.js';
 import { checkContinuity } from '../w3d/continuity.js';
 import { stampFeatures, FIELD } from '../w3d/groundspec.js';
 import { wheel, separation, findRoute, rasterize, normalizeUnit, TROOPS, bearing, crestBetween, slopePace } from '../w3d/march.js';
@@ -208,5 +208,19 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
     live: 'instructions' in liveState(withIns), kept: mergeTurn(withIns, lv).next.instructions, badFixes: bc.fixes, daybook: bad.changes.daybook, handled: 'handled' in bad.changes.reports[0],
     dispatch: { same: disp(true), other: disp(false) },
     back: { cast: back.prev.cast.length, castWas: opening.cast.length, lat: back.prev.locations[0].lat, locs: back.prev.locations.length, ctx: back.ctx, date: back.prev.date, check: checkReply(back.prev, lv, back.ctx).errors } };
+}
+// lean exchange: the check block alone gives the same verdict as the whole state; the rules leave out battles when none is near
+{ const mkL = JSON.parse(read('w3d/mocks/living.json')).changes, lv = reply(opening, mkL), { next: n1 } = mergeTurn(opening, lv);
+  const verdict = (prev, r, ctx) => { const c = checkReply(prev, JSON.parse(JSON.stringify(r)), ctx); return { errors: c.errors, warns: c.warns, fixes: c.fixes, cont: c.errors.length ? [] : checkContinuity(prev, mergeTurn(prev, JSON.parse(JSON.stringify(r)), {}).next).map(i => i.level + ':' + i.text) }; };
+  const roundTrip = st => prevFromPacket('<!-- check: ' + JSON.stringify({ seal: sealOf(st), prev: checkSkeleton(st) }) + ' -->').prev;
+  const r2 = reply(n1, { date: '1740-10-30', title: 't', briefing: 'b', reports: [{ id: 'x', title: 'X', text: 'x', dated: '1740-10-27', source: 's', from_id: 'ghost' }], cast: [{ id: 'kessler', _remove: true }], undertakings: [{ id: 'u-daybook', stage: 'moved' }, { id: 'u-new' }], audiences: [{ id: 'aud-starhemberg', status: 'held' }], movements: [{ id: 'mv-new', label: 'x' }], hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}], standing: { bartenstein: 'hostile' } } });
+  const sk0 = JSON.stringify(checkSkeleton(opening)).length, sk1 = JSON.stringify(checkSkeleton(n1)).length;
+  const rulesQuiet = rulesText({ contract, almanac }, { battle: false }), rulesFull = rulesText({ contract, almanac });
+  const er = b => courierErrand({ repo: 'o/r', path: 'turns/c/turn-002.json', dispatch: 'dd', turn: 2, version: 'v1', battle: b });
+  out.slim = { same: [JSON.stringify(verdict(opening, lv, {})) === JSON.stringify(verdict(roundTrip(opening), lv, {})), JSON.stringify(verdict(n1, r2, {})) === JSON.stringify(verdict(roundTrip(n1), r2, {}))],
+    v2: verdict(roundTrip(n1), r2, {}), skeleton: [sk0, sk1],
+    rules: { quiet: rulesQuiet.length, full: rulesFull.length, sameVersionLine: rulesQuiet.split('\n')[0] === rulesFull.split('\n')[0], hint: rulesQuiet.includes('rules --battle'), noGrounds: !rulesQuiet.includes('## Battle grounds') && !rulesQuiet.includes('battleDemo.ground is'), fullGrounds: rulesFull.includes('## Battle grounds') },
+    near: [isBattleNear(opening), isBattleNear(n1)],
+    errand: { quiet: er(false), battle: er(true) } };
 }
 console.log(JSON.stringify(out));

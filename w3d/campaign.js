@@ -1,6 +1,6 @@
 /* The campaign's keeper: builds the packet for Claude, reads its reply, keeps the saves safe and the book of the campaign.
    The rules live in turn.js (pure) and contract.md (what Claude is told); this file joins them to the desk's page. */
-import { buildPacket, rulesText, rulesVersion, rulesFileName, parseReply, checkReply, mergeTurn, applyBranch, rollFortune, seedThreads, correctionRequest, resendRequest, TEMPERS, fingerprint, sealOf, nextLink, volumeDue, sceneLines, pendingOrders, exchangeRecord } from './turn.js';
+import { checkSkeleton, courierErrand, isBattleNear, buildPacket, rulesText, rulesVersion, rulesFileName, parseReply, checkReply, mergeTurn, applyBranch, rollFortune, seedThreads, correctionRequest, resendRequest, TEMPERS, fingerprint, sealOf, nextLink, volumeDue, sceneLines, pendingOrders, exchangeRecord } from './turn.js';
 import { checkContinuity } from './continuity.js';
 
 const P = 'cabinet-of-war:', HIGH_KEY = P + 'w3d-highwater', BOOK_KEY = P + 'w3d-book', CHOICE_KEY = P + 'w3d-choices', SENT_KEY = P + 'w3d-sent', AUTO_KEY = P + 'w3d-autosave', RULES_KEY = P + 'w3d-rules-in-project', COURIER_KEY = P + 'w3d-courier-route', SEALED_KEY = P + 'w3d-sealed';
@@ -66,8 +66,8 @@ async function packet(orders) {
   const packetState = { ...state, exchange: exchangeRecord(state, store(SENT_KEY, []), Object.values(store(P + 'w3d-archive', {}))) };
   const pk = buildPacket({ state: packetState, contract, orders, almanac, fortune: fortune(), wake: w.wake, trust: state.trust, choices: choicesNow(), waiting: waiting(), endRequested: !!w.end, rulesInProject: store(RULES_KEY, false), earlier: earlierDecisions(), purse: (w.items || []).filter(i => i.purse).map(i => i.text), courier: repo ? 'repo' : null, dispatch });
   if (!repo) return pk;
-  const check = { orderRefs: sentOrders(), followIds: earlierDecisions().map(d => d.id), fortune: fortune(), seal: sealOf(state), volumeDue: volumeDue(state), dispatch };
-  return errand(dispatch) + '\n\n=== PACKET ===\n' + pk + '\n<!-- check: ' + JSON.stringify(check) + ' -->\n';
+  const check = { orderRefs: sentOrders(), followIds: earlierDecisions().map(d => d.id), fortune: fortune(), seal: sealOf(state), volumeDue: volumeDue(state), dispatch, prev: checkSkeleton(state) };
+  return courierErrand({ repo: repoName(), path: turnPath(), dispatch, turn: state.turn + 1, version: rulesVersion({ contract, almanac }), battle: isBattleNear(state) }) + '\n\n' + pk + '\n<!-- check: ' + JSON.stringify(check) + ' -->\n';
 }
 
 /* ---------- the courier: a coding agent (Claude Code, Codex) adjudicates in the repository and pushes the turn; the page fetches it ---------- */
@@ -76,19 +76,6 @@ const safeId = id => String(id).toLowerCase().replace(/[^a-z0-9_-]+/g, '-');
 export const turnPath = (turn = state.turn + 1) => 'turns/' + safeId(state.campaignId) + '/turn-' + String(turn).padStart(3, '0') + '.json';
 // the repository the page is served from (owner.github.io/name), so the errand names the right one
 function repoName() { const h = location.hostname.match(/^([^.]+)\.github\.io$/), first = location.pathname.split('/').filter(Boolean)[0]; return h && first ? h[1] + '/' + first : 'nathanpljohnson/cabinet-of-war'; }
-function errand(dispatch) {
-  const n = state.turn + 1, path = turnPath(), v = rulesVersion({ contract, almanac });
-  return '# Cabinet of War — the courier’s errand: turn ' + state.turn + ' → ' + n + '\n\n'
-    + 'You are the adjudicator for one turn of Cabinet of War, a historical strategy game played in the browser. You are working in a clone of the GitHub repository ' + repoName() + '; GitHub Pages serves its main branch, and the game fetches the turn you write from there. Any coding agent with git (Claude Code, Codex) can do this.\n\n'
-    + 'Do this, in order:\n'
-    + '1. Check out main and pull the latest.\n'
-    + '2. Save everything after the line "=== PACKET ===", to the end, exactly as it is, to turns/.work/packet-' + n + '.md (git-ignored) or a file outside the repository.\n'
-    + '3. Read the rules: `node tools/turn-tool.mjs rules`. Its first line must name rules version ' + v + '; if it does not, stop and tell the player to refresh the game page and seal again.\n'
-    + '4. Adjudicate the turn as the rules and the packet say. Write your reply, one JSON object and nothing else, to ' + path + ' (create the folder if needed). It carries "dispatch": "' + dispatch + '".\n'
-    + '5. Check it: `node tools/turn-tool.mjs check <your packet file> ' + path + '`. Correct every ERROR, WARNING and FIX ON ARRIVAL in the file and check again until it prints OK.\n'
-    + '6. Commit only that file, with the message "Turn ' + n + '", and push to main. If the push is refused because main moved, pull with rebase and push again. Change nothing else in the repository.\n'
-    + '7. Tell the player only that the courier has ridden: the turn is pushed and reaches the game in about a minute. Say nothing of what happens in it, here or in your working notes where the player can read them: the letters will tell them.';
-}
 let looking = false;
 // the courier comes back by the repository: fetch the next turn's file; apply it at once if it passes every check, else show the review
 export async function lookForCourier(manual) {

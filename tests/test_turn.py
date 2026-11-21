@@ -516,7 +516,8 @@ import('./w3d/turn.js').then(async T => { const fs = await import('node:fs');
   const st = JSON.parse(m[1].replace(/\\\\u003c/g, '<')), contract = fs.readFileSync('w3d/contract.md', 'utf8'), almanac = JSON.parse(fs.readFileSync('w3d/almanac.json', 'utf8'));
   const mk = JSON.parse(fs.readFileSync('w3d/mocks/living.json', 'utf8'));
   const pk = T.buildPacket({ state: st, contract, orders: '## Orders\\nx', almanac, fortune: [], courier: 'repo', dispatch: 'd9' }) + '\\n<!-- check: ' + JSON.stringify({ seal: T.sealOf(st), dispatch: 'd9' }) + ' -->\\n';
-  process.stdout.write(JSON.stringify({ pk, reply: { kind: 'turn', schemaVersion: 3, campaignId: st.campaignId, turn: 1, parentTurn: 0, seal: T.sealOf(st), dispatch: 'd9', changes: mk.changes } }));
+  const check = '<!-- check: ' + JSON.stringify({ seal: T.sealOf(st), dispatch: 'd9', prev: T.checkSkeleton(st) }) + ' -->';
+  process.stdout.write(JSON.stringify({ pk, check, reply: { kind: 'turn', schemaVersion: 3, campaignId: st.campaignId, turn: 1, parentTurn: 0, seal: T.sealOf(st), dispatch: 'd9', changes: mk.changes } }));
 });"""], cwd=ROOT, capture_output=True, text=True, check=True).stdout
     d = _json.loads(pk)
     (tmp_path / "packet.md").write_text(d["pk"])
@@ -527,3 +528,32 @@ import('./w3d/turn.js').then(async T => { const fs = await import('node:fs');
     good, stale = tool("good.json"), tool("stale.json")
     assert good.returncode == 0 and good.stdout.startswith("OK"), good.stdout
     assert stale.returncode == 1 and "earlier dispatch" in stale.stdout
+    # the check block alone (the line the agent saves) is enough
+    (tmp_path / "packet.md").write_text(d["check"])
+    alone = tool("good.json")
+    assert alone.returncode == 0 and alone.stdout.startswith("OK"), alone.stdout
+
+
+def test_check_block_gives_the_same_verdict_as_the_whole_state(run):
+    x = run["slim"]
+    assert x["same"] == [True, True]
+    v = x["v2"]
+    assert any("ghost" in w for w in v["warns"]) and any("Kessler" in c or "Johann Kessler" in c for c in v["cont"])
+    assert any("u-new" in f for f in v["fixes"]) and any("mv-new" in f for f in v["fixes"])
+    assert max(x["skeleton"]) < 5000  # the agent saves this, not the ~24 KB packet
+
+
+def test_rules_leave_out_battles_when_none_is_near(run):
+    r = run["slim"]["rules"]
+    assert r["sameVersionLine"] and r["hint"] and r["noGrounds"] and r["fullGrounds"]
+    assert r["full"] - r["quiet"] > 5000
+    assert run["slim"]["near"] == [False, True]  # the living mock names an enemy commander
+
+
+def test_errand_works_from_any_folder_and_keeps_it_lean(run):
+    q, b = run["slim"]["errand"]["quiet"], run["slim"]["errand"]["battle"]
+    assert "git clone --depth 1 --filter=blob:none --sparse https://github.com/o/r r" in q
+    assert "sparse-checkout set --no-cone /.gitignore /tools/ /turns/ /w3d/turn.js" in q
+    assert "turns/c/turn-002.json" in q and '"dispatch": "dd"' in q and "version v1" in q
+    assert "rules`" in q and "rules --battle`" in b
+    assert "read nothing else in the repository" in q and "add the repository to the session" in q

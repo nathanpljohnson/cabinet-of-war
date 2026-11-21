@@ -382,6 +382,8 @@ const compactPlot = (p, live) => { const o = {}; for (const k of live ? ['id', '
 // the packet names the weekday: the adjudicator places Masses, Council days and the Diarium by it (Gregorian, as the Habsburg lands used)
 export const longDate = d => new Date(d + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 export const KEEP = { ledgerTurns: 3, canon: 40, canonChars: 5000, dispatches: 12, memory: 3, hearsay: 10, daybook: 12 }; // canon is capped by size too: its entries lengthen as the story thickens
+// a battle may come: campaigning anywhere, an enemy commander named, a field just fought, or the player with the army
+export const isBattleNear = state => { const bd = state.battleDemo || {}; return !!(bd.enemy || bd.aftermath || [(state.world || {}).tempo, ...Object.values((state.world || {}).tempoAt || {})].includes('campaigning') || (state.player || {}).mode === 'field'); };
 export function liveState(state) {
   const s = clone(state); for (const k of STATIC_KEYS) delete s[k];
   if (s.hidden) { delete s.hidden.world; delete s.hidden.threads; } // threads go as the index above the state
@@ -408,7 +410,7 @@ export function liveState(state) {
   // the opening's Mollwitz preview is an illustration, never the live field: its units go only once a reply has made it a real battle
   const preview = bd && bd.id === 'bd-demo' && !bd.enemy && !bd.aftermath;
   const phaseIndex = bd && Array.isArray(bd.phases) && bd.phases.length ? bd.phases.map(p => (p.t ? p.t + ' ' : '') + (p.label || '')).join(' · ') : undefined;
-  const battleNear = bd && !preview && (bd.enemy || bd.aftermath || [(state.world || {}).tempo, ...Object.values((state.world || {}).tempoAt || {})].includes('campaigning') || state.player.mode === 'field');
+  const battleNear = bd && !preview && isBattleNear(state);
   if (preview) s.battleDemo = { id: bd.id, note: 'No battle has been fought or described yet; this is the page\'s preview field. For a battle, give battleDemo a new id with its place, date, ground and units.' };
   else if (bd && !battleNear) s.battleDemo = { id: bd.id, title: bd.title, place: bd.place, center: bd.center, date: bd.date, ground: bd.ground, phases: phaseIndex, note: 'Units and positions are sent when a battle may come (campaigning, an enemy commander named, or the player with the army).' };
   else if (bd) s.battleDemo = { id: bd.id, date: bd.date, title: bd.title, place: bd.place, center: bd.center, enemy: bd.enemy, aftermath: bd.aftermath, ground: bd.ground, phases: phaseIndex, unitsAs: 'id, side, type, e, n, facing', units: (bd.units || []).map(u => [u.id, u.side, u.kind || u.type, u.e, u.n, u.facing]) };
@@ -416,7 +418,11 @@ export function liveState(state) {
 }
 
 /* ---------- the packet ---------- */
-export function replyFormat(state) {
+const BATTLE_LINES = /^- (A battle account \(a report|battleDemo\.ground is|A battle account may carry battleDemo\.phases)/;
+export function replyFormat(state, { battle = true } = {}) {
+  const text = replyFormatFull(state); return battle ? text : text.split('\n').filter(l => !BATTLE_LINES.test(l)).join('\n');
+}
+function replyFormatFull(state) {
   // without a state (the rules file for a Claude Project) the values that change each turn are named, and the packet gives them
   const G = !state, n = G ? '<turn>' : state.turn + 1, t0 = G ? '<turn − 1>' : state.turn, cid = G ? '<campaignId>' : state.campaignId, seal = G ? '<seal>' : sealOf(state);
   return `## Reply format
@@ -475,10 +481,14 @@ export function tableOf(rows, keys) {
 const systemsText = almanac => ((almanac || {}).systems || []).map(s => '- ' + s.name + ': ' + s.summary).join('\n') + '\n' + ((almanac || {}).stakes || []).map(s => '- If ' + s.what.toLowerCase() + ': ' + s.consequence).join('\n');
 export const rulesVersion = ({ contract, almanac }) => fingerprint(contract.trim() + replyFormat(null) + systemsText(almanac)).slice(0, 8);
 export const rulesFileName = v => 'cabinet-of-war-rules-' + v + '.md';
-export function rulesText({ contract, almanac }) {
+// battle: false leaves out the battle rules (fields, grounds, phases, enemy commanders) for a turn with no battle near; the version is the whole rules'
+const BATTLE_SECTIONS = ['## Battle grounds', '## Battles and enemy commanders'];
+export function rulesText({ contract, almanac }, { battle = true } = {}) {
   const v = rulesVersion({ contract, almanac });
+  const c = battle ? contract.trim() : contract.trim().split(/\n(?=## )/).filter(sec => !BATTLE_SECTIONS.some(h => sec.startsWith(h))).join('\n');
   return '# CABINET OF WAR — the rules (version ' + v + ')\n\nThe standing rules of the campaign: how to adjudicate, how the world reaches the player, the reply format, and the almanac\'s systems and stakes. Each turn\'s packet carries the rest (the state, the player’s orders, the fortune, the threads and almanac entries in play) and names the rules version it expects.\n\n'
-    + contract.trim() + '\n\n' + replyFormat(null) + '\n\n## Almanac: systems and stakes\n' + systemsText(almanac) + '\n';
+    + (battle ? '' : 'The battle rules (battle grounds, battle accounts and their phases, enemy commanders) are left out: no battle is near. If this turn brings a battle in the campaign, run `node tools/turn-tool.mjs rules --battle` first and follow them.\n\n')
+    + c + '\n\n' + replyFormat(null, { battle }) + '\n\n## Almanac: systems and stakes\n' + systemsText(almanac) + '\n';
 }
 export function buildPacket({ state, contract, orders, almanac, fortune, wake, trust, choices, endRequested, purse, waiting, rulesInProject, earlier, courier, dispatch }) {
   const continuity = exchangeRecord(state), outstanding = pendingOrders({ ...state, exchange: continuity }, [{ turn: state.turn, orders: waiting || [] }]);
@@ -528,8 +538,38 @@ function tables(text) {
   }
   return out;
 }
+// what the reply checks need of the state, and no more: ids, names, the lines of movements, standing, forces, the dead.
+// The canon is append-only, so a merge cannot drop from it; it does not travel. (~3 KB where the whole packet is ~24 KB.)
+export function checkSkeleton(state) {
+  const ids = k => (state[k] || []).filter(isObj).map(x => ({ id: x.id })), h = state.hidden || {}, bd = state.battleDemo;
+  return { campaignId: state.campaignId, turn: state.turn, date: state.date, schemaVersion: state.schemaVersion,
+    player: { health: (state.player || {}).health, dismissed: (state.player || {}).dismissed },
+    cast: (state.cast || []).filter(isObj).map(c => ({ id: c.id, name: c.name, ...(c.dead ? { dead: true } : {}) })),
+    locations: (state.locations || []).filter(isObj).map(l => ({ id: l.id, name: l.name })), fortresses: ids('fortresses'),
+    movements: (state.movements || []).filter(isObj).map(m => ({ id: m.id, pts: m.pts })), forces: (state.forces || []).filter(isObj).map(f => ({ id: f.id, name: f.name, men: f.men })),
+    undertakings: ids('undertakings'), calendar: ids('calendar'), audiences: ids('audiences'), reports: ids('reports'),
+    hidden: { standing: h.standing || {}, threads: (h.threads || []).filter(t => t && ['resolved', 'abandoned'].includes(t.status)).map(t => ({ id: t.id, status: t.status, title: t.title })) },
+    ...(bd && bd.id ? { battleDemo: { id: bd.id, units: (bd.units || []).filter(isObj).map(u => ({ id: u.id, ...(u.men != null ? { men: u.men } : {}) })) } } : {}) };
+}
+// the courier's errand: what a coding agent (Claude Code, Codex), working anywhere, is asked to do with the packet below it
+export function courierErrand({ repo, path, dispatch, turn, version, battle }) {
+  const url = 'https://github.com/' + repo, dir = repo.split('/').pop();
+  return '# Cabinet of War — the courier’s errand: turn ' + (turn - 1) + ' → ' + turn + '\n\n'
+    + 'You adjudicate one turn of Cabinet of War, a browser game whose turns live in the GitHub repository ' + repo + ' (GitHub Pages serves its main branch; the game fetches the turn you push). You may be in any folder or repository: do the work in a clone of ' + repo + '. Any agent with git and node can do this.\n\n'
+    + '1. Get a clone. If you are already in one, pull main. Otherwise, in a new folder outside any other repository, take only the files the errand needs:\n'
+    + '   git clone --depth 1 --filter=blob:none --sparse ' + url + ' ' + dir + ' && cd ' + dir + ' && git sparse-checkout set --no-cone /.gitignore /tools/ /turns/ /w3d/turn.js /w3d/march.js /w3d/groundspec.js /w3d/continuity.js /w3d/contract.md /w3d/almanac.json\n'
+    + '   If cloning or pushing needs access you do not have, ask the player to give this session access to ' + repo + ' (in Claude Code: add the repository to the session), then go on.\n'
+    + '2. Read the rules: `node tools/turn-tool.mjs rules' + (battle ? ' --battle' : '') + '`. Its first line must name version ' + version + '; if not, stop and tell the player to refresh the game and seal again.\n'
+    + '3. Adjudicate the turn from the rules and the packet below. Write the reply, one JSON object and nothing else, to ' + path + ', with "dispatch": "' + dispatch + '".\n'
+    + '4. Save the last line of this message (it begins "<!-- check:") to turns/.work/check.txt, then run `node tools/turn-tool.mjs check turns/.work/check.txt ' + path + '`. Correct every ERROR, WARNING and FIX ON ARRIVAL in the reply; repeat until it prints OK.\n'
+    + '5. Commit only ' + path + ' ("Turn ' + turn + '") and push to main; if refused, pull with rebase and push again.\n'
+    + '6. Tell the player in one line that the courier has ridden and turn ' + turn + ' is pushed. Nothing of what happens in it, here or in notes the player can read.\n\n'
+    + 'Keep it lean: read nothing else in the repository (no other files, earlier turns or tests), do not print the rules or the reply back, keep your messages short.';
+}
 // a packet read back: the state it carried and the context of its checks (a coding agent checks its reply with it before pushing)
 export function prevFromPacket(text) {
+  // the check block alone carries the state the checks need ("prev"); a whole packet saved instead is read from its state and tables
+  const cm = /<!-- check: (\{.*\}) -->/.exec(text); if (cm) { const { prev, ...ctx } = JSON.parse(cm[1]); if (prev) return { prev, ctx }; }
   const after = text.split('## Current state (JSON)')[1]; if (!after) throw Error('The packet has no "## Current state (JSON)" section. Save the whole packet, from its first line to its last.');
   const line = after.split('\n').find(l => l.trim().startsWith('{')); if (!line) throw Error('The packet\'s state is missing.');
   const prev = { ...JSON.parse(line), ...tables(text) }, bd = prev.battleDemo;

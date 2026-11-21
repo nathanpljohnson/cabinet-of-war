@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // The courier's tools, for a coding agent (Claude Code, Codex) adjudicating a turn in this repository.
-//   node tools/turn-tool.mjs rules                       print the rules: contract, reply format, almanac systems (versioned)
-//   node tools/turn-tool.mjs check <packet> <reply.json> check a reply against the packet it answers, as the game will
+//   node tools/turn-tool.mjs rules [--battle]            print the rules (versioned); the battle rules only with --battle
+//   node tools/turn-tool.mjs check <check> <reply.json>  check a reply against the check block (or the whole packet) it answers, as the game will
 // The game page checks again when it loads the turn; this is the same check run first, so mistakes are fixed before the push.
 import { readFileSync } from 'node:fs';
 import { rulesText, rulesVersion, checkReply, mergeTurn, parseReply, prevFromPacket } from '../w3d/turn.js';
@@ -12,7 +12,7 @@ const contract = read('w3d/contract.md'), almanac = JSON.parse(read('w3d/almanac
 const [cmd, packetPath, replyPath] = process.argv.slice(2);
 
 if (cmd === 'rules') {
-  process.stdout.write(rulesText({ contract, almanac }));
+  process.stdout.write(rulesText({ contract, almanac }, { battle: process.argv.includes('--battle') }));
 } else if (cmd === 'version') {
   console.log(rulesVersion({ contract, almanac }));
 } else if (cmd === 'check' && packetPath && replyPath) {
@@ -29,6 +29,6 @@ if (cmd === 'rules') {
   if (!errors.length && !warns.length && !r.fixes.length) console.log('OK: turn ' + reply.turn + ' is ready to push.');
   process.exit(errors.length ? 1 : warns.length || r.fixes.length ? 2 : 0);
 } else {
-  console.log('Usage:\n  node tools/turn-tool.mjs rules\n  node tools/turn-tool.mjs check <packet file> <reply file>');
+  console.log('Usage:\n  node tools/turn-tool.mjs rules [--battle]\n  node tools/turn-tool.mjs check <check block or packet file> <reply file>');
   process.exit(cmd ? 1 : 0);
 }
