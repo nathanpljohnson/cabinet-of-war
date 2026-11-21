@@ -4,3 +4,5 @@
 - Read git log (and origin branches) before trusting tasks/*.md status; the notes lag the code (todo.md stopped at v11 while v12 and three visual passes had shipped).
 - Never switch sound on in a test browser, even to test sound: check the audio nodes with music at 0, and leave sound off afterwards (Nathan heard the music, 20 Nov).
 - Work done in another tool's session is not shipped until `git log origin/main` shows it; the Codex staff-briefing pass lived only as an uncommitted diff on Nathan's Mac and had to be rebuilt (21 Nov).
+- Never wrap a flex child that must scroll in <details>: its contents leave the flex layout and overflow the paper (the letter list ran off the panel, 21 Nov). After any layout change, measure the panel and its scrolling children at a laptop height (1280x680) with a full post.
+- No music, ever (Nathan, 21 Nov: removed from sound.js). Effects and ambience stay.

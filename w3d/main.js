@@ -22,7 +22,7 @@ const PRESETS = {
   medium: { scale: .8, shadows: 1024, terrain: 3, trees: .85, grass: 22000, post: true },
   high: { scale: 1, shadows: 2048, terrain: 2.5, trees: 1, grass: 40000, post: true },
 };
-let gfx = { preset: 'medium', scale: null, shadows: null, veg: null, fps: false, sound: true, volume: 1, music: 1, auto: true };
+let gfx = { preset: 'medium', scale: null, shadows: null, veg: null, fps: false, sound: true, volume: 1, auto: true };
 try { Object.assign(gfx, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch { }
 const Q = () => { const p = PRESETS[gfx.veg || gfx.preset]; return { ...p, post: PRESETS[gfx.preset].post, scale: gfx.scale ?? PRESETS[gfx.preset].scale, shadows: gfx.shadows ?? PRESETS[gfx.preset].shadows }; };
 const saveGfx = () => { try { localStorage.setItem(KEY, JSON.stringify(gfx)); } catch { } };
@@ -43,7 +43,6 @@ float.innerHTML = `<div class="w3d-toast" id="w3d-toast" role="status" aria-live
   <label><input type="checkbox" id="g-auto"> Lower the resolution when it can’t keep up</label>
   <label><input type="checkbox" id="g-sound"> Sound</label>
   <label>Volume <input type="range" id="g-volume" min="0" max="1" step="0.05"> <span id="g-volume-v"></span></label>
-  <label>Music <input type="range" id="g-music" min="0" max="1" step="0.05"> <span id="g-music-v"></span></label>
   <label><input type="checkbox" id="g-fps"> Show frame time</label>
   <div class="row"><button id="g-tools">Map tools</button><button id="g-layers">Map layers</button></div>
   <p class="w3d-note">Vegetation changes rebuild the scene.</p>
@@ -714,9 +713,9 @@ gp.veg.onchange = () => { gfx.veg = gp.veg.value; saveGfx(); rebuild(); };
 gp.auto.onchange = () => { gfx.auto = gp.auto.checked; dyn.k = 1; saveGfx(); applyGfx(); };
 gp.fps.onchange = () => { gfx.fps = gp.fps.checked; saveGfx(); syncGfxUi(); };
 gp.sound.onchange = () => { gfx.sound = gp.sound.checked; saveGfx(); sound.enabled = gfx.sound; deskSound(); };
-// volume and music, saved with the other settings; a slider moved up turns the sound on
-function syncSoundUi() { for (const k of ['volume', 'music']) { $3('g-' + k).value = gfx[k] ?? 1; $3('g-' + k + '-v').textContent = Math.round((gfx[k] ?? 1) * 100) + '%'; } }
-for (const k of ['volume', 'music']) $3('g-' + k).oninput = e => { gfx[k] = +e.target.value; saveGfx(); syncSoundUi(); sound.volume = gfx.volume ?? 1; sound.musicVolume = gfx.music ?? 1; if (gfx[k] > 0 && !gfx.sound) { gfx.sound = true; gp.sound.checked = true; sound.enabled = true; } deskSound(); };
+// volume, saved with the other settings; the slider moved up turns the sound on (there is no music: Nathan found it annoying)
+function syncSoundUi() { for (const k of ['volume']) { $3('g-' + k).value = gfx[k] ?? 1; $3('g-' + k + '-v').textContent = Math.round((gfx[k] ?? 1) * 100) + '%'; } }
+for (const k of ['volume']) $3('g-' + k).oninput = e => { gfx[k] = +e.target.value; saveGfx(); syncSoundUi(); sound.volume = gfx.volume ?? 1; if (gfx[k] > 0 && !gfx.sound) { gfx.sound = true; gp.sound.checked = true; sound.enabled = true; } deskSound(); };
 syncSoundUi();
 $3('g-tools').onclick = () => $3('toggleT').click(); $3('g-layers').onclick = () => $3('toggleY').click();
 async function rebuild() { showLoading('Replanting…'); await sleep(30); await buildWorld(); hideLoading(); }
@@ -830,7 +829,7 @@ installMarch(); // lines, columns, giving way and troop types for the desk's bat
   await buildWorld();
   applyGfx(); lastTurn = state.turn; hideLoading(); setView('room'); camera.position.set(pl.x + 6, 30, pl.z + 12); camera.lookAt(pl.x, 6, pl.z);
   tweenCamera(camera.position, camera.quaternion, 2.2, true);
-  sound.volume = gfx.volume ?? 1; sound.musicVolume = gfx.music ?? 1; sound.enabled = gfx.sound;
+  sound.volume = gfx.volume ?? 1; sound.enabled = gfx.sound;
   let opened = false; try { opened = !!localStorage.getItem(INTRO_KEY); } catch { }
   if (state.turn === 0 && !opened) opening();
   loop();

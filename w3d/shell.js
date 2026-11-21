@@ -35,7 +35,7 @@ export function createShell({ act, onSeal, clock }) {
   <aside class="sh-panel" id="sh-panel" hidden aria-label="Papers"><div class="sh-ph"><div><div class="eyebrow" id="sh-panel-eyebrow"></div><h2 id="sh-panel-title"></h2></div><button class="sh-x" id="sh-panel-x" aria-label="Close">✕</button></div><div class="sh-pbody" id="sh-pbody"></div></aside>
   <section class="sh-paper sh-letters" id="sh-letters" hidden aria-label="Letters">
     <div class="sh-ph"><div><div class="eyebrow" id="sh-l-eyebrow"></div><h2 id="sh-l-title">Your correspondence</h2></div><button class="sh-x" data-close="sh-letters" aria-label="Close">✕</button></div>
-    <div class="sh-l-grid"><div class="sh-l-col"><details class="sh-letter-index" id="sh-letter-index" open><summary>Choose a letter</summary><ul class="sh-l-list" id="sh-l-list"></ul></details><div class="sh-post" id="sh-post" hidden></div></div><article class="sh-letter" id="sh-letter"></article></div>
+    <div class="sh-l-grid"><div class="sh-l-col" id="sh-l-col"><button class="sh-l-toggle" id="sh-l-toggle" aria-expanded="true" aria-controls="sh-l-list">Choose a letter</button><ul class="sh-l-list" id="sh-l-list"></ul><div class="sh-post" id="sh-post" hidden></div></div><article class="sh-letter" id="sh-letter"></article></div>
   </section>
   <section class="sh-paper sh-notebook" id="sh-notebook" hidden aria-label="Notebook">
     <div class="sh-ph"><div><div class="eyebrow" id="sh-nb-eyebrow">Notebook</div><h2>Your notebook</h2></div><button class="sh-x" data-close="sh-notebook" aria-label="Close">✕</button></div>
@@ -275,8 +275,10 @@ export function createShell({ act, onSeal, clock }) {
   const answeredBy = r => [...links()].filter(([, a]) => a.some(x => x.r === r)).map(([id, a]) => ({ id, sure: a.find(x => x.r === r).sure }));
   let openLetter = null, listMode = 'now';
   // on a phone the list of letters folds away while you read; on a wide screen it always stands open
-  const narrow = matchMedia('(max-width: 640px)'), fitIndex = () => { $('sh-letter-index').open = !narrow.matches; };
-  fitIndex(); narrow.addEventListener('change', fitIndex);
+  // (a plain column, not <details>: the list must stay a flex child to scroll inside the paper)
+  const narrow = matchMedia('(max-width: 640px)'), foldIndex = fold => { $('sh-l-col').classList.toggle('folded', fold); $('sh-l-toggle').setAttribute('aria-expanded', String(!fold)); };
+  foldIndex(narrow.matches); narrow.addEventListener('change', () => foldIndex(narrow.matches));
+  $('sh-l-toggle').onclick = () => foldIndex(!$('sh-l-col').classList.contains('folded'));
   function archive() { const a = store(ARCHIVE_KEY, {}); let ch = false; for (const r of seen()) { const k = rk(r); if (!a[k]) { a[k] = { ...r, turn: state.turn }; ch = true; } } if (ch) keep(ARCHIVE_KEY, a); return a; }
   const archived = () => Object.values(archive()).filter(x => x.turn < state.turn).sort((x, y) => (y.arrives || y.dated).localeCompare(x.arrives || x.dated));
   // a ciphered letter is unreadable until your clerk has worked on it for a few hours (or the day has passed)
@@ -298,7 +300,7 @@ export function createShell({ act, onSeal, clock }) {
       li.onclick = li.onkeydown = ev => { if (ev.type === 'keydown' && ev.key !== 'Enter') return; showLetters(x.id); }; ul.append(li);
     }
     if (!rs.length) ul.append(el('li', 'sh-empty', listMode === 'archive' ? 'Nothing kept from earlier turns yet.' : 'No letters have reached you.'));
-    const L = rs.find(x => x.id === openLetter); if (L) { if (!readSet().has(rk(L))) act('sound:seal'); drawLetter(L); if (id && id !== before) { $('sh-letter').scrollTop = 0; if (narrow.matches) $('sh-letter-index').open = false; } markRead(L.id); } else $('sh-letter').replaceChildren();
+    const L = rs.find(x => x.id === openLetter); if (L) { if (!readSet().has(rk(L))) act('sound:seal'); drawLetter(L); if (id && id !== before) { $('sh-letter').scrollTop = 0; if (narrow.matches) foldIndex(true); } markRead(L.id); } else $('sh-letter').replaceChildren();
     const road = !!nextDay(), post = $('sh-post'); post.hidden = !road; post.replaceChildren();
     if (road) { post.append(el('p', null, onTheRoad().length ? 'More letters are on the road.' : 'The days pass until you are woken.')); const b = el('button', null, 'Let the day pass'); b.onclick = () => { const n = passDay(); act('post:' + n); showLetters(); }; post.append(b); post.append(waitingRow()); }
     $('sh-letters').hidden = false; syncVeil(); refresh();
