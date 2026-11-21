@@ -466,6 +466,7 @@ function onSeal() {
   const c = world.region.courierRide; if (c.state === 'home') c.depart(mode !== 'room');
   courierSave({ away: true, turn: state.turn });
   let inProject = false; try { inProject = JSON.parse(localStorage.getItem('cabinet-of-war:w3d-rules-in-project') || 'false'); } catch { }
+  if (window.__campaign && window.__campaign.courier() === 'repo') return toast('Your orders are sealed and the courier’s errand is copied. Paste it into Claude Code or Codex in the game’s repository; when it has pushed, the turn reaches you here in about a minute.');
   toast('Your orders are sealed and copied. Paste them into a fresh chat' + (inProject ? ' in your Claude Project' : '') + '; the courier rides with them. Paste the reply on the order sheet when it comes.');
 }
 function syncCourierOnBoot() {

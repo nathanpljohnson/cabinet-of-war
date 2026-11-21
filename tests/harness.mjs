@@ -1,6 +1,6 @@
 // Runs the reply pipeline (w3d/turn.js, w3d/continuity.js) on the opening state and the mock replies; prints JSON for pytest.
 import { readFileSync } from 'node:fs';
-import { replyFormat, rulesText, rulesVersion, tableOf, TABLES, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS, sceneLines, pendingOrders, exchangeRecord } from '../w3d/turn.js';
+import { prevFromPacket, replyFormat, rulesText, rulesVersion, tableOf, TABLES, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS, sceneLines, pendingOrders, exchangeRecord } from '../w3d/turn.js';
 import { checkContinuity } from '../w3d/continuity.js';
 import { stampFeatures, FIELD } from '../w3d/groundspec.js';
 import { wheel, separation, findRoute, rasterize, normalizeUnit, TROOPS, bearing, crestBetween, slopePace } from '../w3d/march.js';
@@ -192,5 +192,21 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
     pending: pendingOrders(n2, [brief]).map(o => o.ref), pendingBefore: pendingOrders(n1, [brief]).map(o => o.ref),
     live: (() => { const big = { ...n2, hearsay: Array.from({ length: 15 }, (_, i) => ({ said: 's' + i })) }, ls = liveState(big); return { hearsay: ls.hearsay.length, history: ls.undertakings.some(x => 'history' in x) }; })(),
     format: replyFormat(null).includes('"undertakings"') && replyFormat(null).includes('"hearsay"'), contract: contract.includes('## Your desk') };
+}
+// instructions to the secretary, the day-book, the courier through the repository
+{ const lv = reply(opening, JSON.parse(read('w3d/mocks/living.json')).changes), lc = checkReply(opening, lv, {}), { next: n1 } = mergeTurn(opening, lv);
+  const withIns = { ...opening, instructions: { text: 'Acknowledge routine returns. Refuse loans.', written: '1740-10-21', revised: '1740-10-21' } };
+  const pk = buildPacket({ state: withIns, contract, orders: '## Orders of the day\nTest.', almanac, fortune: [], courier: 'repo', dispatch: 'abc123' });
+  const bad = reply(opening, { date: '1740-10-25', title: 't', briefing: 'b', hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] }, instructions: { text: 'forged' },
+    reports: [{ id: 'a', title: 'A', text: 'x', dated: '1740-10-22', source: 's', handled: 3 }], daybook: [{ entry: '' }, { entry: 'Answered A.', date: '1741-05-01', letters: ['a', 'zzz'] }] });
+  const bc = checkReply(opening, bad, {});
+  const disp = ok => checkReply(opening, { ...reply(opening, { date: '1740-10-22', title: 't', briefing: 'b', reports: [] }), dispatch: ok ? 'd1' : 'd0' }, { dispatch: 'd1' }).errors;
+  // the packet read back, as the coding agent's check sees it
+  const back = prevFromPacket(pk + '\n<!-- check: {"orderRefs":["T0-1"],"seal":"' + sealOf(opening) + '","dispatch":"abc123"} -->\n');
+  out.courier = { living: { fixes: lc.fixes, warns: lc.warns, daybook: n1.daybook, handled: n1.reports.find(r => r.id === 't1-3').handled },
+    packet: { ins: pk.includes('## The player’s instructions to their secretary (written 1740-10-21)') && pk.includes('Refuse loans.'), tool: pk.includes('node tools/turn-tool.mjs rules'), dispatch: pk.includes('"dispatch": "abc123"'), noContract: !pk.includes('## Adjudication principles') },
+    live: 'instructions' in liveState(withIns), kept: mergeTurn(withIns, lv).next.instructions, badFixes: bc.fixes, daybook: bad.changes.daybook, handled: 'handled' in bad.changes.reports[0],
+    dispatch: { same: disp(true), other: disp(false) },
+    back: { cast: back.prev.cast.length, castWas: opening.cast.length, lat: back.prev.locations[0].lat, locs: back.prev.locations.length, ctx: back.ctx, date: back.prev.date, check: checkReply(back.prev, lv, back.ctx).errors } };
 }
 console.log(JSON.stringify(out));

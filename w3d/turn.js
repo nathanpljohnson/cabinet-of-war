@@ -8,11 +8,11 @@ export const REPLY_SCHEMA = 3;
 // reference the adjudicator does not need to see or return every turn (kept in the page and the campaign file)
 export const STATIC_KEYS = ['labels', 'routes', 'routesNote', 'sources', 'sourcesAppendix', 'regionLabels', 'movementsNote', 'annotations', 'openingVersion'];
 // the player’s own: a reply cannot change them
-export const PLAYER_KEYS = ['trust', 'legacy', 'campaignId', 'record', 'span', 'exchange'];
+export const PLAYER_KEYS = ['trust', 'legacy', 'campaignId', 'record', 'span', 'exchange', 'instructions'];
 // lists merged by id: give only new or changed items (with only the changed fields); {"id": x, "_remove": true} removes one
 export const BY_ID = ['cast', 'locations', 'forces', 'fortresses', 'movements', 'undertakings', 'calendar', 'audiences', 'hidden.threads', 'battleDemo.units', 'battleDemo.options'];
 // lists that only grow: give only the new entries
-export const APPEND = ['ledger', 'hearsay', 'hidden.canon', 'hidden.dispatches', 'hidden.volumes'];
+export const APPEND = ['ledger', 'hearsay', 'daybook', 'hidden.canon', 'hidden.dispatches', 'hidden.volumes'];
 const appendPath = p => APPEND.includes(p) || p.startsWith('hidden.memory.');
 // per-turn things: when a reply leaves them out, they are cleared rather than carried into the next turn
 const PER_TURN_LISTS = ['reports', 'overheard', 'whereabouts', 'gazette'], PER_TURN_HIDDEN = ['decisions', 'fortune_used'], PER_TURN_NULL = ['decision', 'scene', 'staffBriefing'];
@@ -152,6 +152,7 @@ export function checkReply(prev, reply, ctx = {}) {
   if (!isObj(reply)) return { errors: ['The reply is not an object.'], warns, fixes };
   if (reply.kind !== 'turn' || reply.schemaVersion !== REPLY_SCHEMA) errors.push('Expected a turn reply (kind "turn", schemaVersion 3).');
   if (reply.campaignId !== prev.campaignId) errors.push((reply.campaignId ? 'This reply belongs to campaign “' + reply.campaignId + '”; this desk is playing “' + prev.campaignId + '”.' : 'The reply does not identify its campaign.') + ' Copy a fresh dispatch from this game and ask for a new reply.');
+  if (ctx.dispatch && reply.dispatch && reply.dispatch !== ctx.dispatch) errors.push('This reply answers an earlier dispatch (' + reply.dispatch + '), not the one you sealed last (' + ctx.dispatch + '). Send the latest dispatch again, or seal again and send that.');
   if (reply.turn !== prev.turn + 1 || reply.parentTurn !== prev.turn) errors.push('This reply is for turn ' + (reply.turn ?? '(missing)') + ' following ' + (reply.parentTurn ?? '(missing)') + '; expected turn ' + (prev.turn + 1) + ' following ' + prev.turn + '. Copy a fresh dispatch and ask for a new reply; do not change the turn numbers in the old reply.');
   const ch = reply.changes;
   if (!isObj(ch)) { errors.push('The reply has no "changes".'); return { errors, warns, fixes }; }
@@ -170,6 +171,7 @@ export function checkReply(prev, reply, ctx = {}) {
   if (errors.length) return { errors, warns, fixes };
   const follows = ctx.followIds ? new Set(ctx.followIds) : null;
   for (const r of ch.reports) {
+    if (r.handled != null && (typeof r.handled !== 'string' || !r.handled.trim())) { fixes.push('“' + r.title + '”: "handled" must say how it was handled; it was left out.'); delete r.handled; }
     if ('guidance' in r) { r.guidance = cleanGuidance(r.guidance, '“' + r.title + '”', fixes); if (!r.guidance) delete r.guidance; }
     if ('follows' in r) { const fl = Array.isArray(r.follows) ? r.follows.filter(x => typeof x === 'string') : [], bad = follows ? fl.filter(x => !follows.has(x)) : [];
       if (bad.length || !Array.isArray(r.follows)) fixes.push('“' + r.title + '” follows from decisions the player never took (' + (bad.join(', ') || 'not a list') + '); those links were dropped.');
@@ -304,6 +306,9 @@ function checkDesk(ch, prev, castIds, fixes, warns) {
     if (!h.source) warns.push('What is said of the player (“' + h.said.slice(0, 40) + '…”) does not say who told them (source).');
     if (h.teller && !castIds.has(h.teller)) { fixes.push('“' + h.said.slice(0, 40) + '…” was told by "' + h.teller + '", who is not among the people of the campaign; the teller was left out.'); delete h.teller; }
     h.date = inTurn(h.date, prev, ch); return true; });
+  list('daybook', e => { if (!isObj(e) || typeof e.entry !== 'string' || !e.entry.trim()) { fixes.push('A day-book entry without "entry" was left out.'); return false; }
+    e.date = inTurn(e.date, prev, ch); if (e.letters != null) { const ids = new Set((ch.reports || []).map(r => r && r.id)), ls = Array.isArray(e.letters) ? e.letters : [];
+      const bad = ls.filter(id => !ids.has(id)); if (bad.length) fixes.push('A day-book entry named letters not in this turn (' + bad.join(', ') + '); they were left out.'); e.letters = ls.filter(id => ids.has(id)); } return true; });
   list('calendar', c => { if (!isObj(c) || typeof c.id !== 'string') { fixes.push('A calendar entry without an id was left out.'); return false; } if (c._remove) return true;
     if (!cOld.has(c.id) && !(ISO_OR_MONTH(c.date) && c.what)) { fixes.push('The calendar entry ' + c.id + ' needs a date (YYYY-MM-DD or YYYY-MM) and "what"; it was left out.'); return false; }
     if (c.date != null && !ISO_OR_MONTH(c.date)) { fixes.push('Calendar entry ' + c.id + ': "' + c.date + '" is not a date; the change was left out.'); delete c.date; }
@@ -376,7 +381,7 @@ export function activePlots(almanac, threads, date) {
 const compactPlot = (p, live) => { const o = {}; for (const k of live ? ['id', 'title', 'window', 'actors', 'preconditions', 'historical', 'levers', 'signals', 'failure_modes'] : ['id', 'title', 'window', 'preconditions', 'signals']) if (p[k] != null) o[k] = p[k]; return o; };
 // the packet names the weekday: the adjudicator places Masses, Council days and the Diarium by it (Gregorian, as the Habsburg lands used)
 export const longDate = d => new Date(d + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
-export const KEEP = { ledgerTurns: 3, canon: 40, canonChars: 5000, dispatches: 12, memory: 3, hearsay: 10 }; // canon is capped by size too: its entries lengthen as the story thickens
+export const KEEP = { ledgerTurns: 3, canon: 40, canonChars: 5000, dispatches: 12, memory: 3, hearsay: 10, daybook: 12 }; // canon is capped by size too: its entries lengthen as the story thickens
 export function liveState(state) {
   const s = clone(state); for (const k of STATIC_KEYS) delete s[k];
   if (s.hidden) { delete s.hidden.world; delete s.hidden.threads; } // threads go as the index above the state
@@ -393,6 +398,8 @@ export function liveState(state) {
   if (Array.isArray(s.ledger)) { const all = s.ledger.length; s.ledger = s.ledger.filter(e => !(e && e.turn) || e.turn > t - KEEP.ledgerTurns); if (s.ledger.length < all) s.ledgerNote = 'Recent entries only' + older(s.ledger.length, all) + '.'; }
   if (Array.isArray(h.canon)) { let n = 0, size = 0; for (let i = h.canon.length - 1; i >= 0 && n < KEEP.canon; i--) { size += String(h.canon[i]).length; if (size > KEEP.canonChars && n) break; n++; }
     if (n < h.canon.length) { h.canonNote = 'The latest ' + n + ' settled facts' + older(n, h.canon.length) + '; the page checks every reply against all of them.'; h.canon = h.canon.slice(-n); } }
+  if (Array.isArray(s.daybook) && s.daybook.length > KEEP.daybook) s.daybook = s.daybook.slice(-KEEP.daybook);
+  delete s.instructions; // they go in their own section of the packet
   if (Array.isArray(s.hearsay) && s.hearsay.length > KEEP.hearsay) s.hearsay = s.hearsay.slice(-KEEP.hearsay);
   if (Array.isArray(s.undertakings)) s.undertakings = s.undertakings.map(u => { const { history, ...rest } = u; return rest; }); // the page keeps the stages they went through
   if (Array.isArray(h.dispatches) && h.dispatches.length > KEEP.dispatches) h.dispatches = h.dispatches.slice(-KEEP.dispatches);
@@ -426,8 +433,7 @@ Return ONE JSON object (a fenced json block is fine). The page reads only that o
 - Never change: ${PLAYER_KEYS.join(', ')}.
 - Player-facing text holds only what the character could know. Keep ids stable.
 - Optional, give only when they apply: gazette (the Diarium issues of this turn), movements (forces on the move as the player has heard of them, drawn on their map: {"id","label","side":"habsburg"|"prussia"|"bavaria"|"saxony"|"france","status":"confirmed"|"reported"|"rumour","reported":"YYYY-MM-DD","source","claim","pts":[[lat,lon],[lat,lon],…]} from where they were to where they are said to go; change one by id as news comes), weather (only the days it changes; each day keeps the last weather given), overheard, whereabouts, decision (only a real fork), scene (when the player meets someone in person — an audience, a Council they sit in, a visitor at their bed — the meeting that mattered most this turn: {"id","title","date":"YYYY-MM-DD" (the day of the meeting),"setting","participants":[{"id","name"}],"lines":[{"who","text"}]; the player’s part goes as narration (who "Narration") or in the words of their orders (who "player"),"commitments":["…"],"status":"closed"}).
-- Your staff explain (see the contract, "Your staff explain"): staffBriefing {"dated" (the day it reaches the player; default the last day of the turn),"changed","stakes","attention","letters":[ids of this turn's letters that have reached the player by then],"places":[location ids],"guidance"}; any letter, staffBriefing and each decision option may carry "guidance" {${GUIDANCE_KEYS.map(k => '"' + k + '"').join(',')}} (each a sentence or two, only what the writer knows); a letter that reports what came of the player's earlier decision carries "follows": [ids from "The player’s earlier decisions"]; decision options may add "ifWait" (what happens if nothing is decided) beside reasoning, needs and risks, and decision.debate [{"who","text"}] gives two to four lines where advisers truly disagree.
-- Your desk (see the contract, "Your desk"): undertakings [{"id","title","stage" (where it stands now, in a sentence),"waiting" (what it waits on),"obstacle" (who or what is in the way),"status":${UNDERTAKING_STATUS.map(k => '"' + k + '"').join('|')},"updated" (the day this news reaches the player),"due","re":[order refs]}] (by id); hearsay [{"said","source" (who told the player),"teller" (cast id, if one),"date","place"}] (only grows); calendar [{"id","date" (YYYY-MM-DD or YYYY-MM),"what","certainty":${CERTAINTY.map(k => '"' + k + '"').join('|')},"source","noted" (the day the player learns it)}] (by id); audiences [{"id","with":[cast ids],"date","place","title","purpose","status":${AUDIENCE_STATUS.map(k => '"' + k + '"').join('|')}}] (by id). A scene that is a prepared audience carries "re" with the reference of the player's preparation.
+- Shapes for these are in the contract ("Your staff explain", "Your desk", "Instructions to the secretary") and the skeleton: staffBriefing; "guidance" on a letter, staffBriefing or decision option; "follows" on a letter; option "ifWait" and decision.debate; undertakings, calendar, audiences (by id); hearsay, daybook (only grow); "handled" on a letter; a scene answering a prepared audience carries "re".
 - Illness: player.health says how the player is at the end of the turn. player.abed {"from","to"} gives the days the player keeps to their bed (leave out "to" if they are still abed); without it, "ill" or "gravely ill" keeps them abed the whole turn. While abed, those whereabouts put with them that day come to their bedside, with their household; anyone else is reached by a note. They cannot inspect, ride out or attend the Conference.
 - A journey: give player.locationId where the player ends the turn, and player.route [{"date","place"}] (place a location id or "road") if they stop anywhere or arrive on a day other than the distance implies. Without a route they are on the road from the first day of the turn and arrives after the usual days for the distance.
 - A battle account (a report with "battle": true) needs battleDemo for that battle. The same battle (same id): move or remove its units by id. A new battle takes a new id and replaces the whole field: give id, title, place, center [lat, lon], date, ground and every unit of both sides ({"id","side":"A" the player’s | "B" the enemy,"type":${Object.keys(TROOPS).map(k => '"' + k + '"').join('|')},"name","e","n","facing"}, metres east and north of center, within ±${FIELD.w / 2} and ±${FIELD.h / 2}; facing in degrees, 0 = north). For a battle outside this campaign, write an ordinary letter instead.
@@ -440,6 +446,7 @@ Skeleton (fill it from the story; leave out what did not change):
  "player":{"locationId":"…","mode":"court","health":"well"},
  "reports":[{"id":"t${n}-1","from_id":"…","place":"…","dated":"…","arrives":"…","via":"courier","source":"…","category":"…","title":"…","text":"…","claim":"invention","re":["T${t0}-1"],"guidance":{"known":"…","suspected":"…","stakes":"…"}}],
  "undertakings":[{"id":"…","title":"…","stage":"…","waiting":"…","obstacle":"…","status":"in hand","updated":"YYYY-MM-DD","re":["T${t0}-1"]}],
+ "daybook":[{"date":"YYYY-MM-DD","entry":"…","letters":["t${n}-2"]}],
  "hearsay":[{"said":"…","source":"…","teller":"…","date":"YYYY-MM-DD","place":"…"}],
  "calendar":[{"id":"…","date":"YYYY-MM-DD","what":"…","certainty":"expected","source":"…","noted":"YYYY-MM-DD"}],
  "audiences":[{"id":"…","with":["…"],"date":"YYYY-MM-DD","place":"…","title":"…","purpose":"…","status":"expected"}],
@@ -473,7 +480,7 @@ export function rulesText({ contract, almanac }) {
   return '# CABINET OF WAR — the rules (version ' + v + ')\n\nThe standing rules of the campaign: how to adjudicate, how the world reaches the player, the reply format, and the almanac\'s systems and stakes. Each turn\'s packet carries the rest (the state, the player’s orders, the fortune, the threads and almanac entries in play) and names the rules version it expects.\n\n'
     + contract.trim() + '\n\n' + replyFormat(null) + '\n\n## Almanac: systems and stakes\n' + systemsText(almanac) + '\n';
 }
-export function buildPacket({ state, contract, orders, almanac, fortune, wake, trust, choices, endRequested, purse, waiting, rulesInProject, earlier }) {
+export function buildPacket({ state, contract, orders, almanac, fortune, wake, trust, choices, endRequested, purse, waiting, rulesInProject, earlier, courier, dispatch }) {
   const continuity = exchangeRecord(state), outstanding = pendingOrders({ ...state, exchange: continuity }, [{ turn: state.turn, orders: waiting || [] }]);
   const th = (state.hidden || {}).threads || [], date = state.date, act = activePlots(almanac || {}, th, date), byId = new Map(th.map(t => [t.id, t]));
   const shown = th.filter(t => !['resolved', 'abandoned'].includes(t.status) && (liveThread(t) || dueThread(t, date))), rest = th.length - shown.length;
@@ -481,12 +488,14 @@ export function buildPacket({ state, contract, orders, almanac, fortune, wake, t
     + (rest ? (shown.length ? '\n' : '') + '(' + rest + ' other threads are dormant and not due for a check within 30 days, or closed; the page keeps them. Wake one by giving its id with a new status; use these ids rather than starting a new thread on the same matter: ' + th.filter(t => !shown.includes(t)).map(t => t.id).join(', ') + '.)' : '');
   const soon = addDays(date, 120), cal = ((almanac || {}).calendar || []).filter(c => c.d >= date && c.d <= soon).map(c => '- ' + c.d + ': ' + c.e + ' (' + c.c + ')').join('\n');
   const tr = Object.entries(trust || {}), trusts = tr.filter(([, v]) => v === 'trust').map(([k]) => k), doubts = tr.filter(([, v]) => v === 'doubt').map(([k]) => k);
-  const P = !!rulesInProject, rv = P ? rulesVersion({ contract, almanac }) : '';
+  const R = courier === 'repo', P = !!rulesInProject || R, rv = P ? rulesVersion({ contract, almanac }) : '', ins = state.instructions;
   return '# CABINET OF WAR — turn ' + state.turn + ' → ' + (state.turn + 1) + ' · ' + longDate(state.date) + '\n\nAct as a historian and impartial adjudicator. '
-    + (P ? 'The rules are in this project\'s knowledge: the file ' + rulesFileName(rv) + ' (rules version ' + rv + '). Follow them. If the project has no rules file of version ' + rv + ', do not adjudicate: tell the player to download the current rules (Notebook → The record) and add them to the project. This packet carries the rest: the current state, the player’s orders, this turn\'s fortune and the parts of the almanac now in play.'
+    + (R ? 'The rules are in the repository: run `node tools/turn-tool.mjs rules` and follow what it prints (rules version ' + rv + '). If it prints another version, do not adjudicate: tell the player to refresh the game page and seal again. This packet carries the rest: the current state, the player’s orders, this turn\'s fortune and the parts of the almanac now in play.'
+      : P ? 'The rules are in this project\'s knowledge: the file ' + rulesFileName(rv) + ' (rules version ' + rv + '). Follow them. If the project has no rules file of version ' + rv + ', do not adjudicate: tell the player to download the current rules (Notebook → The record) and add them to the project. This packet carries the rest: the current state, the player’s orders, this turn\'s fortune and the parts of the almanac now in play.'
       : 'This packet is self-contained: the current state, the player’s orders, this turn\'s fortune and the parts of the almanac now in play.\n\n' + contract.trim())
     + '\n\n## When to wake the player\n' + (wake || 'When there is news the player must decide on.')
     + (endRequested ? '\n\n## The player ends their service\nThe player asks to end their service here. End the campaign this turn: set "ended" and write the epilogue.' : '')
+    + (ins && ins.text && ins.text.trim() ? '\n\n## The player’s instructions to their secretary (written ' + (ins.written || '') + (ins.revised && ins.revised !== ins.written ? ', last revised ' + ins.revised : '') + ')\nTheir standing routine, in their own words. Live every day of this turn by it, as the contract’s "Instructions to the secretary" says; it overrides hidden.standingOrders where they differ.\n' + ins.text.trim() : '')
     + '\n\n' + orders.trim()
     + '\n\n## The player’s judgement of sources\nTrusts: ' + (trusts.join('; ') || '(none marked)') + '\nDoubts: ' + (doubts.join('; ') || '(none marked)')
     + (outstanding.length ? '\n\n## Earlier orders with no answer yet\nThese remain pending regardless of age. A letter that answers one carries its reference in "re". An acknowledgement is not proof of execution: record any continuing obligation in hidden.standingOrders and hidden.chronicle.\n' + outstanding.map(o => '- [' + o.ref + '] ' + (o.line || o.text || '')).join('\n') : '')
@@ -501,12 +510,35 @@ export function buildPacket({ state, contract, orders, almanac, fortune, wake, t
     + (cal ? '\n\n## Almanac: calendar anchors in the next four months (reference, not script)\n' + cal : '')
     + '\n\n## Threads (hidden.threads)\n' + (index || '(none)')
     + '\n\n## Almanac entries for threads now in play\nProvisional causal models, not facts or schedules (sources and verification notes are in the almanac file).\n' + (act.length ? JSON.stringify(act.map(p => compactPlot(p, !byId.has(p.id) || liveThread(byId.get(p.id))))) : '(none)')
-    + '\n\n' + (P ? '## Reply header\nThe reply format is in the rules. This turn\'s reply begins: {"kind": "turn", "schemaVersion": 3, "campaignId": "' + state.campaignId + '", "turn": ' + (state.turn + 1) + ', "parentTurn": ' + state.turn + ', "seal": "' + sealOf(state) + '", "changes": { … }}; its first letter is "t' + (state.turn + 1) + '-1", and its answers cite this turn\'s orders as "T' + state.turn + '-1" and so on.' : replyFormat(state))
+    + '\n\n' + (P ? '## Reply header\nThe reply format is in the rules. This turn\'s reply begins: {"kind": "turn", "schemaVersion": 3, "campaignId": "' + state.campaignId + '", "turn": ' + (state.turn + 1) + ', "parentTurn": ' + state.turn + ', "seal": "' + sealOf(state) + '"' + (dispatch ? ', "dispatch": "' + dispatch + '"' : '') + ', "changes": { … }}; its first letter is "t' + (state.turn + 1) + '-1", and its answers cite this turn\'s orders as "T' + state.turn + '-1" and so on.' : replyFormat(state))
     + '\n\n## People, places and fortresses\nThe state\'s "cast", "locations" and "fortresses", one record a line under its field names (true shows as the word). Change them by id in "changes" as JSON records, as the reply format says.\n'
     + Object.entries(TABLES).map(([k, keys]) => '### ' + k + '\n' + tableOf(state[k], keys)).join('\n')
     + '\n\n## Current state (JSON)\nNote: the hidden field is not secret from anyone who can read this packet. cast, locations and fortresses are in the tables above.\n' + JSON.stringify(withoutTables(liveState(state))) + '\n';
 }
 const withoutTables = s => { for (const k of Object.keys(TABLES)) delete s[k]; return s; };
+// a cell of the packet's pipe tables back into a value
+const cellValue = (v, key) => { if (v === '') return undefined; if (v === 'true') return true;
+  if (/^[[{]/.test(v)) { try { return JSON.parse(v); } catch { } }
+  if (['lat', 'lon'].includes(key) && isFinite(+v)) return +v; return v; };
+function tables(text) {
+  const out = {}, part = text.split('## People, places and fortresses')[1] || '';
+  for (const m of part.matchAll(/### (\w+)\n([^\n]*)\n([\s\S]*?)(?=\n### |\n\n## |$)/g)) {
+    const keys = m[2].split(' | ');
+    out[m[1]] = m[3].split('\n').filter(Boolean).map(line => { const o = {}; line.split(' | ').forEach((v, i) => { const x = cellValue(v.trim(), keys[i]); if (x !== undefined && keys[i]) o[keys[i]] = x; }); return o; });
+  }
+  return out;
+}
+// a packet read back: the state it carried and the context of its checks (a coding agent checks its reply with it before pushing)
+export function prevFromPacket(text) {
+  const after = text.split('## Current state (JSON)')[1]; if (!after) throw Error('The packet has no "## Current state (JSON)" section. Save the whole packet, from its first line to its last.');
+  const line = after.split('\n').find(l => l.trim().startsWith('{')); if (!line) throw Error('The packet\'s state is missing.');
+  const prev = { ...JSON.parse(line), ...tables(text) }, bd = prev.battleDemo;
+  // the table battle's units go compactly ("id, side, type, e, n, facing"); the check wants them as records
+  if (bd && Array.isArray(bd.units) && Array.isArray(bd.units[0])) bd.units = bd.units.map(([id, side, type, e, n, facing]) => ({ id, side, type, e, n, facing }));
+  const m = /<!-- check: (\{.*\}) -->/.exec(text), ctx = m ? JSON.parse(m[1]) : {};
+  return { prev, ctx };
+}
+
 export function correctionRequest(issues, turn) {
   return 'Your reply for turn ' + turn + ' contradicts the established campaign:\n' + issues.map(i => '- ' + (i.text || i)).join('\n') + '\nPlease send the corrected turn reply again — the same format (kind "turn", schemaVersion 3, only what changed this turn), complete for this turn, with these points fixed. Keep hidden.canon append-only.';
 }

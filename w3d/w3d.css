@@ -522,3 +522,12 @@ body:not(.w3d-sick) .w3d-bedside{display:none}
 .sh-brief label{display:grid;gap:4px;font:14px var(--display);font-variant-caps:all-small-caps;letter-spacing:.06em;color:var(--bone-3)}
 .sh-brief textarea,.sh-brief select{font-variant-caps:normal;letter-spacing:0}
 @media(max-width:640px){.sh-cal li:not(.sh-empty){grid-template-columns:72px 1fr}.sh-cal li button{grid-column:2;justify-self:start}.sh-hs{grid-template-columns:1fr}.sh-hs-t{grid-column:1;grid-row:auto}}
+
+/* instructions to your secretary, and what was done in your name */
+.sh-ins-sum{font-size:14px;margin:4px 0 6px}
+#w3d-shell .sh-ins-b{background:none;border:1px solid var(--edge-2);color:var(--bone);border-radius:8px;padding:6px 12px;cursor:pointer;font:14px var(--read);margin-bottom:12px}
+#w3d-shell .sh-ins-b:hover{background:var(--glass-3)}
+.sh-db{display:grid;grid-template-columns:92px 1fr;gap:2px 12px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--edge);font-size:15px;line-height:1.5;color:var(--bone)}
+.sh-db .sh-o-lnk{grid-column:2;justify-self:start}
+.sh-lt-handled{border-left-color:#7d9a76;background:rgba(125,154,118,.08)}
+@media(max-width:640px){.sh-db{grid-template-columns:72px 1fr}}

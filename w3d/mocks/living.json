@@ -1,5 +1,5 @@
 {
- "note": "Test reply for the living world: weather by day, sights, whereabouts, an invented person, an urgent letter with two branches, an enemy commander and thread updates. Illustrative. Also: the Diarium, winter quarters and the steward on money. Also: an undertaking, hearsay, the calendar and an audience ahead.",
+ "note": "Test reply for the living world: weather by day, sights, whereabouts, an invented person, an urgent letter with two branches, an enemy commander and thread updates. Illustrative. Also: the Diarium, winter quarters and the steward on money. Also: an undertaking, hearsay, the calendar and an audience ahead. Also: the secretary’s day-book and a letter handled in the player’s name.",
  "changes": {
   "date": "1740-10-26",
   "title": "A crowded week",
@@ -148,7 +148,8 @@
      "known": "A hussar patrol saw no Prussian troops near the town.",
      "suspected": "Mud will slow any march from Brandenburg as much as ours.",
      "explain": "A patrol reports what it rode past; it does not see beyond the next wood."
-    }
+    },
+    "handled": "acknowledged; a copy sent to the Hofkriegsrat"
    }
   ],
   "battleDemo": {
@@ -292,6 +293,15 @@
     "purpose": "Count Starhemberg will see you about the chests.",
     "status": "expected",
     "noted": "1740-10-24"
+   }
+  ],
+  "daybook": [
+   {
+    "date": "1740-10-25",
+    "entry": "Acknowledged FML Wallis’s report from Glogau and sent a copy to the Hofkriegsrat.",
+    "letters": [
+     "t1-3"
+    ]
    }
   ]
  }

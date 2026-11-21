@@ -189,3 +189,13 @@ Decisions (Nathan, 4 Nov): library + live fallback; replay accounts; atlas march
 - [x] Audiences: reply `audiences` by id; prepare one (press / concede / will not say / manner) or ask for one (through the chamberlain for a ruler); the preparation is a dispatch order; a scene with `re` answers it
 - [x] Contract "Your desk" (staff section tightened to keep the packet under 60 KB: 58.8 KB now), reply format, living mock, 5 new tests (69 pass)
 - [x] Browser (fresh profile, port 8812, muted, autosave off): notebook on 24 Oct shows the audience, the dossier, Kessler's talk; Martinmas appears on 26 Oct (noted that day), not before; preparation and the Queen request land in the dispatch as [T1-1], [T1-2]; turn 2: the old stage shows on 26 Oct, the stalled stage with earlier stages on 29 Oct; the meeting answers T1-1 ("1 of 2 orders answered"); the reckoned answer from Wallis shows; phone layout; no console errors
+
+# The courier through the repository; instructions to the secretary
+- [x] Sealing (repository mode, the default) copies an errand for Claude Code or Codex: pull, save the packet, read the rules (`node tools/turn-tool.mjs rules`, versioned), write `turns/<campaignId>/turn-NNN.json` with the dispatch id, check it (`node tools/turn-tool.mjs check`), push only that file, say nothing of outcomes
+- [x] The page polls for the next turn's file after a seal (30 s, on load, on returning to the tab); clean → applied at once; otherwise the review; a reply to an earlier sealing of the turn is refused
+- [x] Notebook → The record: how the courier rides (repository / by hand), look for the courier now
+- [x] Instructions to the secretary: written on the dispatch's side or in the Notebook; the player's own (reply cannot change them); in every packet; the secretary's day-book ("Done in your name"); letters handled under them marked and kept out of matters in hand
+- [x] Wake: "Only for what my instructions to my secretary do not cover", "Not for a month…"; contract's Pace allows a month when asked
+- [x] Storage key clash found in the browser check: the 3D courier ride already used `w3d-courier`; the setting is `w3d-courier-route`
+- [x] Tests 69 → 74 (day-book and handled, instructions stay the player's, courier packet, packet read back, the tool on a good and a stale reply); packet 58.5 KB (reply-format lines now point to the contract)
+- [x] Browser: instructions saved and in the errand; turn file "pushed" → applied within one poll; handled letter and day-book; stale dispatch refused; no console errors

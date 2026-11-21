@@ -3,7 +3,7 @@
 import { buildPacket, rulesText, rulesVersion, rulesFileName, parseReply, checkReply, mergeTurn, applyBranch, rollFortune, seedThreads, correctionRequest, resendRequest, TEMPERS, fingerprint, sealOf, nextLink, volumeDue, sceneLines, pendingOrders, exchangeRecord } from './turn.js';
 import { checkContinuity } from './continuity.js';
 
-const P = 'cabinet-of-war:', HIGH_KEY = P + 'w3d-highwater', BOOK_KEY = P + 'w3d-book', CHOICE_KEY = P + 'w3d-choices', SENT_KEY = P + 'w3d-sent', AUTO_KEY = P + 'w3d-autosave', RULES_KEY = P + 'w3d-rules-in-project';
+const P = 'cabinet-of-war:', HIGH_KEY = P + 'w3d-highwater', BOOK_KEY = P + 'w3d-book', CHOICE_KEY = P + 'w3d-choices', SENT_KEY = P + 'w3d-sent', AUTO_KEY = P + 'w3d-autosave', RULES_KEY = P + 'w3d-rules-in-project', COURIER_KEY = P + 'w3d-courier-route', SEALED_KEY = P + 'w3d-sealed';
 const $ = id => document.getElementById(id);
 const store = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || 'null') ?? d; } catch { return d; } };
 const keep = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
@@ -15,7 +15,8 @@ export async function initCampaign(opts) {
   const [c, a] = await Promise.all([fetch('w3d/contract.md', { cache: 'no-store' }).then(r => r.text()), fetch('w3d/almanac.json', { cache: 'no-store' }).then(r => r.json())]);
   contract = c; almanac = a;
   migrate(); guardStorage(); installReview(); installAccept(); installRecord(); installTemper();
-  window.__campaign = { packet, almanac: () => almanac, aftermathOfTable, seal: () => sealOf(state) };
+  window.__campaign = { packet, almanac: () => almanac, aftermathOfTable, seal: () => sealOf(state), courier: courierMode, lookForCourier, turnPath };
+  installCourier();
 }
 
 /* ---------- older saves: the almanac leaves the state; threads, trust and the chronicle arrive ---------- */
@@ -59,9 +60,54 @@ export function earlierDecisions() {
 }
 export const fortune = () => rollFortune(state.campaignId, state.turn, 8, (state.record || {}).salt || '');
 async function packet(orders) {
-  const w = draft.w3d || {};
+  const w = draft.w3d || {}, dispatch = fingerprint(state.campaignId + ':' + state.turn + ':' + sealOf(state) + ':' + orders).slice(0, 10), repo = courierMode() === 'repo';
+  keep(SEALED_KEY, { turn: state.turn, dispatch, at: new Date().toISOString() }); // what the next turn must answer
+  if (repo) setTimeout(lookForCourier, 30000);
   const packetState = { ...state, exchange: exchangeRecord(state, store(SENT_KEY, []), Object.values(store(P + 'w3d-archive', {}))) };
-  return buildPacket({ state: packetState, contract, orders, almanac, fortune: fortune(), wake: w.wake, trust: state.trust, choices: choicesNow(), waiting: waiting(), endRequested: !!w.end, rulesInProject: store(RULES_KEY, false), earlier: earlierDecisions(), purse: (w.items || []).filter(i => i.purse).map(i => i.text) });
+  const pk = buildPacket({ state: packetState, contract, orders, almanac, fortune: fortune(), wake: w.wake, trust: state.trust, choices: choicesNow(), waiting: waiting(), endRequested: !!w.end, rulesInProject: store(RULES_KEY, false), earlier: earlierDecisions(), purse: (w.items || []).filter(i => i.purse).map(i => i.text), courier: repo ? 'repo' : null, dispatch });
+  if (!repo) return pk;
+  const check = { orderRefs: sentOrders(), followIds: earlierDecisions().map(d => d.id), fortune: fortune(), seal: sealOf(state), volumeDue: volumeDue(state), dispatch };
+  return errand(dispatch) + '\n\n=== PACKET ===\n' + pk + '\n<!-- check: ' + JSON.stringify(check) + ' -->\n';
+}
+
+/* ---------- the courier: a coding agent (Claude Code, Codex) adjudicates in the repository and pushes the turn; the page fetches it ---------- */
+const courierMode = () => { const m = store(COURIER_KEY, 'repo'); return m === 'hand' ? 'hand' : 'repo'; };
+const safeId = id => String(id).toLowerCase().replace(/[^a-z0-9_-]+/g, '-');
+export const turnPath = (turn = state.turn + 1) => 'turns/' + safeId(state.campaignId) + '/turn-' + String(turn).padStart(3, '0') + '.json';
+// the repository the page is served from (owner.github.io/name), so the errand names the right one
+function repoName() { const h = location.hostname.match(/^([^.]+)\.github\.io$/), first = location.pathname.split('/').filter(Boolean)[0]; return h && first ? h[1] + '/' + first : 'nathanpljohnson/cabinet-of-war'; }
+function errand(dispatch) {
+  const n = state.turn + 1, path = turnPath(), v = rulesVersion({ contract, almanac });
+  return '# Cabinet of War — the courier’s errand: turn ' + state.turn + ' → ' + n + '\n\n'
+    + 'You are the adjudicator for one turn of Cabinet of War, a historical strategy game played in the browser. You are working in a clone of the GitHub repository ' + repoName() + '; GitHub Pages serves its main branch, and the game fetches the turn you write from there. Any coding agent with git (Claude Code, Codex) can do this.\n\n'
+    + 'Do this, in order:\n'
+    + '1. Check out main and pull the latest.\n'
+    + '2. Save everything after the line "=== PACKET ===", to the end, exactly as it is, to turns/.work/packet-' + n + '.md (git-ignored) or a file outside the repository.\n'
+    + '3. Read the rules: `node tools/turn-tool.mjs rules`. Its first line must name rules version ' + v + '; if it does not, stop and tell the player to refresh the game page and seal again.\n'
+    + '4. Adjudicate the turn as the rules and the packet say. Write your reply, one JSON object and nothing else, to ' + path + ' (create the folder if needed). It carries "dispatch": "' + dispatch + '".\n'
+    + '5. Check it: `node tools/turn-tool.mjs check <your packet file> ' + path + '`. Correct every ERROR, WARNING and FIX ON ARRIVAL in the file and check again until it prints OK.\n'
+    + '6. Commit only that file, with the message "Turn ' + n + '", and push to main. If the push is refused because main moved, pull with rebase and push again. Change nothing else in the repository.\n'
+    + '7. Tell the player only that the courier has ridden: the turn is pushed and reaches the game in about a minute. Say nothing of what happens in it, here or in your working notes where the player can read them: the letters will tell them.';
+}
+let looking = false;
+// the courier comes back by the repository: fetch the next turn's file; apply it at once if it passes every check, else show the review
+export async function lookForCourier(manual) {
+  if (looking || (!manual && courierMode() !== 'repo')) return; looking = true;
+  try {
+    if ($('confirm') && $('confirm').open) return;
+    let res = null; try { res = await fetch(turnPath() + '?t=' + Date.now(), { cache: 'no-store' }); } catch { }
+    if (!res || !res.ok) { if (manual) toast('No courier yet: ' + turnPath() + ' is not in the repository. A push takes about a minute to reach the game.'); return; }
+    const text = await res.text(), key = P + 'w3d-courier-seen:' + fingerprint(text);
+    if (!manual) { try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, '1'); } catch { } }
+    const out = window.reviewWorld(text);
+    if (out && out.clean) { $('accept').click(); toast('The courier is in. Turn ' + state.turn + ' — ' + (state.title || '') + '.'); }
+  } finally { looking = false; }
+}
+function installCourier() {
+  const awaiting = () => { const s = store(SEALED_KEY, null); return courierMode() === 'repo' && s && s.turn === state.turn; };
+  if (awaiting()) setTimeout(lookForCourier, 1500);
+  setInterval(() => { if (awaiting() && document.visibilityState === 'visible') lookForCourier(); }, 30000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && awaiting()) lookForCourier(); });
 }
 
 /* ---------- reading the reply ---------- */
@@ -76,14 +122,16 @@ function installReview() {
     if (reply.schemaVersion === 2 && reply.kind !== 'turn') { // a whole state (older replies, imported state files)
       if (state.record.ironman) return show({ title: 'The record is sealed', errors: ['A whole saved state cannot be loaded into a sealed campaign. Paste Claude’s reply to the latest packet instead.'] });
       $('confirm').querySelector('h2').textContent = 'Accept this update?'; $('accept').hidden = false; pending = { payload: reply }; legacy(text); return; }
-    const r = checkReply(state, reply, { orderRefs: sentOrders(), followIds: earlierDecisions().map(d => d.id), fortune: fortune(), seal: sealOf(state), volumeDue: volumeDue(state) });
+    const r = checkReply(state, reply, { orderRefs: sentOrders(), followIds: earlierDecisions().map(d => d.id), dispatch: (s => s && s.turn === state.turn ? s.dispatch : null)(store(SEALED_KEY, null)), fortune: fortune(), seal: sealOf(state), volumeDue: volumeDue(state) });
     if (r.errors.length) return show({ title: 'This reply cannot be accepted', errors: r.errors, request: correctionRequest(r.errors, state.turn + 1) });
     const { next, notes } = mergeTurn(state, reply, { sent: store(SENT_KEY, []), reports: Object.values(store(P + 'w3d-archive', {})) });
     try { validateState(next); } catch (e) { return show({ title: 'This reply cannot be accepted', errors: [e.message], request: correctionRequest([e.message], state.turn + 1) }); }
     const cont = checkContinuity(state, next), hard = cont.filter(i => i.level === 'error');
     if (fought() && next.battleDemo && !next.battleDemo.aftermath) next.battleDemo.aftermath = aftermathOfTable();
     candidate = next; pending = { payload: reply.changes };
+    const clean = !hard.length && !cont.length && !r.warns.length;
     show({ title: 'Accept this turn?', summary: next, errors: hard.map(i => i.text), warns: [...cont.filter(i => i.level !== 'error').map(i => i.text), ...r.warns], fixes: [...r.fixes, ...notes], request: cont.length || r.warns.length ? correctionRequest([...cont, ...r.warns], state.turn + 1) : null, accept: true });
+    return { accept: true, clean };
   };
 }
 // one dialog for every outcome: what the turn is, what was corrected, what may be wrong, and a way to ask Claude again
@@ -201,6 +249,10 @@ function installRecord() {
       + '<p class="hint">This browser holds about ' + kb + ' KB of the campaign (most browsers allow about 5,000 KB).</p>'
       + '<div class="eyebrow" style="margin-top:14px">The sealed record</div><p class="hint">Each accepted turn is linked to the one before; the packet carries the latest seal, and a reply must answer it. Current seal: <code>' + esc(sealOf(state)) + '</code> · ' + state.record.chain.length + ' turn' + (state.record.chain.length === 1 ? '' : 's') + ' sealed.</p>'
       + (state.record.ironman ? '<p class="hint"><b>Ironman.</b> This campaign cannot go back: older campaign files, altered files and whole saved states are refused.</p>' : '<div class="row"><button class="btn quiet" data-a="ironman">Seal the record — no going back</button></div>')
+      + '<div class="eyebrow" style="margin-top:14px">How the courier rides</div>'
+      + '<label class="cw-auto"><input type="radio" name="cw-courier" data-a="courier" value="repo"' + (courierMode() === 'repo' ? ' checked' : '') + '> Through the repository: sealing copies an errand for a coding agent (Claude Code or Codex) working in this game\u2019s GitHub repository. It writes the turn, checks it and pushes it; the game picks it up about a minute later, and applies it at once if it passes every check.</label>'
+      + '<label class="cw-auto"><input type="radio" name="cw-courier" data-a="courier" value="hand"' + (courierMode() !== 'repo' ? ' checked' : '') + '> By hand: sealing copies the packet for a chat; paste Claude\u2019s reply on the order sheet when it comes.</label>'
+      + '<div class="row"><button class="btn quiet" data-a="look">Look for the courier now</button></div><p class="hint">The next turn is expected at <code>' + esc(turnPath()) + '</code>.</p>'
       + '<div class="eyebrow" style="margin-top:14px">A fresh chat each turn</div><p class="hint">Every packet stands alone: the state, your orders and the parts of the almanac in play. Start a new chat for each turn; nothing is lost, and a long chat only fills Claude\u2019s memory with old turns.</p>'
       + '<div class="eyebrow" style="margin-top:14px">For a Claude Project</div><p class="hint">The rules (how to judge, how the world reaches you, the reply format, the almanac\u2019s systems) do not change from turn to turn. Put them in a Claude Project once and each packet leaves them out: it is about half as long. When the game\u2019s rules change, the packet names a new version and Claude will ask you for the new file.</p>'
       + '<label class="cw-auto"><input type="checkbox" data-a="rulesmode"' + (store(RULES_KEY, false) ? ' checked' : '') + '> My Claude Project holds the rules (version ' + esc(rulesVersion({ contract, almanac })) + ')</label>'
@@ -208,8 +260,10 @@ function installRecord() {
     const f = document.createElement('input'); f.type = 'file'; f.accept = '.json,application/json'; f.hidden = true; box.append(f);
     f.onchange = async () => { try { if (f.files[0]) await loadCampaignFile(f.files[0]); } catch (e) { toast(e.message); } f.value = ''; };
     box.onclick = e => { const a = e.target.dataset && e.target.dataset.a; if (a === 'save') saveCampaignFile(); if (a === 'load') f.click(); if (a === 'almanac') dl('cabinet-of-war-almanac.json', JSON.stringify(almanac, null, 1), 'application/json'); if (a === 'rules') dl(rulesFileName(rulesVersion({ contract, almanac })), rulesText({ contract, almanac }), 'text/markdown'); if (a === 'contract') dl('cabinet-of-war-contract.md', contract, 'text/markdown');
+      if (a === 'look') lookForCourier(true);
       if (a === 'ironman') { const b = e.target; if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Click again: from now on this campaign can never load an older turn'; return; } state.record.ironman = true; persistState(); markHigh(); toast('The record is sealed. What is done is done.'); window.renderRecord(); } };
-    box.onchange = e => { if (e.target.dataset.a === 'auto') keep(AUTO_KEY, e.target.checked); if (e.target.dataset.a === 'rulesmode') { keep(RULES_KEY, e.target.checked); toast(e.target.checked ? 'Packets now leave out the rules. Add the rules file to your Claude Project.' : 'Packets carry the rules again.'); } };
+    box.onchange = e => { if (e.target.dataset.a === 'courier') { keep(COURIER_KEY, e.target.value); toast(e.target.value === 'repo' ? 'The courier rides through the repository: seal, paste the errand into Claude Code or Codex, and the turn comes back by itself.' : 'The courier rides by hand: paste the packet into a chat, and its reply on the order sheet.'); }
+      if (e.target.dataset.a === 'auto') keep(AUTO_KEY, e.target.checked); if (e.target.dataset.a === 'rulesmode') { keep(RULES_KEY, e.target.checked); toast(e.target.checked ? 'Packets now leave out the rules. Add the rules file to your Claude Project.' : 'Packets carry the rules again.'); } };
     p.prepend(box); };
   window.renderRecord();
 }

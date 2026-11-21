@@ -476,3 +476,54 @@ def test_packet_keeps_recent_hearsay_without_stage_history(run):
     x = run["desk"]
     assert x["live"] == {"hearsay": 10, "history": False}
     assert x["format"] and x["contract"]
+
+
+def test_secretary_daybook_and_handled_letters(run):
+    x = run["courier"]
+    assert x["living"]["fixes"] == [] and x["living"]["warns"] == []
+    assert x["living"]["daybook"][0]["letters"] == ["t1-3"] and x["living"]["handled"].startswith("acknowledged")
+    assert [e["entry"] for e in x["daybook"]] == ["Answered A."] and x["daybook"][0]["date"] == "1740-10-25" and x["daybook"][0]["letters"] == ["a"]
+    assert x["handled"] is False
+    assert any("instructions" in f for f in x["badFixes"])  # a reply cannot rewrite the player's instructions
+
+
+def test_instructions_go_in_the_packet_and_stay_the_players(run):
+    x = run["courier"]
+    assert x["packet"]["ins"] and x["live"] is False
+    assert x["kept"]["text"] == "Acknowledge routine returns. Refuse loans."
+
+
+def test_courier_packet_points_to_the_repository(run):
+    x = run["courier"]
+    assert x["packet"]["tool"] and x["packet"]["dispatch"] and x["packet"]["noContract"]
+    assert x["dispatch"]["same"] == [] and any("earlier dispatch" in e for e in x["dispatch"]["other"])
+
+
+def test_packet_reads_back_for_the_agents_check(run):
+    b = run["courier"]["back"]
+    assert b["cast"] == b["castWas"] and isinstance(b["lat"], float) and b["locs"] > 5
+    assert b["ctx"]["dispatch"] == "abc123" and b["date"] == "1740-10-21"
+    assert b["check"] == []
+
+
+def test_turn_tool_checks_a_reply_file(tmp_path):
+    import json as _json
+    rules = subprocess.run(["node", str(ROOT / "tools" / "turn-tool.mjs"), "rules"], capture_output=True, text=True, check=True).stdout
+    assert rules.startswith("# CABINET OF WAR — the rules (version ")
+    pk = subprocess.run(["node", "-e", """
+import('./w3d/turn.js').then(async T => { const fs = await import('node:fs');
+  const html = fs.readFileSync('cabinet-of-war.html', 'utf8'), m = html.match(/id="initial-state">([\\s\\S]*?)<\\/script>/);
+  const st = JSON.parse(m[1].replace(/\\\\u003c/g, '<')), contract = fs.readFileSync('w3d/contract.md', 'utf8'), almanac = JSON.parse(fs.readFileSync('w3d/almanac.json', 'utf8'));
+  const mk = JSON.parse(fs.readFileSync('w3d/mocks/living.json', 'utf8'));
+  const pk = T.buildPacket({ state: st, contract, orders: '## Orders\\nx', almanac, fortune: [], courier: 'repo', dispatch: 'd9' }) + '\\n<!-- check: ' + JSON.stringify({ seal: T.sealOf(st), dispatch: 'd9' }) + ' -->\\n';
+  process.stdout.write(JSON.stringify({ pk, reply: { kind: 'turn', schemaVersion: 3, campaignId: st.campaignId, turn: 1, parentTurn: 0, seal: T.sealOf(st), dispatch: 'd9', changes: mk.changes } }));
+});"""], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    d = _json.loads(pk)
+    (tmp_path / "packet.md").write_text(d["pk"])
+    (tmp_path / "good.json").write_text(_json.dumps(d["reply"]))
+    d["reply"]["dispatch"] = "old"
+    (tmp_path / "stale.json").write_text(_json.dumps(d["reply"]))
+    tool = lambda f: subprocess.run(["node", str(ROOT / "tools" / "turn-tool.mjs"), "check", str(tmp_path / "packet.md"), str(tmp_path / f)], capture_output=True, text=True)
+    good, stale = tool("good.json"), tool("stale.json")
+    assert good.returncode == 0 and good.stdout.startswith("OK"), good.stdout
+    assert stale.returncode == 1 and "earlier dispatch" in stale.stdout

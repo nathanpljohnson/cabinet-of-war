@@ -59,6 +59,8 @@ export function createShell({ act, onSeal, clock }) {
         <div class="sh-give"><select id="sh-to"></select><textarea id="sh-give-t" rows="3" placeholder="What is to be done…"></textarea><label class="sh-purse"><input type="checkbox" id="sh-purse"> From my own purse</label><button id="sh-give-go">Add to the dispatch</button></div>
         <div class="eyebrow">Wake me</div>
         <select id="sh-wake" class="sh-wake"></select>
+        <div class="eyebrow">Your instructions to your secretary</div>
+        <p class="sh-hint sh-ins-sum" id="sh-ins-sum"></p><button class="sh-ins-b" id="sh-ins-b">Write them</button>
         <div class="eyebrow">Carried with it</div><ul class="sh-carried" id="sh-carried"></ul>
         <p class="sh-hint" id="sh-days"></p>
       </div>
@@ -188,12 +190,16 @@ export function createShell({ act, onSeal, clock }) {
     for (const c of people.filter(presentHere)) to.append(new Option(c.name + (abedOn(today()) ? ' — at your bedside, in person' : ' — here, in person'), c.id));
     for (const c of people.filter(c => !presentHere(c))) to.append(new Option(c.name + ' — ' + locName(whereNow(c)) + ', by letter ~' + Math.max(1, days(here, whereNow(c))) + ' d', c.id));
     if (was) to.value = was;
+    const ins = state.instructions; $('sh-ins-sum').textContent = ins && ins.text ? '“' + ins.text.trim().slice(0, 140) + (ins.text.trim().length > 140 ? '…' : '') + '” — left ' + short(ins.revised || ins.written) : 'None left yet. Your secretary does only what each dispatch says.';
+    $('sh-ins-b').textContent = ins && ins.text ? 'Revise them' : 'Write them';
+    if (sealBtn) sealBtn.textContent = window.__campaign && window.__campaign.courier && window.__campaign.courier() === 'repo' ? 'Seal the dispatch & copy the courier’s errand' : 'Seal the dispatch & copy it for Claude';
     const wk = $('sh-wake'); if (!wk.options.length) for (const t of WAKE) wk.append(new Option(t, t)); wk.value = w.wake || WAKE[0];
     const far = ['vienna', 'breslau', 'prague'].filter(id => id !== here && hl && loc(id)).map(id => locName(id) + ' ' + days(here, id) + ' d');
     $('sh-days').textContent = far.length ? 'From ' + locName(here) + ' a letter takes about: ' + far.join(' · ') + '.' : '';
   }
   $('sh-own').oninput = e => { W().own = e.target.value; compose(); };
-  const WAKE = ['When there is news I must decide on.', 'When the first answers to these orders arrive.', 'In three days, whatever happens.', 'In a week, unless something urgent comes.', 'Not before a fortnight, unless something urgent comes.'];
+  const WAKE = ['When there is news I must decide on.', 'When the first answers to these orders arrive.', 'In three days, whatever happens.', 'In a week, unless something urgent comes.', 'Not before a fortnight, unless something urgent comes.', 'Only for what my instructions to my secretary do not cover.', 'Not for a month, unless something my instructions do not cover arrives.'];
+  $('sh-ins-b').onclick = () => showInstructions();
   $('sh-wake').onchange = e => { W().wake = e.target.value; saveDraft(); };
   $('sh-give-go').onclick = () => { const t = $('sh-give-t').value.trim(); if (!t) return; orderTo($('sh-to').value, t, null, $('sh-purse').checked); $('sh-give-t').value = ''; $('sh-purse').checked = false; };
 
@@ -242,7 +248,7 @@ export function createShell({ act, onSeal, clock }) {
   function unread() { const r = readSet(); return letters().filter(x => !r.has(rk(x))); }
   function markRead(id) { const r = readSet(); for (const x of letters()) if (id == null || x.id === id) r.add(rk(x)); keep(READ_KEY, [...r]); refresh(); }
   const actedRaw = () => store(ACTED_KEY, {});
-  const acted = () => { const a = actedRaw(), out = {}; for (const r of letters()) if (a[rk(r)]) out[r.id] = a[rk(r)]; return out; };
+  const acted = () => { const a = actedRaw(), out = {}; for (const r of letters()) if (a[rk(r)]) out[r.id] = a[rk(r)]; else if (r.handled) out[r.id] = 'handled'; return out; };
   const setActed = (id, how) => { const a = actedRaw(); if (how) a[rkOf(id)] = how; else delete a[rkOf(id)]; keep(ACTED_KEY, a); };
   // which sealed order a letter answers (the adjudicator marks reports with "re": ["T0-3", …])
   const sentOrders = () => store(SENT_KEY, []).flatMap(s => s.orders.map(o => typeof o === 'string' ? { ref: null, line: o, date: s.date, turn: s.turn } : { ...o, date: s.date, turn: s.turn }));
@@ -288,7 +294,7 @@ export function createShell({ act, onSeal, clock }) {
     for (const x of rs) {
       const li = el('li', (x.id === openLetter ? 'sh-l-on ' : '') + (r.has(rk(x)) ? 'sh-l-read' : 'sh-l-sealed')); li.tabIndex = 0;
       const sl = (personOf(x.from_id).seal || ['#8a2f26', '#f3ead8', (fromName(x)[0] || '·')]);
-      li.innerHTML = '<i class="sh-seal" style="--seal-c:' + sl[0] + ';--seal-t:' + sl[1] + '">' + esc(sl[2]) + '</i><b>' + esc(fromName(x)) + '</b><small>' + (x.kind === 'briefing' ? 'how matters stand · ' + short(x.dated) : x.kind === 'mandate' ? 'your commission' : x.kind === 'advice' ? 'counsel' : x.kind === 'gazette' ? 'the gazette · ' + short(x.dated) : x.kind === 'scene' ? 'in person · ' + esc(locName(x.place)) + ' · ' + short(x.dated) : esc(locName(x.place)) + ' · ' + short(x.dated)) + (a[x.id] ? ' · ' + ({ filed: 'filed', adopted: 'adopted', aside: 'set aside' }[a[x.id]] || 'answered') : '') + '</small><span>' + esc(x.title) + '</span>';
+      li.innerHTML = '<i class="sh-seal" style="--seal-c:' + sl[0] + ';--seal-t:' + sl[1] + '">' + esc(sl[2]) + '</i><b>' + esc(fromName(x)) + '</b><small>' + (x.kind === 'briefing' ? 'how matters stand · ' + short(x.dated) : x.kind === 'mandate' ? 'your commission' : x.kind === 'advice' ? 'counsel' : x.kind === 'gazette' ? 'the gazette · ' + short(x.dated) : x.kind === 'scene' ? 'in person · ' + esc(locName(x.place)) + ' · ' + short(x.dated) : esc(locName(x.place)) + ' · ' + short(x.dated)) + (a[x.id] ? ' · ' + ({ filed: 'filed', adopted: 'adopted', aside: 'set aside', handled: 'handled in your name' }[a[x.id]] || 'answered') : '') + '</small><span>' + esc(x.title) + '</span>';
       li.onclick = li.onkeydown = ev => { if (ev.type === 'keydown' && ev.key !== 'Enter') return; showLetters(x.id); }; ul.append(li);
     }
     if (!rs.length) ul.append(el('li', 'sh-empty', listMode === 'archive' ? 'Nothing kept from earlier turns yet.' : 'No letters have reached you.'));
@@ -310,6 +316,7 @@ export function createShell({ act, onSeal, clock }) {
     box.innerHTML = '<div class="sh-lt-sheet' + (hand && !fair ? ' sh-hand' : '') + (ic ? ' sh-lt-intercepted' : '') + '"' + (hand ? ' style="--hand:' + esc(hand) + '"' : '') + '>'
       + (ic ? '<div class="sh-lt-ic">Intercepted — from ' + esc(ic.from || 'unknown') + ' to ' + esc(ic.to || 'unknown') + '</div>' : '')
       + '<div class="sh-lt-head">' + esc(locName(r.place)) + ', ' + esc(fmtDate(r.dated)) + '</div>'
+      + (r.handled ? '<div class="sh-lt-re sh-lt-handled">Handled in your name, under your instructions: ' + esc(r.handled) + '</div>' : '')
       + follows(r).map(f => '<div class="sh-lt-re sh-lt-follows">This bears on ' + esc(f.label) + (f.date ? ' <small>(' + esc(fmtDate(f.date)) + ')</small>' : '') + '</div>').join('')
       + answers.map(o => { const said = o.text || ''; return '<div class="sh-lt-re">In answer to your order' + (o.date ? ' of ' + esc(fmtDate(o.date)) : '') + (o.to && o.to !== 'staff' && cast(o.to) ? ' to ' + esc(cast(o.to).name) : '') + (said ? ': “' + esc(said.length > 120 ? said.slice(0, 120) + '…' : said) + '”' : '') + '</div>'; }).join('')
       + (r.category ? '<div class="sh-lt-cat">Concerning ' + esc(r.category.replace(/^(The|A|An|Your|His|Her|Our|Home|Money|News)\b/, w => w.toLowerCase())) + '</div>' : '')
@@ -336,7 +343,7 @@ export function createShell({ act, onSeal, clock }) {
       acts.append(ad, aside); box.append(acts); return;
     }
     if (r.urgent && !choiceFor(r.id)) { for (const o of r.urgent.options) { const b = el('button', 'sh-primary', o.label); b.onclick = () => { choose(r, o.id); setActed(r.id, 'ordered'); act('sound:seal'); act('toast:Your answer goes at once.'); showLetters(r.id); }; acts.append(b); } box.append(acts); trustRow(r, box); return; }
-    if (a) acts.append(el('p', 'sh-done', a === 'filed' ? 'Filed without orders.' : 'You have given orders on this letter.'));
+    if (a) acts.append(el('p', 'sh-done', a === 'filed' ? 'Filed without orders.' : a === 'handled' ? 'Your secretary has dealt with it. You may still give orders on it.' : 'You have given orders on this letter.'));
     const give = el('button', 'sh-primary', a === 'ordered' ? 'Give further orders on it' : 'Give orders on this');
     const file = el('button', null, a === 'filed' ? 'Back among matters in hand' : 'File it — no orders');
     const show = el('button', null, 'Follow it on the map');
@@ -564,6 +571,14 @@ export function createShell({ act, onSeal, clock }) {
   const HOW = { appointed: 'appointed', fixed: 'fixed', expected: 'expected', rumoured: 'rumoured', reckoned: 'your staff’s reckoning', postponed: 'postponed' };
   function deskSections(sec) {
     const d = today();
+    { const ins = state.instructions, sc = sec('Your instructions to your secretary', 'Left on your secretary’s desk and followed every day until you revise them. What they do not cover waits for you.');
+      if (ins && ins.text) { sc.append(el('p', 'sh-nb-quote', ins.text)); sc.append(el('p', 'sh-hint', 'Left ' + fmtDate(ins.written) + (ins.revised && ins.revised !== ins.written ? '; revised ' + fmtDate(ins.revised) : '') + '.')); }
+      const b = el('button', 'sh-nb-link', ins && ins.text ? 'Revise them' : 'Write them'); b.onclick = () => showInstructions(); sc.append(b); }
+    { const es = (state.daybook || []).filter(e => e && (!e.date || e.date <= d)).slice().reverse(); if (es.length) {
+      const sc = sec('Done in your name', 'From your secretary’s day-book.'), row = e => { const p = el('div', 'sh-db'); p.innerHTML = '<span class="sh-cal-d">' + esc(short(e.date)) + '</span><span>' + esc(e.entry) + '</span>';
+        for (const id of e.letters || []) { const r = [...state.reports, ...archived()].find(x => x.id === id); if (r) { const b = el('button', 'sh-o-lnk', fromName(r) + ': “' + r.title + '” →'); b.onclick = () => showLetters(r.id); p.append(b); } } return p; };
+      for (const e of es.slice(0, 8)) sc.append(row(e));
+      if (es.length > 8) { const more = el('details', 'sh-hs-more'); more.append(el('summary', null, 'Earlier entries (' + (es.length - 8) + ')')); for (const e of es.slice(8)) more.append(row(e)); sc.append(more); } } }
     { const sc = sec('The calendar on your wall', 'What you know is coming, and how sure it is.'), ul = el('ul', 'sh-cal'); sc.append(ul);
       for (const e of calendarEntries()) { const past = (e.date.length === 7 ? e.date + '-28' : e.date) < d, li = el('li', past ? 'past' : e.date === d ? 'today' : null);
         li.innerHTML = '<span class="sh-cal-d">' + esc(longDay(e.date)) + '</span><span class="sh-cal-w">' + esc(e.what) + '<small>' + esc(HOW[e.how] || e.how) + (e.source ? ' · ' + esc(e.source) : '') + '</small></span>';
@@ -588,6 +603,19 @@ export function createShell({ act, onSeal, clock }) {
         const t = el('span', 'sh-hs-t'); for (const [k, lab] of [['trust', 'trust'], ['doubt', 'doubt']]) { const b = el('button', trustOf(src) === k ? 'on' : null, lab); b.onclick = () => { setTrust(src, trustOf(src) === k ? null : k); showNotebook(); }; t.append(b); } p.append(t); return p; };
       for (const h of ordered.slice(0, 6)) sc.append(row(h));
       if (ordered.length > 6) { const more = el('details', 'sh-hs-more'); more.append(el('summary', null, 'Older talk (' + (ordered.length - 6) + ')')); for (const h of ordered.slice(6)) more.append(row(h)); sc.append(more); } } }
+  }
+  // an instruction left with your secretary, as a minister of the time left one with his chancery: what to answer in your name,
+  // what to keep, what to refuse, what to send on at once. The packet carries it each turn; the reply's day-book says what was done.
+  function showInstructions() {
+    const ins = state.instructions || {}, b = card('Your instructions to your secretary', ins.text ? 'Revise your instructions' : 'Leave your instructions', 'Your secretary and household follow them every day until you change them: routine letters answered in your name, your appointments kept, what you refuse refused. Anything they do not cover, or that needs your decision, is laid before you.');
+    const f = el('form', 'sh-compose sh-brief'), t = el('textarea'); t.rows = 9; t.value = ins.text || '';
+    t.placeholder = 'For example:\n— Acknowledge routine returns and forward them to the Hofkriegsrat.\n— Answer petitions for posts with my thanks and no promise.\n— I attend the Conference on its days; I receive callers on Tuesday mornings only.\n— Refuse every offer of a loan.\n— Anything from Silesia, or from Her Majesty, is brought to me at once, day or night.';
+    const go = el('button', 'sh-primary', 'Leave them with your secretary'); f.append(t, go);
+    if (ins.text) { const x = el('button', null, 'Withdraw them'); x.type = 'button'; x.onclick = () => { delete state.instructions; persistState(); $('sh-talk').hidden = true; syncVeil(); act('toast:Your secretary will do only what each dispatch says.'); refresh(); showNotebook(); }; f.append(x); }
+    b.append(f); setTimeout(() => t.focus(), 30);
+    f.onsubmit = e => { e.preventDefault(); const v = t.value.trim(); if (!v) return t.focus();
+      state.instructions = { text: v, written: ins.written || today(), revised: today() }; persistState(); act('sound:seal');
+      $('sh-talk').hidden = true; syncVeil(); act('toast:Your instructions are on your secretary’s desk. They go with every dispatch.'); refresh(); showNotebook(); };
   }
   // before an audience: what you will press, what you may give, what you will not say, and how you will carry yourself.
   // It goes in the dispatch under a reference; the meeting, if it comes, is written from it — and the others answer as they will.
@@ -766,7 +794,7 @@ export function createShell({ act, onSeal, clock }) {
     $('sh-matters').textContent = matters().length || '';
   }
   return {
-    showPanel, closePanel, toggleSheet, refresh, showBook, unread, passDay, letters, seen, get today() { return shownDate(); }, markRead, appendOrder, removeOrder, setItem, dropItem, showTravel, showTalk, showInspect, showWaiting, showBrief, showLetters, showNotebook, showSingle, presentHere, overhear, archive, archivedCount: () => archived().length,
+    showPanel, closePanel, toggleSheet, refresh, showBook, unread, passDay, letters, seen, get today() { return shownDate(); }, markRead, appendOrder, removeOrder, setItem, dropItem, showTravel, showTalk, showInspect, showWaiting, showBrief, showInstructions, showLetters, showNotebook, showSingle, presentHere, overhear, archive, archivedCount: () => archived().length,
     get talkOpen() { return !$('sh-talk').hidden; },
     get papersOpen() { return anyOpen(); },
     get sheetOpen() { return !$('sh-sheet').hidden; },
