@@ -544,6 +544,15 @@ body:not(.w3d-sick) .w3d-bedside{display:none}
 .sh-ins-sum{font-size:14px;margin:4px 0 6px}
 #w3d-shell .sh-ins-b{background:none;border:1px solid var(--edge-2);color:var(--bone);border-radius:8px;padding:6px 12px;cursor:pointer;font:14px var(--read);margin-bottom:12px}
 #w3d-shell .sh-ins-b:hover{background:var(--glass-3)}
+/* a note on the game, out of character: plain, not paper */
+#w3d-shell textarea.sh-gnote{width:100%;min-height:58px;resize:vertical;font:15px/1.5 var(--read);margin-top:4px}
+.sh-gnote-h{font-size:13px!important;margin:0 0 14px!important}
+.sh-gn-h{margin:12px 0 2px;font:400 13px var(--display);font-variant-caps:all-small-caps;letter-spacing:.1em;color:var(--bone-3)}
+.sh-gn{padding:8px 0;border-bottom:1px solid var(--edge)}
+.sh-nb-sec .sh-gn p{margin:2px 0;font-size:15px}
+.sh-gn small{font:italic 13px var(--read);color:var(--bone-3)}
+.sh-gn .sh-o-lnk{margin-left:12px}
+.sh-nb-sec .sh-gn .sh-gn-a{color:var(--bone-2);padding-left:14px;border-left:2px solid var(--edge-2);margin-top:6px}
 .sh-db{display:grid;grid-template-columns:92px 1fr;gap:2px 12px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--edge);font-size:15px;line-height:1.5;color:var(--bone)}
 .sh-db .sh-o-lnk{grid-column:2;justify-self:start}
 .sh-lt-handled{border-left-color:#7d9a76;background:rgba(125,154,118,.08)}

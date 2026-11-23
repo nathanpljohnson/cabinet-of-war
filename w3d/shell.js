@@ -63,6 +63,10 @@ export function createShell({ act, onSeal, clock }) {
         <select id="sh-wake" class="sh-wake"></select>
         <div class="eyebrow">Your instructions to your secretary</div>
         <p class="sh-hint sh-ins-sum" id="sh-ins-sum"></p><button class="sh-ins-b" id="sh-ins-b">Write them</button>
+        <div class="eyebrow">A note on the game · out of character</div>
+        <textarea id="sh-gnote" class="sh-gnote" rows="2" placeholder="Something not working, or something you want changed about how the game plays…" aria-label="A note on the game, out of character"></textarea>
+        <label class="sh-purse"><input type="checkbox" id="sh-gnote-keep"> Keep it for every turn</label>
+        <p class="sh-hint sh-gnote-h">Not an order: no one in the game hears it. How turns are judged changes from the next turn; a fault in the game is mended in the game itself. The answer comes to your notebook.</p>
         <div class="eyebrow">Carried with it</div><ul class="sh-carried" id="sh-carried"></ul>
         <p class="sh-hint" id="sh-days"></p>
       </div>
@@ -177,6 +181,7 @@ export function createShell({ act, onSeal, clock }) {
     }
     if (!w.items.length) ol.append(el('li', 'sh-empty', 'No orders yet. Give them here, to people you meet, or on the letters you receive.'));
     const own = $('sh-own'); if (document.activeElement !== own) own.value = w.own;
+    const gn = $('sh-gnote'); if (document.activeElement !== gn) gn.value = w.gameNote || ''; $('sh-gnote-keep').checked = !!w.gameNoteKeep;
     const ul = $('sh-carried'); ul.replaceChildren();
     const li = (txt, rm) => { const x = el('li', null, txt); if (rm) { const b = el('button', null, 'remove'); b.onclick = () => { rm(); saveDraft(); renderSheet(); refresh(); }; x.append(b); } ul.append(x); };
     const dec = S.decision && S.decision.options.find(o => o.id === draft.option);
@@ -200,6 +205,8 @@ export function createShell({ act, onSeal, clock }) {
     $('sh-days').textContent = far.length ? 'From ' + locName(here) + ' a letter takes about: ' + far.join(' · ') + '.' : '';
   }
   $('sh-own').oninput = e => { W().own = e.target.value; compose(); };
+  $('sh-gnote').oninput = e => { W().gameNote = e.target.value; saveDraft(); };
+  $('sh-gnote-keep').onchange = e => { W().gameNoteKeep = e.target.checked; saveDraft(); };
   const WAKE = ['When there is news I must decide on.', 'When the first answers to these orders arrive.', 'In three days, whatever happens.', 'In a week, unless something urgent comes.', 'Not before a fortnight, unless something urgent comes.', 'Only for what my instructions to my secretary do not cover.', 'Not for a month, unless something my instructions do not cover arrives.'];
   $('sh-ins-b').onclick = () => showInstructions();
   $('sh-wake').onchange = e => { W().wake = e.target.value; saveDraft(); };
@@ -480,7 +487,9 @@ export function createShell({ act, onSeal, clock }) {
   }
 
   /* ---------- notebook: matters in hand, the situation, what you know ---------- */
-  function recordSent() { const w = W(), sent = store(SENT_KEY, []).filter(s => s.turn !== state.turn); sent.push({ turn: state.turn, date: state.date, at: locName(travel.here()), orders: [...(w.own.trim() ? [{ ref: ownRef(), line: 'In my own words: ' + w.own.trim(), to: null, text: w.own.trim() }] : []), ...w.items.map((it, i) => ({ ref: ref(i), line: itemLine(it), to: it.to || null, text: it.text }))], own: w.own.trim().slice(0, 160) }); keep(SENT_KEY, sent.filter(s => s.turn >= state.turn - 7 || (!s.settled && pendingOrders(state, [s], Object.values(archive())).some(o => (s.orders || []).some(x => x.ref === o.ref))))); }
+  function keepNote() { const w = W(), t = (w.gameNote || '').trim(); if (!w.gameNoteKeep || !t) return;
+    const g = state.gameNotes = state.gameNotes || {}, st = g.standing = g.standing || []; if (!st.some(n => n.text === t)) { st.push({ text: t, written: today() }); persistState(); } }
+  function recordSent() { keepNote(); const w = W(), sent = store(SENT_KEY, []).filter(s => s.turn !== state.turn); sent.push({ turn: state.turn, date: state.date, at: locName(travel.here()), orders: [...(w.own.trim() ? [{ ref: ownRef(), line: 'In my own words: ' + w.own.trim(), to: null, text: w.own.trim() }] : []), ...w.items.map((it, i) => ({ ref: ref(i), line: itemLine(it), to: it.to || null, text: it.text }))], own: w.own.trim().slice(0, 160) }); keep(SENT_KEY, sent.filter(s => s.turn >= state.turn - 7 || (!s.settled && pendingOrders(state, [s], Object.values(archive())).some(o => (s.orders || []).some(x => x.ref === o.ref))))); }
   function matters() {
     const a = acted(), out = [];
     for (const r of seenLetters()) if (!a[r.id]) out.push({ k: 'letter', r });
@@ -531,6 +540,15 @@ export function createShell({ act, onSeal, clock }) {
       const sm = sec('Your memoirs', 'Out of office, you can still write — and how you tell it shapes how you are remembered. What you write here goes with the dispatch.');
       const t = el('textarea', 'sh-memoir'); t.rows = 5; t.value = W().memoir || ''; t.placeholder = 'This turn’s pages…'; t.oninput = () => { W().memoir = t.value; compose(); act('sound:quill'); }; sm.append(t);
       const hb = el('button', 'sh-nb-link', 'Begin anew as your heir'); hb.onclick = () => { if (hb.dataset.sure) return act('heir'); hb.dataset.sure = 1; hb.textContent = 'Click again: this campaign is kept in the record, and your heir inherits your memoirs, friends and enemies'; }; sm.append(hb); }
+    { const g = state.gameNotes || {}, st = (g.standing || []).filter(n => n && n.text), log = (g.log || []).slice().reverse();
+      const sg = sec('Notes on the game · out of character', 'What you have told the game itself, and what was done about it. Write one in the dispatch, beside your orders.');
+      if (st.length) { sg.append(el('h4', 'sh-gn-h', 'Kept for every turn'));
+        for (const n of st) { const p = el('div', 'sh-gn'); p.append(el('p', null, n.text), el('small', null, 'since ' + short(n.written)));
+          const x = el('button', 'sh-o-lnk', 'Withdraw'); x.onclick = () => { g.standing = (g.standing || []).filter(m => m !== n); persistState(); showNotebook(); }; p.append(x); sg.append(p); } }
+      const row = e => { const p = el('div', 'sh-gn'); p.append(el('p', null, e.note), el('small', null, 'with the dispatch for turn ' + e.turn), el('p', 'sh-gn-a', e.answer || 'No answer came with that turn.')); return p; };
+      if (log.length) { sg.append(el('h4', 'sh-gn-h', 'Answered')); log.slice(0, 3).forEach(e => sg.append(row(e)));
+        if (log.length > 3) { const more = el('details', 'sh-pp-more'); more.append(el('summary', null, 'Earlier (' + (log.length - 3) + ')')); log.slice(3).forEach(e => more.append(row(e))); sg.append(more); } }
+      if (!st.length && !log.length) sg.append(el('p', 'sh-empty', 'None yet.')); }
     { const sb = sec('The book of the campaign', 'Every turn you have lived: your orders, the letters that reached you, the battles.'); const b = el('button', 'sh-nb-link', 'Open the book'); b.onclick = () => showBook(); sb.append(b); }
     if (!state.ended) { const sv = sec('Your service'), w = W();
       if (w.end) { sv.append(el('p', 'sh-nb-remark', 'You have asked to end your service. It goes with the dispatch, and the next courier brings the verdict.')); const b = el('button', 'sh-nb-link', 'Withdraw the request'); b.onclick = () => { w.end = false; dropItem('end'); showNotebook(); }; sv.append(b); }
