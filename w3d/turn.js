@@ -15,7 +15,7 @@ export const BY_ID = ['cast', 'locations', 'forces', 'fortresses', 'movements', 
 export const APPEND = ['ledger', 'hearsay', 'daybook', 'dossier', 'hidden.canon', 'hidden.dispatches', 'hidden.volumes'];
 const appendPath = p => APPEND.includes(p) || p.startsWith('hidden.memory.');
 // per-turn things: when a reply leaves them out, they are cleared rather than carried into the next turn
-const PER_TURN_LISTS = ['reports', 'overheard', 'whereabouts', 'gazette'], PER_TURN_HIDDEN = ['decisions', 'fortune_used'], PER_TURN_NULL = ['decision', 'scene', 'staffBriefing'];
+const PER_TURN_LISTS = ['reports', 'overheard', 'whereabouts', 'gazette'], PER_TURN_HIDDEN = ['decisions', 'fortune_used'], PER_TURN_NULL = ['decision', 'scene', 'staffBriefing', 'gameNote'];
 export const WEATHER = ['clear', 'haze', 'overcast', 'mist', 'frost', 'rain', 'thaw', 'snow', 'storm', 'thunder'];
 export const SIGHTS = ['alarm', 'idle_soldiers', 'bread_queue', 'empty_market', 'recruiting', 'wagons_in', 'wounded', 'prisoners', 'celebration', 'smoke'];
 export const THREAD_STATUS = ['dormant', 'building', 'triggered', 'resolved', 'abandoned'];
@@ -124,6 +124,10 @@ export function mergeTurn(prev, reply, ctx = {}) {
   // an undertaking keeps the stages it went through: the page records the old stage whenever a reply moves it on
   for (const u of Array.isArray(next.undertakings) ? next.undertakings : []) { const old = (prev.undertakings || []).find(x => x && x.id === u.id);
     if (old && old.stage && old.stage !== u.stage) u.history = [...(old.history || []), { date: old.updated || old.started || prev.date, stage: old.stage }].slice(-8); }
+  // the player's note on the game, out of character, is filed with its answer (the page's record; a reply cannot change it)
+  if (prev.gameNotes) next.gameNotes = clone(prev.gameNotes); else delete next.gameNotes;
+  if (typeof ctx.note === 'string' && ctx.note.trim()) { const g = isObj(prev.gameNotes) ? prev.gameNotes : {};
+    next.gameNotes = { ...g, log: [...(g.log || []), { turn: reply.turn, date: next.date, note: ctx.note.trim(), answer: typeof ch.gameNote === 'string' && ch.gameNote.trim() ? ch.gameNote.trim() : null }].slice(-40) }; }
   next.span = { from: prev.date, at: (prev.player || {}).locationId || null };
   next.turn = reply.turn; next.parentTurn = reply.parentTurn; next.schemaVersion = prev.schemaVersion || 2;
   next.exchange = exchangeRecord({ ...next, exchange: exchangeRecord(prev, ctx.sent, ctx.reports) }, ctx.sent, [...(ctx.reports || []), ...(prev.reports || [])]);
@@ -179,6 +183,9 @@ export function checkReply(prev, reply, ctx = {}) {
   }
   if (ch.staffBriefing != null) checkBriefing(ch, prev, locIds, fixes);
   checkDesk(ch, prev, castIds, fixes, warns);
+  if ('gameNotes' in ch) { fixes.push('A change to gameNotes was ignored: they are the player’s to set.'); delete ch.gameNotes; }
+  if (ch.gameNote != null && (typeof ch.gameNote !== 'string' || !ch.gameNote.trim())) { fixes.push('The answer to the player’s note on the game (gameNote) was not text; it was left out.'); delete ch.gameNote; }
+  if (ctx.gameNote && ch.gameNote == null) warns.push('The player left a note on the game this turn and the reply does not answer it. Say in "gameNote", out of character, what you did about it.');
   if (isObj(ch.decision) && Array.isArray(ch.decision.options)) { const d = ch.decision;
     for (const o of d.options) if (isObj(o)) { if (o.ifWait != null && typeof o.ifWait !== 'string') delete o.ifWait; if ('guidance' in o) { o.guidance = cleanGuidance(o.guidance, 'the counsel “' + (o.title || o.id) + '”', fixes); if (!o.guidance) delete o.guidance; } }
     if (d.debate != null) { const ok = (Array.isArray(d.debate) ? d.debate : []).filter(l => isObj(l) && typeof l.who === 'string' && typeof l.text === 'string' && l.text.trim());
@@ -414,6 +421,7 @@ export function liveState(state) {
     if (n < h.canon.length) { h.canonNote = 'The latest ' + n + ' settled facts' + older(n, h.canon.length) + '; the page checks every reply against all of them.'; h.canon = h.canon.slice(-n); } }
   if (Array.isArray(s.daybook) && s.daybook.length > KEEP.daybook) s.daybook = s.daybook.slice(-KEEP.daybook);
   delete s.instructions; // they go in their own section of the packet
+  delete s.gameNotes; delete s.gameNote; // the player's notes on the game go in their own section; earlier answers are the page's
   delete s.dossier; // the secretary's notes on people are the page's: each turn adds only what reached the player
   if (Array.isArray(s.hearsay) && s.hearsay.length > KEEP.hearsay) s.hearsay = s.hearsay.slice(-KEEP.hearsay);
   if (Array.isArray(s.undertakings)) s.undertakings = s.undertakings.map(u => { const { history, ...rest } = u; return rest; }); // the page keeps the stages they went through
@@ -504,7 +512,7 @@ export function rulesText({ contract, almanac }, { battle = true } = {}) {
     + (battle ? '' : 'The battle rules (battle grounds, battle accounts and their phases, enemy commanders) are left out: no battle is near. If this turn brings a battle in the campaign, run `node tools/turn-tool.mjs rules --battle` first and follow them.\n\n')
     + c + '\n\n' + replyFormat(null, { battle }) + '\n\n## Almanac: systems and stakes\n' + systemsText(almanac) + '\n';
 }
-export function buildPacket({ state, contract, orders, almanac, fortune, wake, trust, choices, endRequested, purse, waiting, rulesInProject, earlier, courier, dispatch }) {
+export function buildPacket({ state, contract, orders, almanac, fortune, wake, trust, choices, endRequested, purse, waiting, rulesInProject, earlier, courier, dispatch, note }) {
   const continuity = exchangeRecord(state), outstanding = pendingOrders({ ...state, exchange: continuity }, [{ turn: state.turn, orders: waiting || [] }]);
   const th = (state.hidden || {}).threads || [], date = state.date, act = activePlots(almanac || {}, th, date), byId = new Map(th.map(t => [t.id, t]));
   const shown = th.filter(t => !['resolved', 'abandoned'].includes(t.status) && (liveThread(t) || dueThread(t, date))), rest = th.length - shown.length;
@@ -520,6 +528,7 @@ export function buildPacket({ state, contract, orders, almanac, fortune, wake, t
     + '\n\n## When to wake the player\n' + (wake || 'When there is news the player must decide on.')
     + (endRequested ? '\n\n## The player ends their service\nThe player asks to end their service here. End the campaign this turn: set "ended" and write the epilogue.' : '')
     + (ins && ins.text && ins.text.trim() ? '\n\n## The player’s instructions to their secretary (written ' + (ins.written || '') + (ins.revised && ins.revised !== ins.written ? ', last revised ' + ins.revised : '') + ')\nTheir standing routine, in their own words. Live every day of this turn by it, as the contract’s "Instructions to the secretary" says; it overrides hidden.standingOrders where they differ.\n' + ins.text.trim() : '')
+    + notesOnGame((state.gameNotes || {}).standing, note, R)
     + '\n\n' + orders.trim()
     + '\n\n## The player’s judgement of sources\nTrusts: ' + (trusts.join('; ') || '(none marked)') + '\nDoubts: ' + (doubts.join('; ') || '(none marked)')
     + (outstanding.length ? '\n\n## Earlier orders with no answer yet\nThese remain pending regardless of age. A letter that answers one carries its reference in "re". An acknowledgement is not proof of execution: record any continuing obligation in hidden.standingOrders and hidden.chronicle.\n' + outstanding.map(o => '- [' + o.ref + '] ' + (o.line || o.text || '')).join('\n') : '')
@@ -565,8 +574,18 @@ export function checkSkeleton(state) {
     hidden: { standing: h.standing || {}, threads: (h.threads || []).filter(t => t && ['resolved', 'abandoned'].includes(t.status)).map(t => ({ id: t.id, status: t.status, title: t.title })) },
     ...(bd && bd.id ? { battleDemo: { id: bd.id, units: (bd.units || []).filter(isObj).map(u => ({ id: u.id, ...(u.men != null ? { men: u.men } : {}) })) } } : {}) };
 }
+// the player's notes on the game itself, out of character: standing ones every turn, and this turn's (which must be answered)
+export function notesOnGame(standing, now, repo) {
+  const st = (standing || []).filter(n => n && typeof n.text === 'string' && n.text.trim()), t = typeof now === 'string' ? now.trim() : '';
+  if (!st.length && !t) return '';
+  return '\n\n## Notes on the game (out of character)\nThe player’s notes about the game itself, not orders: nothing in them happens in the world, and no one in it knows of them. Never let them show in letters, and never use them, or your answer, to tell the player anything their character does not know.'
+    + (st.length ? '\nStanding (keep to them every turn):\n' + st.map(n => '- ' + n.text.trim()).join('\n') : '')
+    + (t ? '\nThis turn:\n' + t + '\nIf it is about how you adjudicate, write, pace or weigh things, do it from this reply on. If it reports something in the game not working, or asks to change how the page or its rules work, that is a change to the game’s code: '
+      + (repo ? 'the errand above says how to make it.' : 'you cannot make it from here; say what would need changing.')
+      + ' Answer it in changes.gameNote: two or three plain sentences, out of character, on what you did about it.' : '');
+}
 // the courier's errand: what a coding agent (Claude Code, Codex), working anywhere, is asked to do with the packet below it
-export function courierErrand({ repo, path, dispatch, turn, version, battle }) {
+export function courierErrand({ repo, path, dispatch, turn, version, battle, note }) {
   const url = 'https://github.com/' + repo, dir = repo.split('/').pop();
   return '# Cabinet of War — the courier’s errand: turn ' + (turn - 1) + ' → ' + turn + '\n\n'
     + 'You adjudicate one turn of Cabinet of War, a browser game whose turns live in the GitHub repository ' + repo + ' (GitHub Pages serves its main branch; the game fetches the turn you push). You may be in any folder or repository: do the work in a clone of ' + repo + '. Any agent with git and node can do this.\n\n'
@@ -577,8 +596,9 @@ export function courierErrand({ repo, path, dispatch, turn, version, battle }) {
     + '3. Adjudicate the turn from the rules and the packet below. Write the reply, one JSON object and nothing else, to ' + path + ', with "dispatch": "' + dispatch + '".\n'
     + '4. Save the last line of this message (it begins "<!-- check:") to turns/.work/check.txt, then run `node tools/turn-tool.mjs check turns/.work/check.txt ' + path + '`. Correct every ERROR, WARNING and FIX ON ARRIVAL in the reply; repeat until it prints OK.\n'
     + '5. Commit only ' + path + ' ("Turn ' + turn + '") and push to main; if refused, pull with rebase and push again.\n'
-    + '6. Tell the player in one line that the courier has ridden and turn ' + turn + ' is pushed. Nothing of what happens in it, here or in notes the player can read.\n\n'
-    + 'Keep it lean: read nothing else in the repository (no other files, earlier turns or tests), do not print the rules or the reply back, keep your messages short.';
+    + (note ? '6. The player left a note on the game this turn (the packet’s "Notes on the game"). If it needs a change to the game itself, make it now that the turn is pushed: `git sparse-checkout disable` for the whole repository, read CLAUDE.md and keep to its rules, make the smallest change that does what the note asks (never a turn file, and never code that decides outcomes), rebuild if CLAUDE.md says so, run `python3 -m pytest -q tests` until it passes, then commit ("Game: " and what changed) and push to main, pulling with rebase if refused. If the change is unclear or unsafe, make none and say so in gameNote. Your gameNote, written before, says what you are changing and that the player should refresh the game in a few minutes.\n' : '')
+    + (note ? '7' : '6') + '. Tell the player in one line that the courier has ridden and turn ' + turn + ' is pushed' + (note ? ', and what you changed in the game, if anything' : '') + '. Nothing of what happens in the turn, here or in notes the player can read.\n\n'
+    + 'Keep it lean: ' + (note ? 'until the turn is pushed, ' : '') + 'read nothing else in the repository (no other files, earlier turns or tests), do not print the rules or the reply back, keep your messages short.';
 }
 // a packet read back: the state it carried and the context of its checks (a coding agent checks its reply with it before pushing)
 export function prevFromPacket(text) {

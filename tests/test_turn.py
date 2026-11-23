@@ -590,3 +590,15 @@ def test_a_note_waits_for_its_letter_and_every_writer_gets_one(run):
     assert g["date"] == "1740-10-27"  # a note cannot tell the player what Wallis wrote before his letter arrives
     assert len(g["fixes"]) == 1
     assert len(g["warns"]) == 1 and "Count Starhemberg" in g["warns"][0] and "Wallis" not in g["warns"][0]
+
+
+def test_a_note_on_the_game_is_sent_answered_and_filed(run):
+    g = run["gameNotes"]
+    assert g["section"] and g["order"] and g["none"]  # only when there is a note; before the orders; no cost otherwise
+    assert g["unanswered"] == 1 and g["answeredWarns"] == 0
+    assert g["ignored"]  # a reply cannot change the player's own notes
+    assert g["standing"] == [{"text": "Shorter letters, please.", "written": "1740-10-21"}]
+    assert g["log"] == [{"turn": 1, "date": "1740-10-23", "note": "The map does not show Glatz.", "answer": "Glatz is now on the map; refresh the game in a few minutes."}]
+    assert g["cleared"] is None and g["logKept"] == 1  # the answer is per turn; the record keeps it
+    assert g["live"] == []  # never sent back to the adjudicator in the state
+    assert g["errand"] == [True, False, True]  # the code step only when there is a note

@@ -1,6 +1,6 @@
 // Runs the reply pipeline (w3d/turn.js, w3d/continuity.js) on the opening state and the mock replies; prints JSON for pytest.
 import { readFileSync } from 'node:fs';
-import { checkSkeleton, courierErrand, isBattleNear, prevFromPacket, replyFormat, rulesText, rulesVersion, tableOf, TABLES, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS, sceneLines, pendingOrders, exchangeRecord } from '../w3d/turn.js';
+import { notesOnGame, checkSkeleton, courierErrand, isBattleNear, prevFromPacket, replyFormat, rulesText, rulesVersion, tableOf, TABLES, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS, sceneLines, pendingOrders, exchangeRecord } from '../w3d/turn.js';
 import { checkContinuity } from '../w3d/continuity.js';
 import { peopleFiles, aliasesOf } from '../w3d/dossier.js';
 import { stampFeatures, FIELD } from '../w3d/groundspec.js';
@@ -237,4 +237,19 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
   out.dossier = { fixes: chk.fixes.filter(x => /dossier|note on/.test(x)), kept: next.dossier.map(n => [n.who, n.date]), sent: 'dossier' in liveState(next), openingWho: (opening.dossier || []).map(n => n.who), cast: opening.cast.map(c => c.id),
     aliases: aliasesOf(opening.cast), order: f.filter(x => x.known).map(x => x.id),
     wallis: pick(f, 'wallis'), wallisEarly: pick(early, 'wallis').notes.map(n => n.note), bartenstein: pick(f, 'bartenstein'), neipperg: pick(f, 'neipperg'), francis: pick(f, 'francis_stephen'), sinzendorf: pick(f, 'sinzendorf'), starhemberg: pick(f, 'starhemberg'), dresden: pick(f, 'dresden-envoy'), queen: pick(f, 'maria_theresa'), own: !!pick(f, 'own-forces'), secretary: !!pick(f, 'secretary') }; }
+// a note on the game, out of character: in the packet only when there is one; answered, filed with its answer, never sent back
+{ const st = { ...opening, gameNotes: { standing: [{ text: 'Shorter letters, please.', written: '1740-10-21' }] } };
+  const pk = buildPacket({ state: st, contract, orders: '## Orders of the day\nTest.', almanac, fortune: [], note: 'The map does not show Glatz.', courier: 'repo' });
+  const plain = buildPacket({ state: opening, contract, orders: '## Orders of the day\nTest.', almanac, fortune: [] });
+  const r = reply(st, { date: '1740-10-23', title: 't', briefing: 'b', reports: [], gameNotes: { standing: [] }, hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } });
+  const unanswered = checkReply(st, JSON.parse(JSON.stringify(r)), { gameNote: true });
+  const answered = JSON.parse(JSON.stringify(r)); answered.changes.gameNote = 'Glatz is now on the map; refresh the game in a few minutes.';
+  const ac = checkReply(st, answered, { gameNote: true }), { next } = mergeTurn(st, answered, { note: 'The map does not show Glatz.' });
+  const { next: n2 } = mergeTurn(next, reply(next, { date: '1740-10-25', title: 't', briefing: 'b', reports: [] }));
+  const er = n => courierErrand({ repo: 'o/r', path: 'turns/x/turn-001.json', dispatch: 'd', turn: 1, version: 'v', battle: false, note: n });
+  out.gameNotes = { section: pk.includes('## Notes on the game (out of character)') && pk.includes('- Shorter letters, please.') && pk.includes('The map does not show Glatz.') && pk.includes('the errand above says how'),
+    order: pk.indexOf('## Notes on the game') < pk.indexOf('## Orders of the day'), none: !plain.includes('Notes on the game') && notesOnGame([], '') === '',
+    unanswered: unanswered.warns.filter(w => /note on the game/.test(w)).length, answeredWarns: ac.warns.filter(w => /note on the game/.test(w)).length,
+    ignored: ac.fixes.some(f => /gameNotes/.test(f)), standing: next.gameNotes.standing, log: next.gameNotes.log, cleared: n2.gameNote ?? null, logKept: n2.gameNotes.log.length,
+    live: ['gameNotes', 'gameNote'].filter(k => k in liveState(next)), errand: [er(true).includes('git sparse-checkout disable'), er(false).includes('sparse-checkout disable'), er(true).includes('7. Tell the player')] }; }
 console.log(JSON.stringify(out));

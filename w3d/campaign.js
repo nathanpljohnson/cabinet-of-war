@@ -60,14 +60,14 @@ export function earlierDecisions() {
 }
 export const fortune = () => rollFortune(state.campaignId, state.turn, 8, (state.record || {}).salt || '');
 async function packet(orders) {
-  const w = draft.w3d || {}, dispatch = fingerprint(state.campaignId + ':' + state.turn + ':' + sealOf(state) + ':' + orders).slice(0, 10), repo = courierMode() === 'repo';
-  keep(SEALED_KEY, { turn: state.turn, dispatch, at: new Date().toISOString() }); // what the next turn must answer
+  const w = draft.w3d || {}, note = (w.gameNote || '').trim(), dispatch = fingerprint(state.campaignId + ':' + state.turn + ':' + sealOf(state) + ':' + orders + ':' + note).slice(0, 10), repo = courierMode() === 'repo';
+  keep(SEALED_KEY, { turn: state.turn, dispatch, at: new Date().toISOString(), ...(note ? { note } : {}) }); // what the next turn must answer
   if (repo) setTimeout(lookForCourier, 30000);
   const packetState = { ...state, exchange: exchangeRecord(state, store(SENT_KEY, []), Object.values(store(P + 'w3d-archive', {}))) };
-  const pk = buildPacket({ state: packetState, contract, orders, almanac, fortune: fortune(), wake: w.wake, trust: state.trust, choices: choicesNow(), waiting: waiting(), endRequested: !!w.end, rulesInProject: store(RULES_KEY, false), earlier: earlierDecisions(), purse: (w.items || []).filter(i => i.purse).map(i => i.text), courier: repo ? 'repo' : null, dispatch });
+  const pk = buildPacket({ state: packetState, contract, orders, almanac, fortune: fortune(), wake: w.wake, trust: state.trust, choices: choicesNow(), waiting: waiting(), endRequested: !!w.end, rulesInProject: store(RULES_KEY, false), earlier: earlierDecisions(), purse: (w.items || []).filter(i => i.purse).map(i => i.text), courier: repo ? 'repo' : null, dispatch, note });
   if (!repo) return pk;
-  const check = { orderRefs: sentOrders(), followIds: earlierDecisions().map(d => d.id), fortune: fortune(), seal: sealOf(state), volumeDue: volumeDue(state), dispatch, prev: checkSkeleton(state) };
-  return courierErrand({ repo: repoName(), path: turnPath(), dispatch, turn: state.turn + 1, version: rulesVersion({ contract, almanac }), battle: isBattleNear(state) }) + '\n\n' + pk + '\n<!-- check: ' + JSON.stringify(check) + ' -->\n';
+  const check = { orderRefs: sentOrders(), followIds: earlierDecisions().map(d => d.id), fortune: fortune(), seal: sealOf(state), volumeDue: volumeDue(state), dispatch, ...(note ? { gameNote: true } : {}), prev: checkSkeleton(state) };
+  return courierErrand({ repo: repoName(), path: turnPath(), dispatch, turn: state.turn + 1, version: rulesVersion({ contract, almanac }), battle: isBattleNear(state), note: !!note }) + '\n\n' + pk + '\n<!-- check: ' + JSON.stringify(check) + ' -->\n';
 }
 
 /* ---------- the courier: a coding agent (Claude Code, Codex) adjudicates in the repository and pushes the turn; the page fetches it ---------- */
@@ -109,9 +109,10 @@ function installReview() {
     if (reply.schemaVersion === 2 && reply.kind !== 'turn') { // a whole state (older replies, imported state files)
       if (state.record.ironman) return show({ title: 'The record is sealed', errors: ['A whole saved state cannot be loaded into a sealed campaign. Paste Claude’s reply to the latest packet instead.'] });
       $('confirm').querySelector('h2').textContent = 'Accept this update?'; $('accept').hidden = false; pending = { payload: reply }; legacy(text); return; }
-    const r = checkReply(state, reply, { orderRefs: sentOrders(), followIds: earlierDecisions().map(d => d.id), dispatch: (s => s && s.turn === state.turn ? s.dispatch : null)(store(SEALED_KEY, null)), fortune: fortune(), seal: sealOf(state), volumeDue: volumeDue(state) });
+    const sealed = (s => s && s.turn === state.turn ? s : null)(store(SEALED_KEY, null)), note = sealed && sealed.note;
+    const r = checkReply(state, reply, { orderRefs: sentOrders(), followIds: earlierDecisions().map(d => d.id), dispatch: sealed ? sealed.dispatch : null, fortune: fortune(), seal: sealOf(state), volumeDue: volumeDue(state), gameNote: !!note });
     if (r.errors.length) return show({ title: 'This reply cannot be accepted', errors: r.errors, request: correctionRequest(r.errors, state.turn + 1) });
-    const { next, notes } = mergeTurn(state, reply, { sent: store(SENT_KEY, []), reports: Object.values(store(P + 'w3d-archive', {})) });
+    const { next, notes } = mergeTurn(state, reply, { sent: store(SENT_KEY, []), reports: Object.values(store(P + 'w3d-archive', {})), note });
     try { validateState(next); } catch (e) { return show({ title: 'This reply cannot be accepted', errors: [e.message], request: correctionRequest([e.message], state.turn + 1) }); }
     const cont = checkContinuity(state, next), hard = cont.filter(i => i.level === 'error');
     if (fought() && next.battleDemo && !next.battleDemo.aftermath) next.battleDemo.aftermath = aftermathOfTable();
@@ -150,6 +151,7 @@ function installAccept() {
     }
     pending = null;
     orig.call(btn, e);
+    if (state !== prev && state.gameNote) setTimeout(() => toast('Your note on the game has an answer: Notebook → Notes on the game.'), 3500);
     if (state !== prev) { if ($('world-in')) $('world-in').value = ''; markHigh(); onChange(); if (store(AUTO_KEY, true)) setTimeout(() => saveCampaignFile(true), 600); }
   };
   $('confirm').addEventListener('cancel', () => { candidate = null; pending = null; });
