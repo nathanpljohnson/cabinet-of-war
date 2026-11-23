@@ -98,6 +98,18 @@
     "guns_taken": [],
     "note": "The garrison troops lie where the column caught them by the Mollwitz road."
    }
-  }
+  },
+  "dossier": [
+   {
+    "who": "wallis",
+    "date": "1740-12-18",
+    "note": "Wrote of “An affair near Mollwitz”."
+   },
+   {
+    "who": "steward",
+    "date": "1740-12-17",
+    "note": "Wrote of “Families on the Silesian road”."
+   }
+  ]
  }
 }

@@ -157,6 +157,23 @@
    }
   ],
   "title": "Three accounts and two rumours",
-  "briefing": "The first answers come in: the treasury is thinner than promised, and the frontier reports disagree."
+  "briefing": "The first answers come in: the treasury is thinner than promised, and the frontier reports disagree.",
+  "dossier": [
+   {
+    "who": "starhemberg",
+    "date": "1740-10-22",
+    "note": "Wrote of “Three accounts, not one”."
+   },
+   {
+    "who": "wallis",
+    "date": "1740-10-23",
+    "note": "Wrote of “Regiments at Crossen”."
+   },
+   {
+    "who": "quartermaster",
+    "date": "1740-10-24",
+    "note": "Wrote of “Boats at Linz”."
+   }
+  ]
  }
 }

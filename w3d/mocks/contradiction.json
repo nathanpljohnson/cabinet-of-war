@@ -41,6 +41,13 @@
    ]
   },
   "title": "Contradiction",
-  "briefing": "Test."
+  "briefing": "Test.",
+  "dossier": [
+   {
+    "who": "sinzendorf",
+    "date": "1740-10-25",
+    "note": "Wrote of “From beyond”."
+   }
+  ]
  }
 }

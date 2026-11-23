@@ -583,3 +583,10 @@ def test_people_files_hold_only_what_reached_the_player(run):
     assert d["aliases"]["dresden-envoy"] == [] and "Harrach" not in d["aliases"]["harrach_joseph"]
     assert not d["dresden"]["known"] and not d["own"] and not d["secretary"]
     assert d["order"][0] == "countess_khevenhuller"  # household first, then the most recent dealings
+
+
+def test_a_note_waits_for_its_letter_and_every_writer_gets_one(run):
+    g = run["dossierGuard"]
+    assert g["date"] == "1740-10-27"  # a note cannot tell the player what Wallis wrote before his letter arrives
+    assert len(g["fixes"]) == 1
+    assert len(g["warns"]) == 1 and "Count Starhemberg" in g["warns"][0] and "Wallis" not in g["warns"][0]

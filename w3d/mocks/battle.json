@@ -352,6 +352,13 @@
      "outcome": "test"
     }
    ]
-  }
+  },
+  "dossier": [
+   {
+    "who": "wallis",
+    "date": "1740-12-22",
+    "note": "Wrote of “The enemy across the Mühlbach”."
+   }
+  ]
  }
 }

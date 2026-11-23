@@ -309,7 +309,15 @@ function checkDesk(ch, prev, castIds, fixes, warns) {
   // the secretary's notes on people: what reached the player of someone this turn; the page keeps every note, the packet none
   list('dossier', n => { if (!isObj(n) || typeof n.note !== 'string' || !n.note.trim()) { fixes.push('A note on someone (dossier) without "note" was left out.'); return false; }
     if (!castIds.has(n.who)) { fixes.push('A note on "' + n.who + '", who is not among the people of the campaign, was left out.'); return false; }
-    n.date = inTurn(n.date, prev, ch); return true; });
+    n.date = inTurn(n.date, prev, ch);
+    // a note cannot tell the player what a letter says before that letter reaches them
+    const came = (ch.reports || []).filter(r => isObj(r) && r.from_id === n.who).map(r => ISO(r.arrives) ? r.arrives : r.dated).filter(ISO).sort().pop();
+    if (came && n.date < came) { fixes.push('The note on ' + n.who + ' was dated ' + n.date + ', before their letter of this turn reached the player (' + came + '); it now shows from ' + came + '.'); n.date = came; }
+    return true; });
+  // everyone who wrote to the player this turn gets a line in the secretary's notes
+  { const noted = new Set((ch.dossier || []).map(n => n && n.who)), names = new Map([...(prev.cast || []), ...(Array.isArray(ch.cast) ? ch.cast : [])].filter(isObj).map(c => [c.id, c.name || c.id]));
+    const missing = [...new Set((ch.reports || []).filter(r => isObj(r) && r.from_id && castIds.has(r.from_id) && !['secretary', 'own-forces'].includes(r.from_id)).map(r => r.from_id))].filter(id => !noted.has(id));
+    if (missing.length) warns.push('The secretary’s notes (dossier) say nothing of ' + missing.map(id => names.get(id) || id).join(', ') + ', who wrote to the player this turn. Give each a note on what reached the player of them.'); }
   list('daybook', e => { if (!isObj(e) || typeof e.entry !== 'string' || !e.entry.trim()) { fixes.push('A day-book entry without "entry" was left out.'); return false; }
     e.date = inTurn(e.date, prev, ch); if (e.letters != null) { const ids = new Set((ch.reports || []).map(r => r && r.id)), ls = Array.isArray(e.letters) ? e.letters : [];
       const bad = ls.filter(id => !ids.has(id)); if (bad.length) fixes.push('A day-book entry named letters not in this turn (' + bad.join(', ') + '); they were left out.'); e.letters = ls.filter(id => ids.has(id)); } return true; });

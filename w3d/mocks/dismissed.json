@@ -51,6 +51,13 @@
    ]
   },
   "title": "Relieved of your commission",
-  "briefing": "Her Majesty has withdrawn your commission."
+  "briefing": "Her Majesty has withdrawn your commission.",
+  "dossier": [
+   {
+    "who": "harrach_joseph",
+    "date": "1740-11-01",
+    "note": "Wrote of “Relieved”."
+   }
+  ]
  }
 }

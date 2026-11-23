@@ -767,6 +767,13 @@
      "outcome": "test"
     }
    ]
-  }
+  },
+  "dossier": [
+   {
+    "who": "wallis",
+    "date": "1740-10-24",
+    "note": "Wrote of “An action near Chotusitz (test)”."
+   }
+  ]
  }
 }

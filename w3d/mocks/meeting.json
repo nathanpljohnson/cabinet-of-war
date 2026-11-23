@@ -1,32 +1,92 @@
 {
-  "note": "Test reply (illustrative, not history): an audience with Bartenstein on the 24th, shown in the post that day; Glogau campaigning while Vienna is in winter quarters. Load with __w3d.mockReply('meeting').",
-  "changes": {
-    "date": "1740-10-28",
-    "title": "An audience with the secretary",
-    "briefing": "Bartenstein received you on the 24th. Glogau's garrison reports the Prussian outposts close.",
-    "world": { "tempo": "winter quarters", "tempoAt": { "glogau": "campaigning" }, "weather": { "1740-10-21": "overcast" } },
-    "reports": [
-      { "id": "r-meet-1", "place": "breslau", "dated": "1740-10-22", "arrives": "1740-10-26", "category": "The army", "title": "Glogau stands to arms", "text": "Wallis writes that the garrison at Glogau keeps its works manned day and night.", "claim": "demo", "from_id": "wallis", "via": "courier", "source": "FML Wallis" }
-    ],
-    "scene": {
-      "id": "s1-bartenstein",
-      "title": "Bartenstein at the Chancellery",
-      "date": "1740-10-24",
-      "setting": "The secretary's room at the Chancellery, late morning. Papers on every chair.",
-      "participants": [{ "id": "bartenstein", "name": "Johann Christoph Bartenstein" }],
-      "lines": [
-        { "who": "Narration", "text": "You put the case for sending the two regiments north before the roads close." },
-        { "who": "bartenstein", "text": "The Conference will hear it on Thursday. I will not promise you more than a hearing." },
-        { "who": "player", "text": "Then let it be Thursday, and let the orders be drafted before it sits." },
-        { "who": "bartenstein", "text": "Drafted, yes. Signed is another matter." }
-      ],
-      "commitments": ["Bartenstein will put the regiments before the Conference on Thursday", "Orders to be drafted in advance"],
-      "status": "closed"
-    },
-    "hidden": {
-      "chronicle": "Test chronicle: an audience with Bartenstein.",
-      "fortune_used": [{ "roll": 40, "for": "Bartenstein's temper", "outcome": "guarded" }],
-      "decisions": [{ "who": "Bartenstein", "knows": "The regiments are wanted in Silesia.", "wants": "No commitment before the Conference.", "decides": "Offers a hearing only." }]
+ "note": "Test reply (illustrative, not history): an audience with Bartenstein on the 24th, shown in the post that day; Glogau campaigning while Vienna is in winter quarters. Load with __w3d.mockReply('meeting').",
+ "changes": {
+  "date": "1740-10-28",
+  "title": "An audience with the secretary",
+  "briefing": "Bartenstein received you on the 24th. Glogau's garrison reports the Prussian outposts close.",
+  "world": {
+   "tempo": "winter quarters",
+   "tempoAt": {
+    "glogau": "campaigning"
+   },
+   "weather": {
+    "1740-10-21": "overcast"
+   }
+  },
+  "reports": [
+   {
+    "id": "r-meet-1",
+    "place": "breslau",
+    "dated": "1740-10-22",
+    "arrives": "1740-10-26",
+    "category": "The army",
+    "title": "Glogau stands to arms",
+    "text": "Wallis writes that the garrison at Glogau keeps its works manned day and night.",
+    "claim": "demo",
+    "from_id": "wallis",
+    "via": "courier",
+    "source": "FML Wallis"
+   }
+  ],
+  "scene": {
+   "id": "s1-bartenstein",
+   "title": "Bartenstein at the Chancellery",
+   "date": "1740-10-24",
+   "setting": "The secretary's room at the Chancellery, late morning. Papers on every chair.",
+   "participants": [
+    {
+     "id": "bartenstein",
+     "name": "Johann Christoph Bartenstein"
     }
-  }
+   ],
+   "lines": [
+    {
+     "who": "Narration",
+     "text": "You put the case for sending the two regiments north before the roads close."
+    },
+    {
+     "who": "bartenstein",
+     "text": "The Conference will hear it on Thursday. I will not promise you more than a hearing."
+    },
+    {
+     "who": "player",
+     "text": "Then let it be Thursday, and let the orders be drafted before it sits."
+    },
+    {
+     "who": "bartenstein",
+     "text": "Drafted, yes. Signed is another matter."
+    }
+   ],
+   "commitments": [
+    "Bartenstein will put the regiments before the Conference on Thursday",
+    "Orders to be drafted in advance"
+   ],
+   "status": "closed"
+  },
+  "hidden": {
+   "chronicle": "Test chronicle: an audience with Bartenstein.",
+   "fortune_used": [
+    {
+     "roll": 40,
+     "for": "Bartenstein's temper",
+     "outcome": "guarded"
+    }
+   ],
+   "decisions": [
+    {
+     "who": "Bartenstein",
+     "knows": "The regiments are wanted in Silesia.",
+     "wants": "No commitment before the Conference.",
+     "decides": "Offers a hearing only."
+    }
+   ]
+  },
+  "dossier": [
+   {
+    "who": "wallis",
+    "date": "1740-10-26",
+    "note": "Wrote of “Glogau stands to arms”."
+   }
+  ]
+ }
 }

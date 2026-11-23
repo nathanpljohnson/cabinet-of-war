@@ -64,6 +64,18 @@
    ]
   },
   "title": "At Glogau",
-  "briefing": "Five days on the post road brought you to Glogau on the 26th. Wallis shows you the works."
+  "briefing": "Five days on the post road brought you to Glogau on the 26th. Wallis shows you the works.",
+  "dossier": [
+   {
+    "who": "harrach_joseph",
+    "date": "1740-10-24",
+    "note": "Wrote of “A note on the road”."
+   },
+   {
+    "who": "wallis",
+    "date": "1740-10-27",
+    "note": "Wrote of “The works at Glogau”."
+   }
+  ]
  }
 }
