@@ -52,7 +52,7 @@ st['openingVersion']=OP['openingVersion']
 st['locations']+=[l for l in OP['locations_add'] if l['id'] not in {x['id'] for x in st['locations']}]
 for c in st['cast']: c.update(OP['cast_update'].get(c['id'],{}))
 st['cast']+=[c for c in OP['cast_add'] if c['id'] not in {x['id'] for x in st['cast']}]
-for k in ['household','mandate','reports','decision','knowledge','forces','forcesNote','remarks','sourcesAppendix']: st[k]=OP[k]
+for k in ['household','mandate','reports','decision','knowledge','forces','forcesNote','remarks','sourcesAppendix','dossier']: st[k]=OP[k]
 st['player']['name']='Ludwig Andreas, Count Khevenhüller'
 st['player']['health']='well'  # one place for his health: player.health (the contract and reply format use it)
 st['world']={'mourning':True,'pay':'in arrears','roads':'good','refugees':[]}

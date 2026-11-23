@@ -12,7 +12,7 @@ export const PLAYER_KEYS = ['trust', 'legacy', 'campaignId', 'record', 'span', '
 // lists merged by id: give only new or changed items (with only the changed fields); {"id": x, "_remove": true} removes one
 export const BY_ID = ['cast', 'locations', 'forces', 'fortresses', 'movements', 'undertakings', 'calendar', 'audiences', 'hidden.threads', 'battleDemo.units', 'battleDemo.options'];
 // lists that only grow: give only the new entries
-export const APPEND = ['ledger', 'hearsay', 'daybook', 'hidden.canon', 'hidden.dispatches', 'hidden.volumes'];
+export const APPEND = ['ledger', 'hearsay', 'daybook', 'dossier', 'hidden.canon', 'hidden.dispatches', 'hidden.volumes'];
 const appendPath = p => APPEND.includes(p) || p.startsWith('hidden.memory.');
 // per-turn things: when a reply leaves them out, they are cleared rather than carried into the next turn
 const PER_TURN_LISTS = ['reports', 'overheard', 'whereabouts', 'gazette'], PER_TURN_HIDDEN = ['decisions', 'fortune_used'], PER_TURN_NULL = ['decision', 'scene', 'staffBriefing'];
@@ -306,6 +306,10 @@ function checkDesk(ch, prev, castIds, fixes, warns) {
     if (!h.source) warns.push('What is said of the player (“' + h.said.slice(0, 40) + '…”) does not say who told them (source).');
     if (h.teller && !castIds.has(h.teller)) { fixes.push('“' + h.said.slice(0, 40) + '…” was told by "' + h.teller + '", who is not among the people of the campaign; the teller was left out.'); delete h.teller; }
     h.date = inTurn(h.date, prev, ch); return true; });
+  // the secretary's notes on people: what reached the player of someone this turn; the page keeps every note, the packet none
+  list('dossier', n => { if (!isObj(n) || typeof n.note !== 'string' || !n.note.trim()) { fixes.push('A note on someone (dossier) without "note" was left out.'); return false; }
+    if (!castIds.has(n.who)) { fixes.push('A note on "' + n.who + '", who is not among the people of the campaign, was left out.'); return false; }
+    n.date = inTurn(n.date, prev, ch); return true; });
   list('daybook', e => { if (!isObj(e) || typeof e.entry !== 'string' || !e.entry.trim()) { fixes.push('A day-book entry without "entry" was left out.'); return false; }
     e.date = inTurn(e.date, prev, ch); if (e.letters != null) { const ids = new Set((ch.reports || []).map(r => r && r.id)), ls = Array.isArray(e.letters) ? e.letters : [];
       const bad = ls.filter(id => !ids.has(id)); if (bad.length) fixes.push('A day-book entry named letters not in this turn (' + bad.join(', ') + '); they were left out.'); e.letters = ls.filter(id => ids.has(id)); } return true; });
@@ -402,6 +406,7 @@ export function liveState(state) {
     if (n < h.canon.length) { h.canonNote = 'The latest ' + n + ' settled facts' + older(n, h.canon.length) + '; the page checks every reply against all of them.'; h.canon = h.canon.slice(-n); } }
   if (Array.isArray(s.daybook) && s.daybook.length > KEEP.daybook) s.daybook = s.daybook.slice(-KEEP.daybook);
   delete s.instructions; // they go in their own section of the packet
+  delete s.dossier; // the secretary's notes on people are the page's: each turn adds only what reached the player
   if (Array.isArray(s.hearsay) && s.hearsay.length > KEEP.hearsay) s.hearsay = s.hearsay.slice(-KEEP.hearsay);
   if (Array.isArray(s.undertakings)) s.undertakings = s.undertakings.map(u => { const { history, ...rest } = u; return rest; }); // the page keeps the stages they went through
   if (Array.isArray(h.dispatches) && h.dispatches.length > KEEP.dispatches) h.dispatches = h.dispatches.slice(-KEEP.dispatches);
@@ -439,7 +444,7 @@ Return ONE JSON object (a fenced json block is fine). The page reads only that o
 - Never change: ${PLAYER_KEYS.join(', ')}.
 - Player-facing text holds only what the character could know. Keep ids stable.
 - Optional, give only when they apply: gazette (the Diarium issues of this turn), movements (forces on the move as the player has heard of them, drawn on their map: {"id","label","side":"habsburg"|"prussia"|"bavaria"|"saxony"|"france","status":"confirmed"|"reported"|"rumour","reported":"YYYY-MM-DD","source","claim","pts":[[lat,lon],[lat,lon],…]} from where they were to where they are said to go; change one by id as news comes), weather (only the days it changes; each day keeps the last weather given), overheard, whereabouts, decision (only a real fork), scene (when the player meets someone in person — an audience, a Council they sit in, a visitor at their bed — the meeting that mattered most this turn: {"id","title","date":"YYYY-MM-DD" (the day of the meeting),"setting","participants":[{"id","name"}],"lines":[{"who","text"}]; the player’s part goes as narration (who "Narration") or in the words of their orders (who "player"),"commitments":["…"],"status":"closed"}).
-- Shapes for these are in the contract ("Your staff explain", "Your desk", "Instructions to the secretary") and the skeleton: staffBriefing; "guidance" on a letter, staffBriefing or decision option; "follows" on a letter; option "ifWait" and decision.debate; undertakings, calendar, audiences (by id); hearsay, daybook (only grow); "handled" on a letter; a scene answering a prepared audience carries "re".
+- Shapes for these are in the contract ("Your staff explain", "Your desk", "Instructions to the secretary") and the skeleton: staffBriefing; "guidance" on a letter, staffBriefing or decision option; "follows" on a letter; option "ifWait" and decision.debate; undertakings, calendar, audiences (by id); hearsay, daybook, dossier (only grow); "handled" on a letter; a scene answering a prepared audience carries "re".
 - Illness: player.health says how the player is at the end of the turn. player.abed {"from","to"} gives the days the player keeps to their bed (leave out "to" if they are still abed); without it, "ill" or "gravely ill" keeps them abed the whole turn. While abed, those whereabouts put with them that day come to their bedside, with their household; anyone else is reached by a note. They cannot inspect, ride out or attend the Conference.
 - A journey: give player.locationId where the player ends the turn, and player.route [{"date","place"}] (place a location id or "road") if they stop anywhere or arrive on a day other than the distance implies. Without a route they are on the road from the first day of the turn and arrives after the usual days for the distance.
 - A battle account (a report with "battle": true) needs battleDemo for that battle. The same battle (same id): move or remove its units by id. A new battle takes a new id and replaces the whole field: give id, title, place, center [lat, lon], date, ground and every unit of both sides ({"id","side":"A" the player’s | "B" the enemy,"type":${Object.keys(TROOPS).map(k => '"' + k + '"').join('|')},"name","e","n","facing"}, metres east and north of center, within ±${FIELD.w / 2} and ±${FIELD.h / 2}; facing in degrees, 0 = north). For a battle outside this campaign, write an ordinary letter instead.
@@ -454,6 +459,7 @@ Skeleton (fill it from the story; leave out what did not change):
  "undertakings":[{"id":"…","title":"…","stage":"…","waiting":"…","obstacle":"…","status":"in hand","updated":"YYYY-MM-DD","re":["T${t0}-1"]}],
  "daybook":[{"date":"YYYY-MM-DD","entry":"…","letters":["t${n}-2"]}],
  "hearsay":[{"said":"…","source":"…","teller":"…","date":"YYYY-MM-DD","place":"…"}],
+ "dossier":[{"who":"…","date":"YYYY-MM-DD","note":"…"}],
  "calendar":[{"id":"…","date":"YYYY-MM-DD","what":"…","certainty":"expected","source":"…","noted":"YYYY-MM-DD"}],
  "audiences":[{"id":"…","with":["…"],"date":"YYYY-MM-DD","place":"…","title":"…","purpose":"…","status":"expected"}],
  "staffBriefing":{"dated":"YYYY-MM-DD","changed":"…","stakes":"…","attention":"…","letters":["t${n}-1"],"places":["…"]},
