@@ -8,6 +8,7 @@ import { choose, choiceFor, trustOf, setTrust, book, earlierDecisions } from './
 import { sceneLines, pendingOrders, QUESTIONS, MANNERS } from './turn.js';
 import { personOf } from './people.js';
 import { peopleFiles } from './dossier.js';
+import { agenda } from './agenda.js';
 const $ = id => document.getElementById(id);
 const ARCHIVE_KEY = 'cabinet-of-war:w3d-archive', CIPHER_KEY = 'cabinet-of-war:w3d-cipher', HEARD_KEY = 'cabinet-of-war:w3d-overheard', FAIR_KEY = 'cabinet-of-war:w3d-fair';
 const SEEN_KEY = 'cabinet-of-war:w3d-seen-people';
@@ -51,6 +52,8 @@ export function createShell({ act, onSeal, clock }) {
     <div class="sh-sh-hd"><div><div class="eyebrow" id="sh-sheet-eyebrow"></div><h2>The day’s dispatch</h2></div><button class="sh-x" id="sh-sheet-x" aria-label="Close the dispatch">✕</button></div>
     <div class="sh-sh-grid">
       <div class="sh-sh-main" id="sh-sh-main">
+        <section class="sh-agenda" id="sh-agenda" aria-label="Before you seal"></section>
+        <div class="eyebrow sh-items-h">Your orders</div>
         <ol class="sh-items" id="sh-items"></ol>
         <label class="sh-own-l" for="sh-own">In your own words</label>
         <textarea id="sh-own" rows="6" placeholder="Anything else, as you would say it to your secretary."></textarea>
@@ -171,6 +174,7 @@ export function createShell({ act, onSeal, clock }) {
   function renderSheet() {
     const S = state, w = W(), here = travel.here(), hl = loc(here);
     $('sh-sheet-eyebrow').textContent = 'Written at ' + locName(here) + ' · ' + fmtDate(shownDate()) + ' · turn ' + S.turn + (travel.get() ? ' · you set out for ' + locName(travel.get().to) + ' when it is sealed' : '');
+    renderAgenda();
     const ol = $('sh-items'); ol.replaceChildren();
     for (const it of w.items) {
       const li = el('li'), head = el('div', 'sh-it-h'), c = cast(it.to);
@@ -566,6 +570,34 @@ export function createShell({ act, onSeal, clock }) {
     for (const [k, title] of [['staff', 'What your staff know'], ['army', 'The army and its courses'], ['scene', 'Conversations on record'], ['record', 'The record · save and load']]) {
       const n = paneNodes[k][0]; if (!n || (k === 'scene' && !state.scene)) continue; const d = el('details', 'sh-nb-more'); d.append(el('summary', null, title), n); n.hidden = false; d.open = open === k; nb.append(d); if (open === k) setTimeout(() => d.scrollIntoView({ block: 'start' }), 30); }
     $('sh-notebook').hidden = false; syncVeil();
+  }
+
+  /* ---------- before you seal: everything awaiting your ruling (w3d/agenda.js) ---------- */
+  function agendaNow() {
+    const names = Object.fromEntries((state.cast || []).map(c => [c.id, c.name]));
+    const papers = letters().map(r => readable(r) ? r : { ...r, asks: null, title: 'A letter in cipher' });
+    return agenda({ letters: papers, acted: acted(), chose: id => { const c = choiceFor(id); return c ? c.label : null; }, decision: state.decision, option: draft.option,
+      undertakings: undertakings().map(u => ({ id: u.id, title: u.title, stage: u.shown.stage, status: u.shown.status })), audiences: state.audiences || [],
+      briefs: W().items.filter(i => i.kind === 'brief' && i.aud).map(i => i.aud), names, today: today() });
+  }
+  window.__w3dAgenda = agendaNow; // the packet tells the adjudicator what was left undecided
+  const MARK = { open: '○', decided: '✓', aside: '–' };
+  function renderAgenda() {
+    const box = $('sh-agenda'), items = agendaNow(), open = items.filter(x => x.state === 'open'); box.replaceChildren();
+    const h = el('div', 'sh-ag-h'); h.append(el('div', 'eyebrow', 'Before you seal'), el('span', 'sh-ag-n', open.length ? open.length + (open.length === 1 ? ' matter awaits' : ' matters await') + ' your decision' : 'Nothing awaits your decision')); box.append(h);
+    const br = briefingLetter(); if (br && br.arrives <= today() && br.b && br.b.attention) box.append(el('p', 'sh-ag-sec', 'Your secretary: ' + br.b.attention));
+    const ul = el('ul', 'sh-ag'); box.append(ul);
+    for (const x of items) { const li = el('li', 'st-' + x.state + ' k-' + x.kind);
+      li.append(el('span', 'sh-ag-m', MARK[x.state]));
+      const t = el('div', 'sh-ag-t'); t.append(el('b', null, x.ask || ('“' + x.title + '” — not yet answered')));
+      t.append(el('small', null, [x.kind === 'urgent' ? 'Urgent' : null, x.from, x.ask && x.kind !== 'council' && x.kind !== 'stalled' ? '“' + x.title + '”' : x.kind === 'council' ? x.title : null, x.date ? short(x.date) : null, x.how].filter(Boolean).join(' · ')));
+      li.append(t);
+      const go = el('button', null, x.state === 'open' ? ({ urgent: 'Answer now', council: 'Read their counsel', stalled: 'Give orders', audience: 'Prepare' }[x.kind] || 'Read and answer') : 'Look again');
+      go.onclick = () => { if (x.kind === 'council') return showPanel('council'); if (x.kind === 'stalled') { const u = undertakings().find(v => v.id === x.id); return u && orderOn(u); }
+        if (x.kind === 'audience') { const a = (state.audiences || []).find(v => v.id === x.id); return a && showBrief(a); } showLetters(x.id); };
+      li.append(go); ul.append(li); }
+    if (!items.length) ul.append(el('li', 'sh-empty', 'No letter has put a question to you yet.'));
+    if (open.length) box.append(el('p', 'sh-hint sh-ag-foot', 'What you leave undecided does not wait for you: those who asked act on their own judgement, or go to someone else.'));
   }
 
   /* ---------- the people you know: one file a person, only what has reached you (w3d/dossier.js) ---------- */

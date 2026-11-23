@@ -518,6 +518,26 @@ body:not(.w3d-sick) .w3d-bedside{display:none}
 .sh-hs-t button{padding:3px 9px;font-size:13px}
 .sh-hs-t button.on{border-color:var(--bone-2);background:var(--glass-3)}
 .sh-hs-more summary{cursor:pointer;font:italic 14px var(--read);color:var(--bone-3);padding:8px 0}
+/* before you seal: what awaits your decision */
+.sh-agenda{margin:0 0 18px;padding:12px 14px 6px;border:1px solid var(--edge);border-radius:10px;background:var(--glass-2)}
+.sh-ag-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px}
+.sh-ag-n{font:italic 14px var(--read);color:var(--bone-2)}
+.sh-ag-sec{font:italic 15px/1.5 var(--read);color:var(--bone-2);margin:6px 0}
+.sh-ag{list-style:none;margin:6px 0 0;padding:0}
+.sh-ag li{display:grid;grid-template-columns:18px 1fr auto;gap:2px 10px;align-items:start;padding:9px 0;border-top:1px solid var(--edge)}
+.sh-ag li.sh-empty{display:block;font:italic 14px var(--read);color:var(--bone-3)}
+.sh-ag-m{font:15px var(--display);color:var(--bone-3);padding-top:1px}
+.sh-ag li.st-open .sh-ag-m{color:var(--wax-hi)}
+.sh-ag li.k-urgent.st-open .sh-ag-t b{color:var(--wax-hi)}
+.sh-ag-t b{display:block;font:400 16px/1.45 var(--read);color:var(--bone)}
+.sh-ag-t small{display:block;font:italic 13px var(--read);color:var(--bone-3);margin-top:2px}
+.sh-ag li.st-decided .sh-ag-t b,.sh-ag li.st-aside .sh-ag-t b{color:var(--bone-3)}
+.sh-ag button{background:none;border:1px solid var(--edge-2);color:var(--bone);border-radius:8px;padding:4px 10px;cursor:pointer;font:13px var(--read);white-space:nowrap}
+.sh-ag button:hover{background:var(--glass-3)}
+.sh-ag li.st-open button{border-color:var(--wax)}
+.sh-ag-foot{font-size:13px!important;margin:4px 0 6px!important}
+.sh-items-h{margin:0 0 4px}
+@media(max-width:640px){.sh-ag li{grid-template-columns:18px 1fr}.sh-ag button{grid-column:2;justify-self:start}}
 /* the people you know: one file a person */
 .sh-pp{border-bottom:1px solid var(--edge)}
 .sh-pp:first-of-type{border-top:1px solid var(--edge)}
