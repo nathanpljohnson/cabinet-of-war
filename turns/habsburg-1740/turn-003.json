@@ -1,0 +1,944 @@
+{
+ "kind": "turn",
+ "schemaVersion": 3,
+ "campaignId": "habsburg-1740",
+ "turn": 3,
+ "parentTurn": 2,
+ "seal": "f6da48d8f8c836c6",
+ "dispatch": "7049cee67d",
+ "changes": {
+  "date": "1740-10-30",
+  "title": "Little now, more later",
+  "briefing": "Sunday, the eve of the Conference. Lenz will lend thirty thousand florins at once, but only on your own note of hand until Her Majesty signs, and he wants the whole bond for his house. Diego d'Aguilar, who farms the tobacco, came to your house on Saturday. His advice: borrow little and short from the town, keep the tobacco out of Lenz's bond, and let him advance a year of his tobacco rent at six in the hundred. He will ask Amsterdam what the great houses would lend. Wallis's returns came early. The quartermaster has the regiments drawn up by name for Monday. The President has sent his own opinion up to Her Majesty, by Count Sinzendorf's hand.",
+  "player": {
+   "locationId": "vienna",
+   "mode": "court",
+   "health": "well"
+  },
+  "reports": [
+   {
+    "id": "t3-1",
+    "from_id": "banker_lenz",
+    "place": "vienna",
+    "dated": "1740-10-28",
+    "arrives": "1740-10-28",
+    "via": "by hand",
+    "source": "Lenz's own clerk, to your secretary",
+    "category": "money",
+    "title": "A little now",
+    "claim": "invention",
+    "asks": "Do you sign your own note of hand for thirty thousand florins now, to be taken up into Her Majesty's bond with Lenz's house?",
+    "text": "Sir. Your secretary asks for a little now and the rest when Her Majesty has signed. I can do it. Thirty thousand florins, in coin, tomorrow if you wish, for one month at eight in the hundred. Until Her Majesty's signature stands on a bond I lend to the man I can see, so the note must be in Your Excellency's own hand and name. When the bond is signed the note is taken up into it and returned to you cancelled. I ask one thing for it: that the bond, when it comes, comes to my house and the two I named, and not to be shopped about the town on the strength of my thirty thousand. That is not a condition, sir; it is only how I should be able to do it again. My offer stands until the Conference rises. Your servant, Lenz.",
+    "guidance": {
+     "known": "Thirty thousand florins at once, one month, eight in the hundred, on your own signature; to be folded into a royal bond with Lenz and two other houses.",
+     "suspected": "The note binds you, not the Crown. If Her Majesty chooses the Banco or another lender, the note stays yours to pay.",
+     "stakes": "Your household runs on credit until Martinmas. A note of thirty thousand in your name would be known to your creditors in the town within the month.",
+     "explain": "A banker who lends ahead of a sovereign's signature takes a private surety. Thirty thousand is under a month's pay for the Silesian garrisons at the rates on the books."
+    }
+   },
+   {
+    "id": "t3-2",
+    "from_id": "paymaster",
+    "place": "vienna",
+    "dated": "1740-10-28",
+    "arrives": "1740-10-28",
+    "via": "by hand",
+    "source": "the War Pay Office's books",
+    "category": "money",
+    "title": "Arrears, by command",
+    "claim": "invention",
+    "text": "In answer to the Vice-President's request of the 22nd. The Office pays against assignments on the provinces; where an assignment is not collected, the Office has paid nothing and is not answerable. The enclosed shows the arrears by command as the books stand on the 27th. A month's pay for the garrisons of Silesia, at the rates on the books, officers included, runs to between thirty-five and forty thousand florins. The Office holds at present nothing unassigned.",
+    "enclosure": {
+     "kind": "return",
+     "title": "Pay owed, by command, as the books stand 27 October",
+     "rows": [
+      [
+       "Garrisons of Silesia",
+       "five months"
+      ],
+      [
+       "Regiments in Moravia",
+       "three months"
+      ],
+      [
+       "Regiments in Bohemia",
+       "three months"
+      ],
+      [
+       "Regiments in Hungary",
+       "four months"
+      ],
+      [
+       "A month's pay, Silesia",
+       "35,000–40,000 fl"
+      ],
+      [
+       "Unassigned in the chest",
+       "none"
+      ]
+     ],
+     "note": "Months owed to the men; officers' pay is further behind and not shown."
+    },
+    "guidance": {
+     "known": "The Silesian garrisons are owed five months. The Office holds no free money.",
+     "stakes": "Any first money for Silesia goes first to arrears, before a single recruit is bought.",
+     "explain": "Arrears are paid down before new levies; men unpaid five months in a frontier town desert across the frontier."
+    }
+   },
+   {
+    "id": "t3-3",
+    "from_id": "wallis",
+    "place": "glogau",
+    "dated": "1740-10-26",
+    "arrives": "1740-10-29",
+    "via": "express courier",
+    "source": "Wallis's own returns, and what Glogau merchants say of Crossen",
+    "category": "army",
+    "title": "Returns from Glogau",
+    "claim": "invention",
+    "re": [
+     "T0-0"
+    ],
+    "text": "Your Excellency's rider reached me on the 25th. Here is what I have. At Glogau some eleven hundred on the rolls, about nine hundred under arms. Guns enough, carriages rotten. Powder for a short siege, not a long one. Bread to Christmas if nobody else comes to eat it. Brieg and Neisse report the same in other words: the works fallen in where the frost took them last winter, and no money to dig. Breslau holds to its privilege and will take no garrison of ours inside its walls; the town guard keeps the gates. Across the border: nothing moves at Crossen. The merchants say the King is at Rheinsberg with a fever and the regiments in their quarters. I believe them because they have nothing to sell me. I have no money and no orders but to hold, and I am holding. Wallis.",
+    "enclosure": {
+     "kind": "return",
+     "title": "Silesia, men under arms, about 25 October",
+     "rows": [
+      [
+       "Glogau",
+       "about 900 of 1,100"
+      ],
+      [
+       "Brieg",
+       "about 700"
+      ],
+      [
+       "Neisse",
+       "about 900"
+      ],
+      [
+       "Breslau",
+       "no garrison; town guard only"
+      ],
+      [
+       "Other posts and Glatz apart",
+       "about 1,100"
+      ]
+     ],
+     "note": "Under arms, not on the rolls. Wallis's own count."
+    },
+    "sketch": {
+     "title": "The Silesian posts",
+     "places": [
+      "f-glogau",
+      "f-brieg",
+      "f-neisse",
+      "f-breslau",
+      "f-glatz"
+     ]
+    },
+    "guidance": {
+     "known": "About 3,600 under arms in Silesia, as before. Breslau refuses a garrison. Nothing seen at Crossen.",
+     "suspected": "Merchants see what is on the road, not what is ordered in Berlin.",
+     "stakes": "Your figures for Monday hold. Silesia is held by men five months unpaid.",
+     "explain": "Breslau's right to keep out an imperial garrison is an old privilege; the town will defend it against Vienna as stoutly as against anyone."
+    }
+   },
+   {
+    "id": "t3-4",
+    "from_id": "starhemberg",
+    "place": "vienna",
+    "dated": "1740-10-29",
+    "arrives": "1740-10-29",
+    "via": "by hand",
+    "source": "Count Starhemberg",
+    "category": "money",
+    "title": "Monday",
+    "claim": "invention",
+    "text": "Count. Your secretary asks what the Banco can find, and when. You will hear my terms with Her Majesty on Monday, and not before; that is what she asked of me. I will tell you only this, which is no secret. After the homage and the vote the Banco can advance against the grant at five in the hundred, for as long as the grant runs, and it will not ask for a revenue it does not already hold. It cannot advance before. Everything you borrow before then, you borrow dearer. Starhemberg.",
+    "guidance": {
+     "known": "The Banco: five in the hundred, long, after the homage and the vote; nothing before.",
+     "disputed": "Starhemberg and the bankers differ on whether Silesia can wait for the homage.",
+     "explain": "The Banco lends on revenues already assigned to it; it is cheap because it is safe, and slow for the same reason."
+    }
+   },
+   {
+    "id": "t3-5",
+    "from_id": "quartermaster",
+    "place": "vienna",
+    "dated": "1740-10-30",
+    "arrives": "1740-10-30",
+    "via": "by hand",
+    "source": "the commandants' returns from Olmütz, Glatz and Prague, and the quartermaster's office",
+    "category": "army",
+    "title": "The regiments for Silesia",
+    "claim": "invention",
+    "follows": [
+     "M3"
+    ],
+    "text": "For Your Excellency's paper to Her Majesty on Monday. The commandants at Olmütz and Glatz answered by the 29th; Prague's return came this morning. The list below gives the regiments that could march for Silesia this winter, by their stations, with the men the commandants count present and not the rolls. The fair copy for Her Majesty names each regiment by its proprietor and is ready for your signature. The roads are reckoned for a winter march, by regiments, without waiting on one another. Horses are short everywhere; the horse would march with half its men dismounted.",
+    "enclosure": {
+     "kind": "return",
+     "title": "Regiments that could march for Silesia, men present",
+     "rows": [
+      [
+       "Moravia: two regiments of foot",
+       "about 3,100 present of 4,600"
+      ],
+      [
+       "Moravia: one regiment of horse",
+       "about 600 men, 450 horses fit"
+      ],
+      [
+       "Bohemia: three regiments of foot",
+       "about 4,200 present of 6,900"
+      ],
+      [
+       "Bohemia: one regiment of dragoons",
+       "about 700 men"
+      ],
+      [
+       "Hungary: two regiments of foot",
+       "about 2,800 present of 4,600"
+      ],
+      [
+       "Road, Olmütz to Neisse by Jägerndorf",
+       "eight to ten marching days"
+      ],
+      [
+       "Road, Prague to Glatz by Königgrätz",
+       "ten to twelve marching days"
+      ],
+      [
+       "Road, Hungary to Neisse by the Jablunka",
+       "about three weeks"
+      ]
+     ],
+     "note": "About 11,400 men present, if every regiment marched. None will march unpaid."
+    },
+    "guidance": {
+     "known": "About eleven thousand men present could march, the Moravians first.",
+     "suspected": "Present on the commandants' count; the regiments will lose men on a winter road.",
+     "stakes": "This is the promise you made Her Majesty for Monday, kept.",
+     "explain": "Regiments march by stations and arrive one at a time; a field force for Silesia gathers at Neisse or not at all."
+    }
+   },
+   {
+    "id": "t3-6",
+    "from_id": "bartenstein",
+    "place": "vienna",
+    "dated": "1740-10-30",
+    "arrives": "1740-10-30",
+    "via": "by hand",
+    "source": "Bartenstein, from the Conference secretariat",
+    "category": "court",
+    "title": "The President has written",
+    "claim": "invention",
+    "text": "Your Excellency. The President of the War Council sent up to Her Majesty yesterday, by the hand of Count Sinzendorf, his own opinion on the orders in his chancery: that no regiment be told to march, nor even to stand ready, until the Conference has fixed the money; and that orders of the War Council issue from the Council and not from any member of it. Count Sinzendorf added a note in the margin, which I have not read and can guess. Her Majesty has both papers. Come on Monday with your regiments and your money and with no grievance. Let the President carry his own; it is heavier than yours. Bartenstein.",
+    "guidance": {
+     "known": "Harrach's opinion reached the Queen on the 29th through Sinzendorf.",
+     "suspected": "Sinzendorf's margin argues for waiting and for the forms.",
+     "stakes": "On Monday you will be answered on authority as well as on Silesia.",
+     "explain": "An opinion carried by a Conference minister reaches the ruler as that minister's too."
+    }
+   },
+   {
+    "id": "t3-7",
+    "from_id": "secretary",
+    "place": "vienna",
+    "dated": "1740-10-30",
+    "arrives": "1740-10-30",
+    "via": "by hand",
+    "source": "your secretary",
+    "category": "court",
+    "title": "Envoys and the antechambers",
+    "claim": "invention",
+    "text": "Fact: Lenz's offer is answered by Your Excellency or by no one; I have told his clerk only that it is before you. Fact: on Your Excellency's order I accepted, as a question and without commitment, Don Diego d'Aguilar's offer to write to his correspondents at Amsterdam; his letter went by the post of the 29th. Report: Count Perusa, the Bavarian envoy, has asked for no audience since the condolences; his people say he waits for a courier from Munich. Fact: the envoys of the other courts have been received only for their condolences. Rumour, from the Hofkriegsrat chancery: the President will ask on Monday that all orders to regiments be sent through the Council's register before they leave Vienna."
+   },
+   {
+    "id": "t3-8",
+    "from_id": "countess_khevenhuller",
+    "place": "vienna",
+    "dated": "1740-10-30",
+    "arrives": "1740-10-30",
+    "via": "by hand",
+    "source": "the Countess",
+    "category": "family",
+    "title": "Half a Sunday",
+    "claim": "invention",
+    "text": "You were at home today, and in the study. The girls have agreed between them to count it as half. Maria Antonia asks who the gentleman in black was on Saturday and whether he is very rich. I said he is very polite. I will send up supper at nine whether you ask for it or not. P."
+   }
+  ],
+  "scene": {
+   "id": "sc-1029",
+   "title": "The tobacco and the town",
+   "date": "1740-10-29",
+   "setting": "Your study in the house in the city, a little after three on a clear, hard-frozen afternoon. Don Diego d'Aguilar, in black, sits with his hat on his knee; your secretary stands by the door with his book.",
+   "participants": [
+    {
+     "id": "d_aguilar",
+     "name": "Don Diego d'Aguilar"
+    },
+    {
+     "id": "secretary",
+     "name": "Your secretary"
+    }
+   ],
+   "lines": [
+    {
+     "who": "Narration",
+     "text": "You ask his opinion on the money for Silesia, as your orders put it: a little from the town's bankers now, the great houses later, and which course serves best over the year."
+    },
+    {
+     "who": "d_aguilar",
+     "text": "Borrow from the town now, Excellency, by all means. Borrow little and borrow short. The town lends quickly because it lends dear, and it is dear because it sees the north as well as you do."
+    },
+    {
+     "who": "d_aguilar",
+     "text": "Do not give them the tobacco. The tobacco is not the Crown's to pledge this year. It is farmed to me by contract; the Crown has only my rent. If the Crown pledges my rent to Lenz, I pay Lenz, and Lenz knows to the florin what I pay, and so, within the week, does the town."
+    },
+    {
+     "who": "d_aguilar",
+     "text": "The Banco is cheapest and slowest. The Estates vote after the homage, and the homage is weeks away. The English pay subsidies for wars they are in, not for wars they fear. You may knock, as Herr Bartenstein says. Do not wait at the door."
+    },
+    {
+     "who": "d_aguilar",
+     "text": "If Your Excellency wants a longer road than Lenz's month, I could advance a year of my rent, anticipated, at six in the hundred, for twelve months. Not in a fortnight; in three weeks, because the coin is at Amsterdam and must come by bill."
+    },
+    {
+     "who": "Narration",
+     "text": "You hear him out without answering. He turns his hat once on his knee."
+    },
+    {
+     "who": "d_aguilar",
+     "text": "I want what every man wants who lends to a new reign: to be remembered as the first. My contract will come before Her Majesty's ministers in its time. I ask nothing now. I should be glad to think Your Excellency knew my name when they did."
+    },
+    {
+     "who": "d_aguilar",
+     "text": "I have correspondents at Amsterdam. If you wish it, I will ask them, as a question and not a promise, what the great houses there would lend Her Majesty and against what. A month, there and back."
+    },
+    {
+     "who": "Narration",
+     "text": "Your secretary, at the door, writes it down as a question, and Don Diego bows."
+    },
+    {
+     "who": "d_aguilar",
+     "text": "One thing more. If the news from the north turns bad, Lenz's terms will turn. Mine will turn too; I am not a saint, only a slower man. Take what you need before then."
+    }
+   ],
+   "commitments": [
+    "Don Diego d'Aguilar will write to his correspondents at Amsterdam, as a question and not a promise, on what the great houses would lend Her Majesty.",
+    "Don Diego d'Aguilar offers to advance a year of his tobacco rent at six in the hundred for twelve months, the coin in about three weeks; nothing was promised him."
+   ],
+   "status": "closed"
+  },
+  "decision": {
+   "id": "d4",
+   "title": "The money to press at the Conference",
+   "options": [
+    {
+     "id": "o1",
+     "by": "banker_lenz",
+     "title": "Lenz now, and the bond to his house",
+     "objective": "Coin for the Silesian arrears this week, and two to three hundred thousand within the fortnight.",
+     "reasoning": "Speed. Silesia is owed five months, and the north is quiet only for now.",
+     "needs": "Your own note for thirty thousand at once; Her Majesty's signature on a bond at eight in the hundred, six months, against the Bohemian contribution or the salt.",
+     "risks": "Dear and short; renewal at the bankers' discretion, and worse terms if the north turns bad. The revenue named is lost to the Estates. Your note is yours if Her Majesty chooses otherwise.",
+     "ifWait": "Lenz's offer lapses when the Conference rises; the terms after any bad news from the north will be worse.",
+     "guidance": {
+      "known": "Lenz's terms are in writing.",
+      "suspected": "Lenz wants the whole business for his house and will remember who shopped it."
+     }
+    },
+    {
+     "id": "o2",
+     "by": "d_aguilar",
+     "title": "The tobacco rent, a year ahead",
+     "objective": "Money for a year rather than a month, at six rather than eight.",
+     "reasoning": "The tobacco is already collected by the man who would lend on it; nothing new is pledged and the town sees nothing.",
+     "needs": "Her Majesty's consent to anticipate the tobacco rent, which the Hofkammer will want to pass on; coin in about three weeks.",
+     "risks": "Three weeks is three weeks. Don Diego will expect to be remembered when his contract comes up, and the Hofkammer and the court do not love him.",
+     "ifWait": "The offer was made in person and without date; it will turn with the news from the north.",
+     "guidance": {
+      "known": "Offered in person on the 29th.",
+      "suspected": "What he would ask for the renewal of his contract is not yet named."
+     }
+    },
+    {
+     "id": "o3",
+     "by": "starhemberg",
+     "title": "The Banco after the homage",
+     "objective": "The cheapest and longest money the Crown can have.",
+     "reasoning": "Five in the hundred, for as long as the grant runs, and no new revenue pledged.",
+     "needs": "The Lower Austrian homage and the Estates' vote, weeks off; nothing can be advanced before.",
+     "risks": "Nothing for Silesia before the end of November at the earliest, and the Estates will name their price.",
+     "ifWait": "This is waiting.",
+     "guidance": {
+      "known": "Starhemberg's letter of the 29th.",
+      "disputed": "Whether Silesia can wait for the homage."
+     }
+    }
+   ],
+   "debate": [
+    {
+     "who": "starhemberg",
+     "text": "Everything you borrow before the vote, you borrow dearer."
+    },
+    {
+     "who": "d_aguilar",
+     "text": "Borrow little from the town and borrow short. Do not give them the tobacco."
+    },
+    {
+     "who": "banker_lenz",
+     "text": "If the news from the north should turn bad, the terms will turn with it."
+    }
+   ]
+  },
+  "staffBriefing": {
+   "dated": "1740-10-30",
+   "changed": "Lenz will lend thirty thousand now, on your own note only, and wants the whole bond. Don Diego d'Aguilar, who farms the tobacco, advised you in person and offered a year of his rent at six; he is asking Amsterdam for you. Wallis's returns came on the 29th and confirm your figures. The quartermaster's list of regiments is ready for your signature. The President's opinion went up to Her Majesty through Count Sinzendorf.",
+   "stakes": "Monday you keep your promise to Her Majesty on the regiments, and the President answers you on authority before the whole Conference. Whatever money you press for, you will be held to it; a note in your own name would be your debt, not the Crown's.",
+   "attention": "Whether to sign Lenz's note before the Conference rises. Which course of money to press on Monday. Your signature on the fair copy of the regiments.",
+   "letters": [
+    "t3-1",
+    "t3-2",
+    "t3-3",
+    "t3-4",
+    "t3-5",
+    "t3-6",
+    "t3-7",
+    "t3-8"
+   ],
+   "places": [
+    "vienna",
+    "glogau"
+   ]
+  },
+  "undertakings": [
+   {
+    "id": "u-wallis-returns",
+    "stage": "Wallis's returns came by express on the 29th: about 3,600 under arms, Breslau refusing a garrison, nothing seen at Crossen.",
+    "waiting": "Nothing.",
+    "status": "done",
+    "updated": "1740-10-29"
+   },
+   {
+    "id": "u-silesia-credit",
+    "stage": "Lenz will advance thirty thousand at once on your own note; Don Diego d'Aguilar offers a year of the tobacco rent at six, in three weeks; Starhemberg brings the Banco's terms on Monday.",
+    "waiting": "Your choice, then Her Majesty's at the Conference.",
+    "obstacle": "Lenz wants the whole bond; the Banco will lend nothing before the homage.",
+    "status": "in hand",
+    "updated": "1740-10-30",
+    "re": [
+     "T1-0",
+     "T2-0"
+    ]
+   },
+   {
+    "id": "u-regiment-orders",
+    "stage": "Your orders still lie unsigned; the President sent his own opinion against them to Her Majesty on the 29th.",
+    "waiting": "Her Majesty's resolution at the Conference.",
+    "obstacle": "President Harrach, now with Count Sinzendorf.",
+    "status": "stalled",
+    "updated": "1740-10-30"
+   },
+   {
+    "id": "u-regiment-list",
+    "title": "The regiments for Silesia, by name",
+    "stage": "The quartermaster's list is drawn from the commandants' returns: about 11,400 present in Moravia, Bohemia and Hungary, with their roads. The fair copy waits for your signature.",
+    "waiting": "Your signature, and the Conference on Monday.",
+    "obstacle": "None will march unpaid.",
+    "status": "in hand",
+    "updated": "1740-10-30",
+    "due": "1740-10-31",
+    "re": [
+     "T1-0"
+    ],
+    "started": "1740-10-27"
+   },
+   {
+    "id": "u-amsterdam",
+    "title": "What Amsterdam would lend",
+    "stage": "Don Diego d'Aguilar wrote to his correspondents at Amsterdam on the 29th, as a question and not a promise.",
+    "waiting": "Their answer, about a month there and back.",
+    "obstacle": "Distance, and the news from the north.",
+    "status": "in hand",
+    "updated": "1740-10-30",
+    "due": "1740-11-28",
+    "re": [
+     "T2-0"
+    ],
+    "started": "1740-10-29"
+   }
+  ],
+  "daybook": [
+   {
+    "date": "1740-10-30",
+    "entry": "Told Lenz's clerk his offer is before His Excellency; nothing given.",
+    "letters": [
+     "t3-1"
+    ]
+   }
+  ],
+  "hearsay": [
+   {
+    "said": "In the War Council they say the President has written to the Queen, and the Vice-President is to be taught the forms on Monday.",
+    "source": "your secretary, from the Hofkriegsrat chancery",
+    "teller": "secretary",
+    "date": "1740-10-30",
+    "place": "vienna"
+   },
+   {
+    "said": "The Vice-President will get his regiments by name. Names cost nothing; it is the marching that costs.",
+    "source": "your steward, from a lackey in the Chancery yard",
+    "teller": "steward",
+    "date": "1740-10-29",
+    "place": "vienna"
+   }
+  ],
+  "dossier": [
+   {
+    "who": "d_aguilar",
+    "date": "1740-10-29",
+    "note": "Don Diego d'Aguilar, who farms the tobacco, called at your house on the 29th at your invitation. Fact: he advised borrowing little and short from the town and keeping the tobacco out of any bond, offered a year of his rent at six in the hundred, and is asking Amsterdam for you. He asked nothing, but said he would be glad if you knew his name when his contract comes up."
+   },
+   {
+    "who": "banker_lenz",
+    "date": "1740-10-28",
+    "note": "Fact: Lenz will lend thirty thousand florins at once for a month at eight, on your own note of hand, to be folded into Her Majesty's bond; he wants the bond for his house and the two he named. The offer stands until the Conference rises."
+   },
+   {
+    "who": "wallis",
+    "date": "1740-10-29",
+    "note": "Fact: Wallis's express returns of the 26th: about 900 under arms at Glogau, the works fallen in at Brieg and Neisse, Breslau refusing a garrison, nothing moving at Crossen."
+   },
+   {
+    "who": "starhemberg",
+    "date": "1740-10-29",
+    "note": "Fact: Starhemberg will give his terms only to Her Majesty on Monday; the Banco can lend at five after the homage and the vote, and nothing before."
+   },
+   {
+    "who": "harrach_joseph",
+    "date": "1740-10-30",
+    "note": "Report, from Bartenstein: the President sent his own opinion against your orders to Her Majesty on the 29th, through Count Sinzendorf."
+   },
+   {
+    "who": "paymaster",
+    "date": "1740-10-28",
+    "note": "Fact: the War Pay Office counts five months owed in Silesia and holds nothing unassigned."
+   },
+   {
+    "who": "quartermaster",
+    "date": "1740-10-30",
+    "note": "Fact: the quartermaster's office drew the list of regiments for Silesia, about 11,400 present, ready for your signature."
+   },
+   {
+    "who": "bartenstein",
+    "date": "1740-10-30",
+    "note": "Fact: Bartenstein warned you of the President's opinion and advised coming to the Conference without a grievance."
+   },
+   {
+    "who": "countess_khevenhuller",
+    "date": "1740-10-30",
+    "note": "Fact: the Countess counts Sunday the 30th, spent at home in the study, as half a Sunday; Maria Antonia asked about Saturday's visitor."
+   }
+  ],
+  "calendar": [
+   {
+    "id": "c-wallis",
+    "_remove": true
+   },
+   {
+    "id": "c-amsterdam",
+    "date": "1740-11",
+    "what": "Don Diego d'Aguilar's answer from Amsterdam, about the end of the month",
+    "certainty": "expected",
+    "source": "Don Diego d'Aguilar, in person",
+    "noted": "1740-10-29"
+   },
+   {
+    "id": "c-lenz",
+    "date": "1740-10-31",
+    "what": "Lenz's offer of thirty thousand at once lapses when the Conference rises",
+    "certainty": "fixed",
+    "source": "Lenz's letter of the 28th",
+    "noted": "1740-10-28"
+   }
+  ],
+  "audiences": [
+   {
+    "id": "a-1029",
+    "with": [
+     "d_aguilar"
+    ],
+    "date": "1740-10-29",
+    "place": "vienna",
+    "title": "The tobacco and the town",
+    "purpose": "To ask an expert in the Crown's credit which course of money serves best.",
+    "status": "held",
+    "noted": "1740-10-28"
+   },
+   {
+    "id": "a-1031",
+    "with": [
+     "maria_theresa",
+     "starhemberg",
+     "sinzendorf",
+     "harrach_joseph",
+     "harrach_alois",
+     "koenigsegg",
+     "bartenstein"
+    ],
+    "date": "1740-10-31",
+    "place": "vienna",
+    "title": "The Conference on men and money",
+    "purpose": "Her Majesty puts men and money for Silesia to the Conference herself; your regiments by name and Starhemberg's terms are due.",
+    "status": "expected",
+    "noted": "1740-10-27"
+   }
+  ],
+  "world": {
+   "tempo": "winter quarters",
+   "weather": {
+    "1740-10-28": "mist",
+    "1740-10-29": "frost"
+   },
+   "sights": {
+    "vienna": [
+     "idle_soldiers"
+    ]
+   }
+  },
+  "gazette": [
+   {
+    "date": "1740-10-29",
+    "items": [
+     {
+      "head": "Vienna",
+      "text": "The court continues in the deepest mourning for His late Imperial Majesty of most glorious memory. Her Majesty the Queen has received the condolences of the foreign ministers resident at this court, and applies herself without rest to the business of her hereditary lands."
+     },
+     {
+      "head": "Berlin, the 15th",
+      "text": "His Prussian Majesty continues at Rheinsberg, where he is said to be troubled by a fever. The troops remain in their quarters."
+     },
+     {
+      "head": "Vienna",
+      "text": "The weather has turned to frost earlier than is usual. The price of bread at the city's bakers is said to be higher than at Michaelmas."
+     }
+    ]
+   }
+  ],
+  "whereabouts": [
+   {
+    "date": "1740-10-28",
+    "place": "vienna",
+    "who": [
+     "harrach_joseph",
+     "sinzendorf"
+    ],
+    "doing": "together at the Court Chancery"
+   },
+   {
+    "date": "1740-10-29",
+    "place": "vienna",
+    "who": [
+     "d_aguilar",
+     "secretary"
+    ],
+    "doing": "at your house in the afternoon"
+   },
+   {
+    "date": "1740-10-30",
+    "place": "vienna",
+    "who": [
+     "francis_stephen",
+     "koenigsegg"
+    ],
+    "doing": "walking together after mass at the Augustinians"
+   },
+   {
+    "date": "1740-10-30",
+    "place": "vienna",
+    "who": [
+     "countess_khevenhuller"
+    ],
+    "doing": "at home with the girls"
+   }
+  ],
+  "overheard": [
+   {
+    "place": "vienna",
+    "who": [
+     "sinzendorf",
+     "harrach_joseph"
+    ],
+    "line": "Let him have his regiments by name. Names cost nothing; it is the march that costs."
+   }
+  ],
+  "cast": [
+   {
+    "id": "d_aguilar",
+    "name": "Don Diego d'Aguilar",
+    "office": "Farmer of the tobacco monopoly in the Austrian lands; lender to the Crown",
+    "place": "vienna",
+    "claim": "inference",
+    "agenda": "The renewal of his tobacco contract, protection for his house under the new reign, and to be the first lender the Queen remembers.",
+    "voice": "Grave Iberian courtesy; exact about money, frank about his own interest.",
+    "note": "Diego d'Aguilar (born Moses Lopez Pereira), lessee of the Austrian tobacco monopoly from the 1730s and lender to the Crown (standard references; dates unverified in this pass). His part here is campaign invention."
+   }
+  ],
+  "fortresses": [
+   {
+    "id": "f-glogau",
+    "garrison": "about 900 under arms of 1,100 (Wallis, 26 Oct)"
+   },
+   {
+    "id": "f-breslau",
+    "note": "Silesian capital; the town keeps out an imperial garrison by its privilege."
+   }
+  ],
+  "remarks": [
+   "Monday decides the money and tests the forms. The regiments are named; the money is not.",
+   "The President has gone up to Her Majesty with Count Sinzendorf's hand on his paper. He will speak for the Council, and the Council is old.",
+   "Lenz is honest and quick, and wants the whole business. A note in Your Excellency's own name would be talked of.",
+   "Don Diego knows the Crown's revenues better than the Hofkammer. He gave his advice for nothing and will want to be paid in remembrance.",
+   "Count Starhemberg will keep his terms for Her Majesty. He is right that waiting is cheaper; Silesia may not agree."
+  ],
+  "ledger": [
+   {
+    "date": "1740-10-28",
+    "turn": 3,
+    "text": "Lenz asked for a little now → thirty thousand florins at once, a month at eight, on your own note of hand."
+   },
+   {
+    "date": "1740-10-28",
+    "turn": 3,
+    "text": "War Pay Office's arrears → Silesia owed five months; nothing free in the chest."
+   },
+   {
+    "date": "1740-10-29",
+    "turn": 3,
+    "text": "Don Diego d'Aguilar at your house → borrow little from the town, keep the tobacco out; he offers a year of his rent at six and writes to Amsterdam."
+   },
+   {
+    "date": "1740-10-29",
+    "turn": 3,
+    "text": "Wallis's express returns → about 3,600 under arms; Breslau refuses a garrison; nothing moving at Crossen."
+   },
+   {
+    "date": "1740-10-29",
+    "turn": 3,
+    "text": "Starhemberg → the Banco at five after the homage, nothing before; terms only to Her Majesty."
+   },
+   {
+    "date": "1740-10-30",
+    "turn": 3,
+    "text": "The quartermaster's list → about 11,400 present in Moravia, Bohemia and Hungary, ready for Monday."
+   },
+   {
+    "date": "1740-10-30",
+    "turn": 3,
+    "text": "Bartenstein → the President's opinion against your orders went up to Her Majesty through Sinzendorf."
+   }
+  ],
+  "hidden": {
+   "chronicle": "Charles VI died 19–20 Oct 1740; Maria Theresa rules under the Sanction. Khevenhüller, Vice-President of the Hofkriegsrat, gave her plain Silesian figures before the first Conference (21 Oct), which notified the guarantors and fixed no money. His opinion (men and money now, on credit) went straight to the Queen on 26 Oct; his orders readying the regiments in Moravia, Bohemia and Hungary sit unsigned with President Harrach. On 27 Oct the Queen agreed to borrow in principle and will put men and money to the Conference herself on Monday 31 Oct. This turn (28–30 Oct): Lenz (invented) will advance 30,000 fl at once, one month at 8%, only on Khevenhüller's own note, and wants the whole bond (200–300,000) for his house; offer lapses when the Conference rises. Khevenhüller consulted Diego d'Aguilar, tobacco lessee, at home on 29 Oct: sound advice (borrow little and short, keep tobacco out — it is farmed to him; Banco cheapest but slow; guarantors slow), offered a year's tobacco rent anticipated at 6%, twelve months, coin in ~3 weeks via Amsterdam; wants renewal of his contract and remembrance; he wrote to Amsterdam houses on 29 Oct (answer ~late Nov). Starhemberg: Banco at 5% after homage and vote, nothing before; terms only to the Queen on Monday. Wallis's returns (26 Oct, arrived 29): ~3,600 under arms; Breslau refuses a garrison; Crossen quiet. Quartermaster list: ~11,400 present could march (Moravia first, 8–10 days to Neisse). Paymaster: Silesia owed five months; a month's pay 35–40,000 fl. Harrach sent his own opinion against the orders to the Queen through Sinzendorf on 29 Oct and will ask that all regimental orders pass the Council's register. Frederick conferred with Podewils and Schwerin at Rheinsberg (28–29 Oct) and leans to Silesia; nothing visible yet. The Queen has sent for the papers of Neipperg's Belgrade case at Francis Stephen's urging. Unresolved: the money course, Lenz's note, the President's challenge, Neipperg.",
+   "decisions": [
+    {
+     "who": "frederick",
+     "knows": "Charles VI is dead; Vienna's chest is empty and Silesia thinly held; nothing of Vienna's council.",
+     "wants": "Silesia while Vienna is weak.",
+     "decides": "Confers with Podewils and Schwerin at Rheinsberg on 28–29 Oct; leans to taking Silesia by force before negotiating. No orders to move yet."
+    },
+    {
+     "who": "harrach_joseph",
+     "knows": "Khevenhüller sent his opinion to the Queen first and left orders in his chancery; the Conference meets Monday.",
+     "wants": "The Council's forms and his own primacy.",
+     "decides": "Sends his own opinion to the Queen through Sinzendorf on 29 Oct: no marching orders before money, and orders issue from the Council. Will ask Monday that all regimental orders pass the Council's register."
+    },
+    {
+     "who": "sinzendorf",
+     "knows": "Harrach's grievance; the guarantor notifications are out; no envoy has yet reported.",
+     "wants": "Delay, diplomacy, and the Chancery's hand on foreign business.",
+     "decides": "Carries Harrach's paper to the Queen and adds a margin for waiting until the courts have answered."
+    },
+    {
+     "who": "starhemberg",
+     "knows": "The Banco's receipts are assigned; the Queen will borrow; the bankers' offer.",
+     "wants": "No war without credit, and the money through the Banco.",
+     "decides": "Brings the Queen on Monday the bankers' terms and the Banco's advance after the homage, and recommends a small bridge only."
+    },
+    {
+     "who": "banker_lenz",
+     "knows": "The Vice-President wants a little now and the rest after the Queen signs.",
+     "wants": "The whole bond for his house, against a revenue he can see collected.",
+     "decides": "Offers 30,000 fl at once on the Vice-President's own note, the bond to come to his house."
+    },
+    {
+     "who": "d_aguilar",
+     "knows": "The tobacco lease and its rent; the court's need; the Vice-President's rising favour.",
+     "wants": "Renewal of his contract and a patron at the new court.",
+     "decides": "Gives honest advice, offers a tobacco advance at 6%, and sounds Amsterdam as a favour."
+    },
+    {
+     "who": "neipperg",
+     "knows": "The Emperor is dead; Francis Stephen speaks for him.",
+     "wants": "Release and the Silesian command.",
+     "decides": "Writes to the Grand Duke offering a memorandum on the defence of Silesia."
+    },
+    {
+     "who": "francis_stephen",
+     "knows": "Neipperg's letters; Khevenhüller's silence on 21 Oct.",
+     "wants": "A place in the government and his friends restored.",
+     "decides": "Presses the Queen, with Königsegg's support, to review Neipperg's case; she sends for the Belgrade papers."
+    }
+   ],
+   "fortune_used": [
+    {
+     "roll": 22,
+     "for": "Lenz's terms for a small advance before the Queen signs",
+     "outcome": "Only on Khevenhüller's own note of hand, and he wants the whole bond for his house."
+    },
+    {
+     "roll": 85,
+     "for": "The quality and honesty of d'Aguilar's advice",
+     "outcome": "Sound and largely honest; his own interest stated openly."
+    },
+    {
+     "roll": 83,
+     "for": "Wallis's express rider on the autumn roads",
+     "outcome": "Fast: returns reached Vienna on the 29th."
+    },
+    {
+     "roll": 21,
+     "for": "How Harrach answers before the Conference",
+     "outcome": "Sends his own opinion to the Queen through Sinzendorf, who adds a margin."
+    },
+    {
+     "roll": 88,
+     "for": "Whether the Amsterdam sounding and d'Aguilar's visit reach the Banco and the town before Monday",
+     "outcome": "They stay quiet."
+    },
+    {
+     "roll": 60,
+     "for": "Francis Stephen's pressure for Neipperg",
+     "outcome": "The Queen sends for the Belgrade papers; no release yet."
+    }
+   ],
+   "canon": [
+    "On 28 October 1740 Lenz offered Khevenhüller 30,000 florins at once, one month at 8%, on Khevenhüller's own note of hand, the offer lapsing when the Conference of 31 October rises.",
+    "On 29 October 1740 Diego d'Aguilar advised Khevenhüller in person at his house and offered to advance a year of the tobacco rent at 6% for twelve months; nothing was promised him.",
+    "On 29 October 1740 d'Aguilar wrote to his correspondents at Amsterdam, at Khevenhüller's acceptance and without commitment, on what the great houses would lend Her Majesty.",
+    "Wallis's returns of 26 October 1740 reached Vienna on the 29th: about 3,600 under arms in Silesia; Breslau refuses an imperial garrison.",
+    "On 29 October 1740 President Harrach sent his own opinion against Khevenhüller's orders to Maria Theresa through Count Sinzendorf.",
+    "The quartermaster's list of regiments for Silesia (about 11,400 present) was ready for Khevenhüller's signature on 30 October 1740."
+   ],
+   "dispatches": [
+    {
+     "to": "d_aguilar",
+     "via": "by hand (the secretary), Vienna",
+     "sent": "1740-10-28",
+     "arrives": "1740-10-28",
+     "gist": "The Vice-President begs the honour of a call, to ask his opinion on the Crown's credit."
+    },
+    {
+     "to": "banker_lenz",
+     "via": "by hand (the secretary), Vienna",
+     "sent": "1740-10-28",
+     "arrives": "1740-10-28",
+     "gist": "Without commitment: could the house advance a small sum now, ahead of Her Majesty's bond, and on what terms."
+    },
+    {
+     "to": "starhemberg",
+     "via": "by hand, Vienna",
+     "sent": "1740-10-28",
+     "arrives": "1740-10-28",
+     "gist": "What the Banco could advance after the homage and the vote, how much, when, and at what rate."
+    },
+    {
+     "to": "d_aguilar",
+     "via": "in person (the secretary), Vienna",
+     "sent": "1740-10-29",
+     "arrives": "1740-10-29",
+     "gist": "Accepts, as a question and without commitment, his offer to sound Amsterdam on what the great houses would lend Her Majesty."
+    },
+    {
+     "to": "quartermaster",
+     "via": "by hand, Vienna",
+     "sent": "1740-10-27",
+     "arrives": "1740-10-27",
+     "gist": "Draw the regiments for Silesia by name, men present and road, from the commandants' returns, for Her Majesty by the 31st."
+    }
+   ],
+   "threads": [
+    {
+     "id": "pol_prussian_invasion",
+     "status": "building",
+     "next_check": "1740-11-07",
+     "note": "Rheinsberg conferences 28–29 Oct; Frederick leans to force. No movement yet. Vienna has Wallis's quiet report from Crossen; Demeradt's letter due about 1 Nov."
+    },
+    {
+     "id": "eco-01",
+     "status": "building",
+     "next_check": "1740-10-31",
+     "note": "Lenz: 30,000 now on Khevenhüller's own note, bond for his house; d'Aguilar: tobacco rent anticipated at 6%, 3 weeks; decision at the Conference of 31 Oct."
+    },
+    {
+     "id": "soc-p10-credit",
+     "status": "building",
+     "next_check": "1740-10-31",
+     "note": "Bankers versus tobacco advance versus Banco-after-homage versus guarantors; Amsterdam sounded through d'Aguilar, answer late Nov."
+    },
+    {
+     "id": "soc-p01-coregency",
+     "status": "building",
+     "next_check": "1740-11-05",
+     "note": "Queen sends for Neipperg's Belgrade papers at Francis's urging; Harrach and Sinzendorf combine against Khevenhüller's direct access."
+    },
+    {
+     "id": "pol_britain_hanover",
+     "status": "dormant",
+     "next_check": "1740-11-10",
+     "note": "d'Aguilar thinks Britain pays only for wars it is in; Bartenstein will press the guarantee at the Conference."
+    },
+    {
+     "id": "eco-02",
+     "status": "dormant",
+     "next_check": "1740-11-15",
+     "note": "Banco at 5% after the homage and vote, per Starhemberg."
+    },
+    {
+     "id": "eco-03",
+     "status": "dormant",
+     "next_check": "1740-11-10",
+     "note": "Early frost; bread said dearer in Vienna than at Michaelmas (Diarium)."
+    },
+    {
+     "id": "soc-p02-lower-austria-homage",
+     "status": "dormant",
+     "next_check": "1740-11-15"
+    },
+    {
+     "id": "rel-clerical-contribution-1741",
+     "status": "dormant",
+     "next_check": "1740-12-01"
+    }
+   ],
+   "standing": {
+    "d_aguilar": "cordial",
+    "banker_lenz": "cordial"
+   },
+   "memory": {
+    "d_aguilar": [
+     "29 Oct 1740: asked to his house for his opinion on the Crown's credit; accepted his offer to sound Amsterdam."
+    ],
+    "banker_lenz": [
+     "28 Oct 1740: asked for a little money now, ahead of Her Majesty's bond."
+    ],
+    "starhemberg": [
+     "28 Oct 1740: asked what the Banco could advance after the homage and the vote."
+    ]
+   }
+  }
+ }
+}
