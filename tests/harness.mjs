@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { checkSkeleton, courierErrand, isBattleNear, prevFromPacket, replyFormat, rulesText, rulesVersion, tableOf, TABLES, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS, sceneLines, pendingOrders, exchangeRecord } from '../w3d/turn.js';
 import { checkContinuity } from '../w3d/continuity.js';
+import { peopleFiles, aliasesOf } from '../w3d/dossier.js';
 import { stampFeatures, FIELD } from '../w3d/groundspec.js';
 import { wheel, separation, findRoute, rasterize, normalizeUnit, TROOPS, bearing, crestBetween, slopePace } from '../w3d/march.js';
 import { seasonOf, sunTimes, sunVector, moonPhase, LOOK, LEAVES, COUNTRY } from '../w3d/season.js';
@@ -223,4 +224,13 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
     near: [isBattleNear(opening), isBattleNear(n1)],
     errand: { quiet: er(false), battle: er(true) } };
 }
+// the people you know: the secretary's notes are checked, kept by the page and never sent; the files hold only what reached the player
+{ const r = reply(opening, { date: '1740-10-30', title: 't', briefing: 'b', reports: [], dossier: [{ who: 'wallis', date: '1740-10-25', note: 'Glogau has its first payment.' }, { who: 'nobody', note: 'x' }, { who: 'neipperg' }, { who: 'bartenstein', date: '1741-03-01', note: 'Late.' }], hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } });
+  const chk = checkReply(opening, r, {}), { next } = mergeTurn(opening, r);
+  const files = (today, extra = {}) => peopleFiles({ cast: opening.cast, letters: [...opening.reports, { id: 'mandate', kind: 'mandate', from_id: opening.mandate.from_id, dated: opening.mandate.dated, title: opening.mandate.title, text: opening.mandate.text }], dossier: next.dossier, remarks: opening.remarks, household: opening.household, hearsay: [], audiences: [], today, ...extra });
+  const f = files('1740-10-26', { orders: [{ ref: 'T0-1', to: 'wallis', line: 'To Wallis: hold Glogau.', date: '1740-10-21', answered: false }], sightings: [{ date: '1740-10-22', place: 'vienna', who: ['sinzendorf'], doing: 'at the Conference' }], overheard: [{ date: '1740-10-22', line: 'He counts too much.', who: 'Count Sinzendorf and Johann Christoph Bartenstein' }], hearsay: [{ teller: 'starhemberg', said: 'Honest.', date: '1740-10-23' }, { teller: 'starhemberg', said: 'Later.', date: '1740-10-29' }] });
+  const pick = (fs, id) => fs.find(x => x.id === id), early = files('1740-10-21');
+  out.dossier = { fixes: chk.fixes.filter(x => /dossier|note on/.test(x)), kept: next.dossier.map(n => [n.who, n.date]), sent: 'dossier' in liveState(next), openingWho: (opening.dossier || []).map(n => n.who), cast: opening.cast.map(c => c.id),
+    aliases: aliasesOf(opening.cast), order: f.filter(x => x.known).map(x => x.id),
+    wallis: pick(f, 'wallis'), wallisEarly: pick(early, 'wallis').notes.map(n => n.note), bartenstein: pick(f, 'bartenstein'), neipperg: pick(f, 'neipperg'), francis: pick(f, 'francis_stephen'), sinzendorf: pick(f, 'sinzendorf'), starhemberg: pick(f, 'starhemberg'), dresden: pick(f, 'dresden-envoy'), queen: pick(f, 'maria_theresa'), own: !!pick(f, 'own-forces'), secretary: !!pick(f, 'secretary') }; }
 console.log(JSON.stringify(out));

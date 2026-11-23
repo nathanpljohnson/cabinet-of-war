@@ -7,8 +7,10 @@ import { travel, loc, roadKm, letterDays, travelDays, placeOn, playerOn, routeDa
 import { choose, choiceFor, trustOf, setTrust, book, earlierDecisions } from './campaign.js';
 import { sceneLines, pendingOrders, QUESTIONS, MANNERS } from './turn.js';
 import { personOf } from './people.js';
+import { peopleFiles } from './dossier.js';
 const $ = id => document.getElementById(id);
 const ARCHIVE_KEY = 'cabinet-of-war:w3d-archive', CIPHER_KEY = 'cabinet-of-war:w3d-cipher', HEARD_KEY = 'cabinet-of-war:w3d-overheard', FAIR_KEY = 'cabinet-of-war:w3d-fair';
+const SEEN_KEY = 'cabinet-of-war:w3d-seen-people';
 const READ_KEY = 'cabinet-of-war:w3d-read', ACTED_KEY = 'cabinet-of-war:w3d-acted', SENT_KEY = 'cabinet-of-war:w3d-sent', POST_KEY = 'cabinet-of-war:w3d-post';
 const ICON = {
   map: '<path d="M3 6.5l6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/>',
@@ -336,6 +338,7 @@ export function createShell({ act, onSeal, clock }) {
     const acts = el('div', 'sh-lt-acts');
     if (!ok) { const c = ciphers()[rk(r)], b = el('button', 'sh-primary', c ? 'Your clerk is working on it' : 'Give it to your clerk'); b.disabled = !!c; b.onclick = () => { const all = ciphers(); all[rk(r)] = { day: today(), ready: (clock ? clock.hour : 9) + 3 }; keep(CIPHER_KEY, all); act('hours:.25'); act('toast:Your clerk takes it away; he expects to have it in clear in about three hours.'); showLetters(r.id); }; acts.append(b); box.append(acts); return; }
     if (hand) { const f = el('button', 'sh-fair', fair ? 'Read it in their hand' : 'Read the fair copy'); f.onclick = () => { keep(FAIR_KEY, !fair); showLetters(r.id); }; acts.append(f); }
+    if (c && c.id && c.id !== 'secretary') { const pf = el('button', 'sh-fair', 'Your file on them'); pf.onclick = () => showNotebook('person:' + c.id); acts.append(pf); }
     if (r.kind === 'mandate') { box.append(acts); if (state.player.dismissed) acts.append(el('p', 'sh-done', 'Your commission has been withdrawn.')); return; }
     if (r.kind === 'advice') {
       const on = draft.option === r.o.id; if (on) acts.append(el('p', 'sh-done', 'This is the course you have adopted; it goes with the dispatch.'));
@@ -514,7 +517,7 @@ export function createShell({ act, onSeal, clock }) {
       ul.append(li);
     }
     if (!m.length) ul.append(el('li', 'sh-empty', 'Nothing outstanding.'));
-    deskSections(sec);
+    deskSections(sec); peopleSection(sec, open);
     if (state.mandate) { const sc = sec(state.player.dismissed ? 'Your commission — withdrawn' : 'Your commission'); sc.append(el('p', 'sh-nb-quote', state.mandate.text)); const b = el('button', 'sh-nb-link', 'Read the letter'); b.onclick = () => showLetters('mandate'); sc.append(b); }
     if (state.epilogue) { const e = state.epilogue, se = sec(e.title || 'The verdict of history'); se.append(el('p', 'sh-nb-quote', e.text || '')); if (e.verdict) se.append(el('p', 'sh-nb-remark', e.verdict)); const b = el('button', 'sh-nb-link', 'Read the book of the campaign, with what was hidden'); b.onclick = () => showBook(); se.append(b); }
     if ((state.remarks || []).length) { const sr = sec('Your secretary’s remarks'); for (const t of state.remarks) sr.append(el('p', 'sh-nb-remark', t)); }
@@ -541,9 +544,58 @@ export function createShell({ act, onSeal, clock }) {
       for (const x of state.sourcesAppendix || []) { const p = el('p', 'sh-src'); p.innerHTML = '<b>' + esc(x.about) + '</b> <i>' + esc(CL[x.claim] || x.claim || '') + '</i> — ' + esc(x.note) + (x.url ? ' <a href="' + esc(x.url) + '" target="_blank" rel="noopener">source</a>' : ''); ss.append(p); }
       for (const r of seen().filter(r => r.claim)) ss.append(el('p', 'sh-src', 'Letter “' + r.title + '” — ' + (CL[r.claim] || r.claim)));
       nb.append(ss); }
+    if (typeof open === 'string' && open.startsWith('person:')) setTimeout(() => { const f = $('sh-pp-' + open.slice(7)); if (f) f.scrollIntoView({ block: 'start' }); }, 30);
     for (const [k, title] of [['staff', 'What your staff know'], ['army', 'The army and its courses'], ['scene', 'Conversations on record'], ['record', 'The record · save and load']]) {
       const n = paneNodes[k][0]; if (!n || (k === 'scene' && !state.scene)) continue; const d = el('details', 'sh-nb-more'); d.append(el('summary', null, title), n); n.hidden = false; d.open = open === k; nb.append(d); if (open === k) setTimeout(() => d.scrollIntoView({ block: 'start' }), 30); }
     $('sh-notebook').hidden = false; syncVeil();
+  }
+
+  /* ---------- the people you know: one file a person, only what has reached you (w3d/dossier.js) ---------- */
+  // whom you saw, and where: whereabouts are the reply's for one turn, so what you saw is kept (it goes in the campaign file)
+  function sightings() {
+    const all = store(SEEN_KEY, []), d = today(); let ch = false;
+    for (const w of state.whereabouts || []) { if (!w || !w.date || w.date > d || !Array.isArray(w.who) || playerOn(w.date) !== w.place) continue;
+      const who = abedOn(w.date) ? w.who.filter(id => bedsideOn(w.date, w.place).some(x => x.id === id)) : w.who; if (!who.length) continue;
+      const k = w.date + '|' + w.place + '|' + who.join(','); if (!all.some(x => x.k === k)) { all.push({ k, date: w.date, place: w.place, who, doing: w.doing || '' }); ch = true; } }
+    if (ch) keep(SEEN_KEY, all.slice(-300)); return all;
+  }
+  function files() {
+    const papers = [...letters(), ...archived()].filter(readable);
+    const orders = sentOrders().filter(o => o.to && cast(o.to)).map(o => ({ ...o, answered: isAnswered(o.ref) }));
+    return peopleFiles({ cast: state.cast, letters: papers, orders, sightings: sightings(), overheard: store(HEARD_KEY, []), hearsay: state.hearsay, dossier: state.dossier, audiences: state.audiences, remarks: state.remarks, household: state.household, today: today() });
+  }
+  const clip = (t, n = 150) => { t = String(t || ''); return t.length > n ? t.slice(0, n) + '…' : t; };
+  function peopleSection(sec, open) {
+    const fs = files(), known = fs.filter(f => f.known), rest = fs.filter(f => !f.known && !f.dead && f.id !== 'steward');
+    const sc = sec('People you know', 'Your secretary’s file on each person, kept from what has reached you: their letters, what others wrote of them, your orders and their answers, where you saw them. The most recent dealings first.');
+    for (const f of known) sc.append(personFile(f, open === 'person:' + f.id));
+    if (!known.length) sc.append(el('p', 'sh-empty', 'No one yet.'));
+    if (rest.length) sc.append(el('p', 'sh-hint', 'Not yet dealt with: ' + rest.map(f => f.name + (f.office ? ' (' + f.office + ')' : '')).join('; ') + '.'));
+  }
+  function personFile(f, isOpen) {
+    const c = cast(f.id) || {}, d = el('details', 'sh-pp'); d.id = 'sh-pp-' + f.id; d.open = !!isOpen;
+    const s = el('summary'); s.innerHTML = '<b>' + esc(f.name) + (f.dead ? ' †' : '') + '</b><small>' + esc(f.kin || f.office) + (f.latest ? ' · last word ' + esc(short(f.latest)) : '') + '</small>'; d.append(s);
+    const b = el('div', 'sh-pp-b'); d.append(b);
+    const head = (t, items, row, max = 4) => { if (!items.length) return; b.append(el('h4', null, t)); const box = el('div'); items.slice(0, max).forEach(x => box.append(row(x)));
+      if (items.length > max) { const more = el('details', 'sh-pp-more'); more.append(el('summary', null, 'Earlier (' + (items.length - max) + ')')); items.slice(max).forEach(x => more.append(row(x))); box.append(more); } b.append(box); };
+    const line = (date, html, onOpen) => { const p = el('div', 'sh-pp-row'); p.innerHTML = '<span class="sh-cal-d">' + esc(date ? short(date) : '') + '</span><span>' + html + '</span>'; if (onOpen) { const a = el('button', 'sh-o-lnk', 'Read →'); a.onclick = onOpen; p.append(a); } return p; };
+    // where word of them last came from; where a letter would find them, as your staff would address it
+    const where = [];
+    if (f.last) where.push((f.last.how === 'seen' ? 'Last seen at ' : 'Last wrote from ') + locName(f.last.place) + ', ' + short(f.last.date) + '.');
+    if (!f.dead && !ruler(c) && c.id && c.place) where.push(presentHere(c) ? 'Here, where you are.' : (n => 'A letter would find them at ' + locName(whereNow(c)) + ', about ' + n + ' day' + (n > 1 ? 's' : '') + ' away.')(Math.max(1, days(travel.here(), whereNow(c)))));
+    if (where.length) b.append(el('p', 'sh-pp-where', where.join(' ')));
+    head('Your secretary’s notes', f.notes, n => line(n.date, esc(n.note)), 3);
+    head('Your secretary’s remarks', f.remarks.map(t => ({ t })), x => line(null, esc(x.t)));
+    head('Their letters to you', f.letters, l => line(l.date, '“' + esc(l.title) + '”' + (l.place ? ' <small>from ' + esc(locName(l.place)) + '</small>' : ''), () => showLetters(l.id)));
+    head('Spoken of', f.mentions, m => line(m.date, '“' + esc(m.title) + '”' + (m.from ? ' <small>' + esc(m.kind === 'gazette' ? 'in the Diarium' : 'from ' + m.from) + '</small>' : ''), () => showLetters(m.id)));
+    head('Seen in person', f.met, m => line(m.date, esc(locName(m.place)) + (m.what ? ' — ' + esc(m.what) : ''), m.letter ? () => showLetters(m.letter) : null));
+    head('Your orders to them', f.orders, o => line(o.date, esc(clip(o.line)) + ' <small>' + (o.answered ? 'answered' : 'no answer yet') + '</small>'));
+    head('Overheard', f.overheard, o => line(o.date, '<i>“' + esc(o.line) + '”</i>'), 3);
+    head('What they say of you', f.said, h => line(h.date, '<i>“' + esc(h.said) + '”</i>'), 3);
+    head('Audiences', f.audiences, a => line(a.date, esc(a.title) + ' <small>' + esc(a.status) + '</small>'));
+    if (!f.dead && c.id && !ruler(c)) { const w = el('button', 'sh-nb-link', presentHere(c) ? 'Give them an order in person' : 'Write to them');
+      w.onclick = () => { toggleSheet(true); $('sh-to').value = c.id; $('sh-give-t').focus(); }; b.append(w); }
+    return d;
   }
 
   /* ---------- your desk: the calendar on the wall, the undertakings in hand, what is said of you, audiences to prepare ---------- */

@@ -557,3 +557,29 @@ def test_errand_works_from_any_folder_and_keeps_it_lean(run):
     assert "turns/c/turn-002.json" in q and '"dispatch": "dd"' in q and "version v1" in q
     assert "rules`" in q and "rules --battle`" in b
     assert "read nothing else in the repository" in q and "add the repository to the session" in q
+
+
+def test_secretarys_notes_on_people_are_checked_kept_and_not_sent(run):
+    d = run["dossier"]
+    assert d["fixes"] == ['A note on "nobody", who is not among the people of the campaign, was left out.', 'A note on someone (dossier) without "note" was left out.']
+    assert d["kept"][-2:] == [["wallis", "1740-10-25"], ["bartenstein", "1740-10-30"]]  # appended; a date outside the turn is clamped into it
+    assert not d["sent"]  # the page keeps them; the packet stays small
+    assert d["openingWho"] and set(d["openingWho"]) <= set(d["cast"])
+
+
+def test_people_files_hold_only_what_reached_the_player(run):
+    d = run["dossier"]
+    w = d["wallis"]
+    assert [l["id"] for l in w["letters"]] == ["r1"] and w["last"] == {"place": "glogau", "date": "1740-10-16", "how": "wrote"}
+    assert w["notes"][0]["note"] == "Glogau has its first payment."  # newest first
+    assert w["orders"][0]["ref"] == "T0-1" and not w["orders"][0]["answered"]
+    assert len(d["wallisEarly"]) == 1  # the note of the 25th has not reached him on the 21st; the opening note has
+    assert [m["id"] for m in d["bartenstein"]["mentions"]] == ["r5"]  # his wife's warning names him
+    assert d["bartenstein"]["overheard"] and d["sinzendorf"]["met"][0]["what"] == "at the Conference"
+    assert [m["id"] for m in d["francis"]["mentions"]] == ["r4"]  # "the Grand Duke"
+    assert d["neipperg"]["remarks"] and d["queen"]["letters"][0]["id"] == "mandate"
+    assert [h["said"] for h in d["starhemberg"]["said"]] == ["Honest."]  # what was said later has not reached him yet
+    # roles are not matched by their town ("Envoy at Dresden" is not every mention of Dresden); shared surnames match nothing
+    assert d["aliases"]["dresden-envoy"] == [] and "Harrach" not in d["aliases"]["harrach_joseph"]
+    assert not d["dresden"]["known"] and not d["own"] and not d["secretary"]
+    assert d["order"][0] == "countess_khevenhuller"  # household first, then the most recent dealings

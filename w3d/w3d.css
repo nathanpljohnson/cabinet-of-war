@@ -518,6 +518,24 @@ body:not(.w3d-sick) .w3d-bedside{display:none}
 .sh-hs-t button{padding:3px 9px;font-size:13px}
 .sh-hs-t button.on{border-color:var(--bone-2);background:var(--glass-3)}
 .sh-hs-more summary{cursor:pointer;font:italic 14px var(--read);color:var(--bone-3);padding:8px 0}
+/* the people you know: one file a person */
+.sh-pp{border-bottom:1px solid var(--edge)}
+.sh-pp:first-of-type{border-top:1px solid var(--edge)}
+.sh-pp>summary{cursor:pointer;padding:10px 0;list-style:none;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}
+.sh-pp>summary::-webkit-details-marker{display:none}
+.sh-pp>summary,.sh-pp-more>summary{text-transform:none;letter-spacing:0}
+.sh-pp>summary b{font:400 18px var(--display);color:var(--bone)}
+.sh-pp>summary small{font:italic 13px var(--read);color:var(--bone-3)}
+.sh-pp>summary:hover b{color:var(--wax-hi)}
+.sh-pp[open]>summary b{color:var(--wax-hi)}
+.sh-pp-b{padding:0 0 14px 14px;border-left:2px solid var(--edge-2);margin:0 0 10px 2px}
+.sh-pp-b h4{margin:12px 0 2px;font:400 13px var(--display);font-variant-caps:all-small-caps;letter-spacing:.1em;color:var(--bone-3)}
+.sh-nb-sec .sh-pp-where{font:italic 15px var(--read);color:var(--bone-2);margin:4px 0 0}
+.sh-pp-row{display:grid;grid-template-columns:64px 1fr auto;gap:2px 10px;align-items:baseline;padding:5px 0;font-size:15px;line-height:1.5;color:var(--bone)}
+.sh-pp-row small{font:italic 13px var(--read);color:var(--bone-3)}
+.sh-pp-row .sh-cal-d{font-size:14px}
+.sh-pp-more summary{cursor:pointer;font:italic 13px var(--read);color:var(--bone-3);padding:4px 0}
+@media(max-width:640px){.sh-pp-row{grid-template-columns:56px 1fr}.sh-pp-row .sh-o-lnk{grid-column:2;justify-self:start}}
 .sh-brief label{display:grid;gap:4px;font:14px var(--display);font-variant-caps:all-small-caps;letter-spacing:.06em;color:var(--bone-3)}
 .sh-brief textarea,.sh-brief select{font-variant-caps:normal;letter-spacing:0}
 @media(max-width:640px){.sh-cal li:not(.sh-empty){grid-template-columns:72px 1fr}.sh-cal li button{grid-column:2;justify-self:start}.sh-hs{grid-template-columns:1fr}.sh-hs-t{grid-column:1;grid-row:auto}}

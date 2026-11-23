@@ -404,5 +404,47 @@
    "note": "Wallis's command at Glogau rests on one source; the quartermaster, generals, envoys and steward are roles, not identified people. Francis Stephen was named co-regent only on 21 November 1740."
   }
  ],
- "briefing": "Charles VI died at the Favorita in the night of 19–20 October 1740. Maria Theresa takes up the government of the hereditary lands; the first Conference of the reign meets today. Silesia is thinly held, the chest nearly empty, and every court that signed the Pragmatic Sanction is about to be asked to honour it."
+ "briefing": "Charles VI died at the Favorita in the night of 19–20 October 1740. Maria Theresa takes up the government of the hereditary lands; the first Conference of the reign meets today. Silesia is thinly held, the chest nearly empty, and every court that signed the Pragmatic Sanction is about to be asked to honour it.",
+ "dossier": [
+  {
+   "who": "maria_theresa",
+   "date": "1740-10-21",
+   "note": "Since the night of the 19th, sovereign of the hereditary lands. Your commission is in her name: learn the true state of army and treasury, tell her plainly, hold the provinces, and give no foreign court a pretext. The old ministers expect to see her before anyone else does."
+  },
+  {
+   "who": "francis_stephen",
+   "date": "1740-10-21",
+   "note": "Her Majesty’s husband, Grand Duke of Tuscany. Neipperg was his tutor and writes that the Grand Duke knows him better than any man alive."
+  },
+  {
+   "who": "bartenstein",
+   "date": "1740-10-21",
+   "note": "Secretary of the Conference. Wants the notes on the Sanction sent to Versailles, London, Berlin and Dresden within the week, and asks your support against the old ministers’ slowness. Your wife says he is kind to whoever is useful to him this week."
+  },
+  {
+   "who": "starhemberg",
+   "date": "1740-10-21",
+   "note": "Puts the exchequer at about 100,000 florins against debts many times that, with the provinces’ next grants already pledged. Has set it in writing that no war can be made on promises, so no one can say he was not told."
+  },
+  {
+   "who": "wallis",
+   "date": "1740-10-21",
+   "note": "Commandant at Glogau. His return of 16 October: some 7,000 on the rolls in Silesia, about 3,000 foot and 600 horse fit to leave their walls, under two months’ bread, Glogau’s works in want of repair. Asks for orders and money before men."
+  },
+  {
+   "who": "neipperg",
+   "date": "1740-10-21",
+   "note": "Your kinsman by marriage, held at Brünn since the Belgrade peace he was sent to make and then blamed for. Asks you, as family, to put a word to the Grand Duke, and promises not to forget who sent it. Those who blame him for Belgrade will remember too."
+  },
+  {
+   "who": "countess_khevenhuller",
+   "date": "1740-10-21",
+   "note": "The house is hung in black and the tailor wants paying. Maria Antonia asks whether there will be war. She wants you at dinner tonight if the Conference lets you go, and warns you to be careful of Bartenstein."
+  },
+  {
+   "who": "frederick",
+   "date": "1740-10-21",
+   "note": "King in Prussia since May. Reckoned to have above eighty thousand well-drilled men and the full treasury his father left. Wallis reports loud talk across the Brandenburg border since he came to the throne."
+  }
+ ]
 }
