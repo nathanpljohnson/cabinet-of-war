@@ -64,7 +64,7 @@ async function packet(orders) {
   keep(SEALED_KEY, { turn: state.turn, dispatch, at: new Date().toISOString(), ...(note ? { note } : {}) }); // what the next turn must answer
   if (repo) setTimeout(lookForCourier, 30000);
   const packetState = { ...state, exchange: exchangeRecord(state, store(SENT_KEY, []), Object.values(store(P + 'w3d-archive', {}))) };
-  const pk = buildPacket({ state: packetState, contract, orders, almanac, fortune: fortune(), wake: w.wake, trust: state.trust, choices: choicesNow(), waiting: waiting(), endRequested: !!w.end, rulesInProject: store(RULES_KEY, false), earlier: earlierDecisions(), purse: (w.items || []).filter(i => i.purse).map(i => i.text), courier: repo ? 'repo' : null, dispatch, note });
+  const pk = buildPacket({ state: packetState, contract, orders, almanac, fortune: fortune(), wake: w.wake, trust: state.trust, choices: choicesNow(), waiting: waiting(), endRequested: !!w.end, rulesInProject: store(RULES_KEY, false), earlier: earlierDecisions(), purse: (w.items || []).filter(i => i.purse).map(i => i.text), courier: repo ? 'repo' : null, dispatch, note, agenda: window.__w3dAgenda ? window.__w3dAgenda() : [] });
   if (!repo) return pk;
   const check = { orderRefs: sentOrders(), followIds: earlierDecisions().map(d => d.id), fortune: fortune(), seal: sealOf(state), volumeDue: volumeDue(state), dispatch, ...(note ? { gameNote: true } : {}), prev: checkSkeleton(state) };
   return courierErrand({ repo: repoName(), path: turnPath(), dispatch, turn: state.turn + 1, version: rulesVersion({ contract, almanac }), battle: isBattleNear(state), note: !!note }) + '\n\n' + pk + '\n<!-- check: ' + JSON.stringify(check) + ' -->\n';

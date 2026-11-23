@@ -362,6 +362,7 @@ function checkBriefing(ch, prev, locIds, fixes) {
   if ('guidance' in b) { b.guidance = cleanGuidance(b.guidance, 'the secretary’s letter', fixes); if (!b.guidance) delete b.guidance; }
 }
 function checkLetter(r, from, to, refs, castIds, warns, fixes) {
+  if (r.asks != null && (typeof r.asks !== 'string' || !r.asks.trim())) { fixes.push('“' + r.title + '”: "asks" must be the question it puts to the player; it was left out.'); delete r.asks; }
   if (!r.arrives) { r.arrives = r.dated > from ? r.dated : from; }
   if (r.arrives < r.dated) { fixes.push('“' + r.title + '” arrived before it was written; it now arrives on ' + r.dated + '.'); r.arrives = r.dated; }
   if (r.arrives < from) { fixes.push('“' + r.title + '” was set to arrive before today; it arrives today.'); r.arrives = from; }
@@ -512,7 +513,7 @@ export function rulesText({ contract, almanac }, { battle = true } = {}) {
     + (battle ? '' : 'The battle rules (battle grounds, battle accounts and their phases, enemy commanders) are left out: no battle is near. If this turn brings a battle in the campaign, run `node tools/turn-tool.mjs rules --battle` first and follow them.\n\n')
     + c + '\n\n' + replyFormat(null, { battle }) + '\n\n## Almanac: systems and stakes\n' + systemsText(almanac) + '\n';
 }
-export function buildPacket({ state, contract, orders, almanac, fortune, wake, trust, choices, endRequested, purse, waiting, rulesInProject, earlier, courier, dispatch, note }) {
+export function buildPacket({ state, contract, orders, almanac, fortune, wake, trust, choices, endRequested, purse, waiting, rulesInProject, earlier, courier, dispatch, note, agenda }) {
   const continuity = exchangeRecord(state), outstanding = pendingOrders({ ...state, exchange: continuity }, [{ turn: state.turn, orders: waiting || [] }]);
   const th = (state.hidden || {}).threads || [], date = state.date, act = activePlots(almanac || {}, th, date), byId = new Map(th.map(t => [t.id, t]));
   const shown = th.filter(t => !['resolved', 'abandoned'].includes(t.status) && (liveThread(t) || dueThread(t, date))), rest = th.length - shown.length;
@@ -530,6 +531,7 @@ export function buildPacket({ state, contract, orders, almanac, fortune, wake, t
     + (ins && ins.text && ins.text.trim() ? '\n\n## The player’s instructions to their secretary (written ' + (ins.written || '') + (ins.revised && ins.revised !== ins.written ? ', last revised ' + ins.revised : '') + ')\nTheir standing routine, in their own words. Live every day of this turn by it, as the contract’s "Instructions to the secretary" says; it overrides hidden.standingOrders where they differ.\n' + ins.text.trim() : '')
     + notesOnGame((state.gameNotes || {}).standing, note, R)
     + '\n\n' + orders.trim()
+    + agendaSection(agenda)
     + '\n\n## The player’s judgement of sources\nTrusts: ' + (trusts.join('; ') || '(none marked)') + '\nDoubts: ' + (doubts.join('; ') || '(none marked)')
     + (outstanding.length ? '\n\n## Earlier orders with no answer yet\nThese remain pending regardless of age. A letter that answers one carries its reference in "re". An acknowledgement is not proof of execution: record any continuing obligation in hidden.standingOrders and hidden.chronicle.\n' + outstanding.map(o => '- [' + o.ref + '] ' + (o.line || o.text || '')).join('\n') : '')
     + (continuity.lastScene || continuity.commitments.length ? '\n\n## Meetings and commitments carried forward\nThe latest meeting is context, not a new event. Earlier promises remain part of the record; assess fulfilment or breach from events, never assume they expired.\n' + JSON.stringify({ lastScene: continuity.lastScene, commitments: continuity.commitments }) : '')
@@ -573,6 +575,13 @@ export function checkSkeleton(state) {
     undertakings: ids('undertakings'), calendar: ids('calendar'), audiences: ids('audiences'), reports: ids('reports'),
     hidden: { standing: h.standing || {}, threads: (h.threads || []).filter(t => t && ['resolved', 'abandoned'].includes(t.status)).map(t => ({ id: t.id, status: t.status, title: t.title })) },
     ...(bd && bd.id ? { battleDemo: { id: bd.id, units: (bd.units || []).filter(isObj).map(u => ({ id: u.id, ...(u.men != null ? { men: u.men } : {}) })) } } : {}) };
+}
+// what lay before the player: the questions their letters put to them, and which they left open (w3d/agenda.js).
+// The instruction for "asks" travels here, not in the rules, so the rules version holds.
+export function agendaSection(items) {
+  const open = (items || []).filter(x => x && x.state !== 'decided' && x.ask), line = x => '- ' + (x.id ? '[' + x.id + '] ' : '') + (x.from ? x.from + ': ' : '') + x.ask + (x.state === 'aside' ? ' (set aside)' : '');
+  return '\n\n## What the player must decide\nGive a letter that wants the player\'s decision "asks": that decision as one plain question.'
+    + (open.length ? ' Left undecided (those who asked act without them):\n' + open.map(line).join('\n') : '');
 }
 // the player's notes on the game itself, out of character: standing ones every turn, and this turn's (which must be answered)
 export function notesOnGame(standing, now, repo) {

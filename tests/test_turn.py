@@ -602,3 +602,19 @@ def test_a_note_on_the_game_is_sent_answered_and_filed(run):
     assert g["cleared"] is None and g["logKept"] == 1  # the answer is per turn; the record keeps it
     assert g["live"] == []  # never sent back to the adjudicator in the state
     assert g["errand"] == [True, False, True]  # the code step only when there is a note
+
+
+def test_before_you_seal_lists_every_decision_and_tells_the_adjudicator_what_was_left(run):
+    a = run["agenda"]
+    assert a["opening"] == ["r1", "r2", "r4", "r5"]  # the opening letters put their questions plainly
+    assert a["before"][:2] == [["urgent", "u1", "open"], ["council", "d1", "open"]]  # what cannot wait comes first
+    assert ["letter", "r8", "open"] in a["before"]  # a letter that only informs is listed until dealt with
+    after = {x[1]: x[2:] for x in a["after"]}
+    assert after["u1"] == ["decided", "you answered: Move it"] and after["d1"][0] == "decided" and after["r1"] == ["decided", "orders given"]
+    assert after["r4"] == ["aside", "put with your papers"] and after["a1"] == ["decided", "prepared"]
+    assert "r8" not in after and "r3" not in after  # informing letters leave the list once filed
+    assert a["notYet"] == 0  # a letter still on the road is not yet before the player
+    s = a["section"]
+    assert "[r2]" in s and "[r5]" in s and "(set aside)" in s and "[r1]" not in s and "[d1]" not in s
+    assert '"asks"' in a["empty"] and "Left undecided" not in a["empty"]
+    assert a["fix"] and not a["kept"]  # "asks" must be a question

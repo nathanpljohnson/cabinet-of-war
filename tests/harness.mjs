@@ -1,8 +1,9 @@
 // Runs the reply pipeline (w3d/turn.js, w3d/continuity.js) on the opening state and the mock replies; prints JSON for pytest.
 import { readFileSync } from 'node:fs';
-import { notesOnGame, checkSkeleton, courierErrand, isBattleNear, prevFromPacket, replyFormat, rulesText, rulesVersion, tableOf, TABLES, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS, sceneLines, pendingOrders, exchangeRecord } from '../w3d/turn.js';
+import { agendaSection, notesOnGame, checkSkeleton, courierErrand, isBattleNear, prevFromPacket, replyFormat, rulesText, rulesVersion, tableOf, TABLES, parseReply, checkReply, mergeTurn, buildPacket, liveState, rollFortune, applyBranch, activePlots, STATIC_KEYS, sealOf, nextLink, fingerprint, volumeDue, GROUNDS, GROUND_KINDS, sceneLines, pendingOrders, exchangeRecord } from '../w3d/turn.js';
 import { checkContinuity } from '../w3d/continuity.js';
 import { peopleFiles, aliasesOf } from '../w3d/dossier.js';
+import { agenda } from '../w3d/agenda.js';
 import { stampFeatures, FIELD } from '../w3d/groundspec.js';
 import { wheel, separation, findRoute, rasterize, normalizeUnit, TROOPS, bearing, crestBetween, slopePace } from '../w3d/march.js';
 import { seasonOf, sunTimes, sunVector, moonPhase, LOOK, LEAVES, COUNTRY } from '../w3d/season.js';
@@ -252,4 +253,16 @@ const bc = checkReply(opening, bad, {}); out.badFixes = { fixes: bc.fixes, world
     unanswered: unanswered.warns.filter(w => /note on the game/.test(w)).length, answeredWarns: ac.warns.filter(w => /note on the game/.test(w)).length,
     ignored: ac.fixes.some(f => /gameNotes/.test(f)), standing: next.gameNotes.standing, log: next.gameNotes.log, cleared: n2.gameNote ?? null, logKept: n2.gameNotes.log.length,
     live: ['gameNotes', 'gameNote'].filter(k => k in liveState(next)), errand: [er(true).includes('git sparse-checkout disable'), er(false).includes('sparse-checkout disable'), er(true).includes('7. Tell the player')] }; }
+// before you seal: what awaits the player's decision, and what the adjudicator is told was left open
+{ const names = Object.fromEntries(opening.cast.map(c => [c.id, c.name]));
+  const urgent = { id: 'u1', title: 'The magazine', from_id: 'wallis', dated: '1740-10-22', urgent: { prompt: 'Move the magazine to Neisse today?', options: [] } };
+  const later = { id: 'r9', title: 'Later', from_id: 'wallis', dated: '1740-10-25', asks: 'Not yet arrived?' };
+  const inform = { id: 'r8', title: 'Quiet', from_id: 'wallis', dated: '1740-10-22' };
+  const base = { letters: [...opening.reports, urgent, inform], names, decision: opening.decision, today: '1740-10-22', audiences: [{ id: 'a1', with: ['maria_theresa'], date: '1740-10-24', title: 'With Her Majesty', status: 'expected', noted: '1740-10-21' }], undertakings: [{ id: 'k', title: 'The loan', stage: 'The bankers want security.', status: 'stalled' }] };
+  const before = agenda(base);
+  const after = agenda({ ...base, acted: { r1: 'ordered', r4: 'filed', r8: 'filed', r3: 'filed' }, chose: id => id === 'u1' ? 'Move it' : null, option: 'b', briefs: ['a1'] });
+  const sec = agendaSection(after), r = reply(opening, { date: '1740-10-23', title: 't', briefing: 'b', reports: [{ id: 'x', title: 'X', text: 'x', dated: '1740-10-22', source: 's', asks: 7 }], hidden: { chronicle: 'c', decisions: [{}], fortune_used: [{}] } });
+  const ck = checkReply(opening, r, {});
+  out.agenda = { before: before.map(x => [x.kind, x.id, x.state]), after: after.map(x => [x.kind, x.id, x.state, x.how]), askR1: before.find(x => x.id === 'r1').ask, opening: opening.reports.filter(r => r.asks).map(r => r.id),
+    section: sec, empty: agendaSection([]), fix: ck.fixes.filter(f => /asks/.test(f)), kept: 'asks' in r.changes.reports[0], notYet: agenda({ ...base, letters: [later], decision: null, audiences: [], undertakings: [] }).length }; }
 console.log(JSON.stringify(out));
